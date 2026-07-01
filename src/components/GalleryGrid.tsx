@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Eyebrow } from "@/components/ui";
 import { GALLERY_FILTERS, GALLERY_PROJECTS } from "@/lib/content";
@@ -38,7 +39,11 @@ export function GalleryGrid() {
 
       {featured && (
         <div className="overflow-hidden rounded-xl bg-steel">
-          <div className="aspect-[16/9] sm:aspect-[16/6] bg-thumb" />
+          <div className="relative aspect-[16/9] sm:aspect-[16/6] bg-thumb">
+            {featured.image && (
+              <Image src={featured.image} alt={featured.title} fill className="object-cover" priority />
+            )}
+          </div>
           <div className="p-4 sm:p-5">
             <Eyebrow className="mb-1.5">
               FEATURED · {featured.category.toUpperCase()}
@@ -60,7 +65,11 @@ export function GalleryGrid() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {rest.map((project) => (
           <div key={project.title} className="overflow-hidden rounded-xl bg-steel">
-            <div className="aspect-[4/3] bg-thumb" />
+            <div className="relative aspect-[4/3] bg-thumb">
+              {project.image && (
+                <Image src={project.image} alt={project.title} fill className="object-cover" />
+              )}
+            </div>
             <div className="p-3 sm:p-3.5">
               <p className="font-display font-extrabold text-[11px] sm:text-[13px] text-white mb-1">
                 {project.title}

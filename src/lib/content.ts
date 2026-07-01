@@ -32,6 +32,7 @@ export const SERVICES: {
   subServices: { icon: string; title: string; desc: string }[];
   steps: { title: string; desc: string }[];
   stepsLabel: string;
+  projectImages?: string[];
 }[] = [
   {
     slug: "lawn-care",
@@ -41,6 +42,11 @@ export const SERVICES: {
     eyebrow: "SERVICE",
     heroDesc:
       "Recurring mowing, fertilization, and aeration programs that keep your lawn healthy all season — no calls, no reminders needed.",
+    projectImages: [
+      "/images/gallery/lawn-care-mowing-treerow.jpg",
+      "/images/gallery/lawn-care-crew-truck.jpg",
+      "/images/gallery/lawn-care-spreader.jpg",
+    ],
     subServices: [
       { icon: "✂", title: "Mowing & trimming", desc: "Weekly or bi-weekly recurring visits, edged and cleaned up every time" },
       { icon: "◐", title: "Fertilization & weed control", desc: "Season-long treatment programs tailored to Iowa soil and climate" },
@@ -62,6 +68,11 @@ export const SERVICES: {
     eyebrow: "SERVICE",
     heroDesc:
       "Patios, retaining walls, outdoor living spaces, and landscape lighting — designed and built by one crew, start to finish.",
+    projectImages: [
+      "/images/gallery/hardscape-pool-patio-featured.jpg",
+      "/images/gallery/hardscape-retaining-wall-patio.jpg",
+      "/images/gallery/hardscape-outdoor-kitchen.jpg",
+    ],
     subServices: [
       { icon: "▢", title: "Patios & outdoor living", desc: "Paver and natural stone patios, fire pits, outdoor kitchens" },
       { icon: "▤", title: "Retaining walls", desc: "Engineered walls for grading, terracing, and erosion control" },
@@ -112,23 +123,79 @@ export type GalleryProject = {
   title: string;
   category: (typeof GALLERY_FILTERS)[number];
   specs: string[];
+  image?: string;
   featured?: boolean;
 };
 
-// Placeholder gallery data — spec section 8: needs real photography and specs
-// from the owner's photo library before launch.
+// Real crew photography from the owner's photo library (spec section 8).
+// Titles/cities and specs (sq ft, timelines) are still placeholders — swap
+// in exact numbers once the owner confirms them per project.
 export const GALLERY_PROJECTS: GalleryProject[] = [
   {
-    title: "Full backyard rebuild — Waukee",
+    title: "Lakefront patio & pool rebuild",
     category: "Patios & hardscape",
-    specs: ["820 SQ FT PATIO", "SEAT WALL + FIRE PIT", "6 WEEKS"],
+    specs: ["PAVER PATIO", "POOL DECK", "OUTDOOR LIVING"],
+    image: "/images/gallery/hardscape-pool-patio-featured.jpg",
     featured: true,
   },
-  { title: "Retaining wall — Urbandale", category: "Retaining walls", specs: ["140 LIN FT", "4 FT TALL"] },
-  { title: "Landscape lighting — Johnston", category: "Lighting", specs: ["18 FIXTURES", "LOW VOLTAGE"] },
-  { title: "Paver walkway — Clive", category: "Patios & hardscape", specs: ["95 SQ FT", "2 WEEKS"] },
-  { title: "Holiday lighting — West Des Moines", category: "Lighting", specs: ["ROOFLINE + TREES"] },
-  { title: "Outdoor kitchen — Adel", category: "Patios & hardscape", specs: ["GRILL ISLAND + BAR"] },
+  {
+    title: "Retaining wall & patio",
+    category: "Retaining walls",
+    specs: ["SEGMENTAL BLOCK WALL", "PAVER PATIO"],
+    image: "/images/gallery/hardscape-retaining-wall-patio.jpg",
+  },
+  {
+    title: "Paver walkway & entry steps",
+    category: "Patios & hardscape",
+    specs: ["PAVER WALKWAY", "STONE STEPS"],
+    image: "/images/gallery/hardscape-paver-steps-walkway.jpg",
+  },
+  {
+    title: "Outdoor kitchen",
+    category: "Patios & hardscape",
+    specs: ["GRILL ISLAND", "PIZZA OVEN"],
+    image: "/images/gallery/hardscape-outdoor-kitchen.jpg",
+  },
+  {
+    title: "Custom fire feature",
+    category: "Patios & hardscape",
+    specs: ["GAS FIRE BOWL", "STONE BASE"],
+    image: "/images/gallery/hardscape-fire-bowl.jpg",
+  },
+  {
+    title: "Backyard putting green",
+    category: "Patios & hardscape",
+    specs: ["SYNTHETIC TURF", "BOULDER BORDER"],
+    image: "/images/gallery/landscaping-putting-green.jpg",
+  },
+  {
+    title: "Lakefront hardscape rebuild",
+    category: "Patios & hardscape",
+    specs: ["FULL BACKYARD REBUILD", "RETAINING WALL"],
+    image: "/images/gallery/hardscape-lakefront-aerial.jpg",
+  },
+  {
+    title: "Recurring lawn maintenance",
+    category: "Lawn care",
+    specs: ["MOWING", "TRIMMING & EDGING"],
+    image: "/images/gallery/lawn-care-mowing-treerow.jpg",
+  },
+  {
+    title: "Fertilization & lawn care route",
+    category: "Lawn care",
+    specs: ["FERTILIZATION", "WEED CONTROL"],
+    image: "/images/gallery/lawn-care-spreader.jpg",
+  },
+  {
+    title: "Landscape lighting",
+    category: "Lighting",
+    specs: ["LOW VOLTAGE LED"],
+  },
+  {
+    title: "Holiday lighting",
+    category: "Lighting",
+    specs: ["ROOFLINE + TREES"],
+  },
 ];
 
 // Placeholder — spec section 8: needs real Google/Facebook review copy,

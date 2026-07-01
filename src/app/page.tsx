@@ -1,8 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { HeroShell } from "@/components/HeroShell";
 import { PageShell } from "@/components/PageShell";
 import { Footer } from "@/components/Footer";
-import { Card, LightCard, LinkButton, MonoLabel, Thumb } from "@/components/ui";
+import { Card, LightCard, LinkButton, MonoLabel } from "@/components/ui";
 import {
   CREW_COUNT,
   FOUNDED_YEAR,
@@ -12,6 +13,12 @@ import {
   TESTIMONIALS,
   YEARS_IN_METRO,
 } from "@/lib/content";
+
+const HOMEPAGE_PREVIEW_IMAGES = [
+  "/images/gallery/hardscape-pool-patio-featured.jpg",
+  "/images/gallery/hardscape-paver-steps-walkway.jpg",
+  "/images/gallery/hardscape-outdoor-kitchen.jpg",
+];
 
 export default function Home() {
   return (
@@ -76,9 +83,14 @@ export default function Home() {
         <Card>
           <MonoLabel className="mt-0">RECENT PROJECTS</MonoLabel>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5">
-            <Thumb />
-            <Thumb className="hidden sm:block" />
-            <Thumb className="hidden sm:block" />
+            {HOMEPAGE_PREVIEW_IMAGES.map((src, i) => (
+              <div
+                key={src}
+                className={`relative aspect-square overflow-hidden rounded-lg bg-thumb ${i > 0 ? "hidden sm:block" : ""}`}
+              >
+                <Image src={src} alt="Recent project" fill className="object-cover" />
+              </div>
+            ))}
             <Link href="/gallery" className="aspect-square rounded-lg bg-thumb flex items-center justify-center">
               <span className="font-data text-xs text-signal">view all</span>
             </Link>
