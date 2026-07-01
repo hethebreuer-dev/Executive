@@ -94,6 +94,11 @@ export const SERVICES: {
     eyebrow: "SERVICE",
     heroDesc:
       "Professional holiday lighting install, takedown, and off-season storage — no ladders, no tangled totes in your garage.",
+    projectImages: [
+      "/images/gallery/holiday-lighting-house-wreaths.jpg",
+      "/images/gallery/holiday-lighting-house-night.jpg",
+      "/images/gallery/holiday-lighting-crew-trailer.jpg",
+    ],
     subServices: [
       { icon: "⌂", title: "Roofline lighting", desc: "Clean C9/mini-light roofline and gutter installs" },
       { icon: "✦", title: "Tree & shrub wrapping", desc: "Lighted trees, shrubs, and landscape features" },
@@ -192,9 +197,16 @@ export const GALLERY_PROJECTS: GalleryProject[] = [
     specs: ["LOW VOLTAGE LED"],
   },
   {
-    title: "Holiday lighting",
+    title: "Holiday lighting install",
     category: "Lighting",
-    specs: ["ROOFLINE + TREES"],
+    specs: ["ROOFLINE + PEAKS", "WREATHS"],
+    image: "/images/gallery/holiday-lighting-house-wreaths.jpg",
+  },
+  {
+    title: "Custom color holiday lighting",
+    category: "Lighting",
+    specs: ["ROOFLINE + PEAKS", "COLOR CHANGING"],
+    image: "/images/gallery/holiday-lighting-colorful.jpg",
   },
 ];
 
