@@ -11,7 +11,7 @@ export function HeroShell({
   return (
     <div
       className={`relative overflow-hidden rounded-2xl bg-ink px-5 sm:px-10 ${
-        compact ? "pt-16 pb-6 sm:pt-20 sm:pb-8" : "pt-16 pb-6 sm:pt-20 sm:pb-14"
+        compact ? "pt-24 pb-6 sm:pt-28 sm:pb-8" : "pt-24 pb-6 sm:pt-28 sm:pb-14"
       }`}
     >
       <Nav />
