@@ -4,6 +4,11 @@ export const FOUNDED_YEAR = 2013;
 export const YEARS_IN_METRO = new Date().getFullYear() - FOUNDED_YEAR;
 export const CREW_COUNT = 30;
 
+export const GOOGLE_RATING = 4.9;
+export const GOOGLE_REVIEW_COUNT = 136;
+export const GOOGLE_REVIEWS_URL =
+  "https://www.google.com/search?sca_esv=09ac4697b48f92d5&rlz=1C5CHFA_enUS1084US1084&sxsrf=APpeQns0Ixfhw6-GQ1XBtGntZzpOD7cGzA:1782955264586&si=APenkKm7iecQ4G6P-TsbSMFKIQtv3EFIqRAFw-i8uEbk55Z-_x9ax2DPw3MACIPnoAGxLCzKT0ir_lEmEqNyBfxzXwpTIC3n9JZaBpLCXErwlgSqffDY2gAdaOysMaNjOBY2kMW6tXV23wGH59eUe4tbVMvwbCEzwg%3D%3D&q=Executive+Outdoor+Solutions+Reviews&sa=X&ved=2ahUKEwj8qcj56bKVAxVtB7wBHa-YHcYQ0bkNegQIJxAF&biw=1699&bih=937&dpr=2";
+
 export const SERVICE_AREA_CITIES = [
   "Des Moines",
   "Waukee",

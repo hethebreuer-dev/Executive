@@ -4,6 +4,7 @@ import { HeroShell } from "@/components/HeroShell";
 import { PageShell } from "@/components/PageShell";
 import { Footer } from "@/components/Footer";
 import { ServiceImageCard } from "@/components/ServiceImageCard";
+import { GoogleReviewsBadge } from "@/components/GoogleReviewsBadge";
 import { Card, LightCard, LinkButton, MonoLabel } from "@/components/ui";
 import {
   CREW_COUNT,
@@ -29,6 +30,7 @@ export default function Home() {
   return (
     <PageShell>
       <HeroShell>
+        <GoogleReviewsBadge />
         <h1 className="font-display max-w-[560px] text-3xl sm:text-[40px] font-extrabold leading-[1.15] text-white mb-4">
           Des Moines metro&rsquo;s outdoor spaces, handled by one crew.
         </h1>
