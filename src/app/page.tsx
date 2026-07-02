@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HeroShell } from "@/components/HeroShell";
 import { PageShell } from "@/components/PageShell";
 import { Footer } from "@/components/Footer";
+import { ServiceImageCard } from "@/components/ServiceImageCard";
 import { Card, LightCard, LinkButton, MonoLabel } from "@/components/ui";
 import {
   CREW_COUNT,
@@ -21,6 +22,10 @@ const HOMEPAGE_PREVIEW_IMAGES = [
 ];
 
 export default function Home() {
+  const lawnCare = SERVICES.find((s) => s.slug === "lawn-care")!;
+  const landscaping = SERVICES.find((s) => s.slug === "landscaping-hardscape")!;
+  const holidayLighting = SERVICES.find((s) => s.slug === "holiday-lighting")!;
+
   return (
     <PageShell>
       <HeroShell>
@@ -63,20 +68,31 @@ export default function Home() {
         </Card>
       </div>
 
-      <div id="services" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {SERVICES.map((service) => (
-          <Link key={service.slug} href={`/services/${service.slug}`}>
-            <Card className="hover:brightness-110 transition-[filter] flex items-center gap-3 sm:block sm:gap-0">
-              <span className="text-signal text-xl">{service.icon}</span>
-              <div>
-                <p className="font-display font-extrabold text-base text-white mt-0 sm:mt-3.5 mb-1.5">
-                  {service.title}
-                </p>
-                <p className="text-[13px] text-muted m-0">{service.shortDesc}</p>
-              </div>
-            </Card>
-          </Link>
-        ))}
+      <div id="services" className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
+        <ServiceImageCard
+          large
+          href={`/services/${landscaping.slug}`}
+          image={landscaping.projectImages![0]}
+          icon={landscaping.icon}
+          title={landscaping.title}
+          desc={landscaping.shortDesc}
+        />
+        <div className="flex flex-col gap-3">
+          <ServiceImageCard
+            href={`/services/${lawnCare.slug}`}
+            image={lawnCare.projectImages![0]}
+            icon={lawnCare.icon}
+            title={lawnCare.title}
+            desc={lawnCare.shortDesc}
+          />
+          <ServiceImageCard
+            href={`/services/${holidayLighting.slug}`}
+            image={holidayLighting.projectImages![0]}
+            icon={holidayLighting.icon}
+            title={holidayLighting.title}
+            desc={holidayLighting.shortDesc}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-3">
