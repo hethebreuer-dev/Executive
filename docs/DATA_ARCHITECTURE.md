@@ -143,9 +143,13 @@ Not in the repo yet; what live data needs:
 
 - **Phase 0 — the seam ✅** _(done)_ canonical model, connector interface, source
   catalog, mock connector #0, in-memory repository, `/api/listings`. UI unchanged.
-- **Phase 1 — first live source** wire **eBay Motors Browse API** (or the BaT
-  Apify actor) end-to-end; stand up Postgres + one ingestion worker; point the
-  Marketplace at `/api/listings`.
+- **Phase 1 — first live source 🚧** _(in progress)_ **eBay Motors** connector
+  built ([`connectors/ebay.ts`](../src/lib/luft/connectors/ebay.ts)): OAuth
+  app-token flow + Browse API search + air-cooled filtering, self-enabling on
+  `EBAY_APP_ID`/`EBAY_CERT_ID`. The **Marketplace now reads the repository**
+  server-side, so live cars appear the moment credentials are set — no code
+  change. Remaining: eBay credentials, then stand up Postgres + a Cloudflare
+  Worker to ingest on a schedule (today's read path fetches on request).
 - **Phase 2 — comps** license **Classic.com or Hagerty** (and/or ingest BaT sold
   results); build the aggregation job; make medians / trend / bands real.
 - **Phase 3 — breadth** add sources tier-by-tier behind the connector interface;

@@ -42,7 +42,7 @@ export type Listing = {
 };
 
 /** Map a canonical listing down to the legacy UI shape. */
-function toLegacy(c: CanonicalListing, i: number): Listing {
+export function toLegacyListing(c: CanonicalListing, i: number): Listing {
   return {
     id: i + 1,
     year: c.year,
@@ -61,7 +61,7 @@ function toLegacy(c: CanonicalListing, i: number): Listing {
   };
 }
 
-export const LISTINGS: Listing[] = MOCK_LISTINGS.map(toLegacy);
+export const LISTINGS: Listing[] = MOCK_LISTINGS.map(toLegacyListing);
 
 export const GENERATIONS = [
   { key: "912", label: "912", years: "1965–1976", from: "from $38k" },
