@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import { Archivo, Inter, JetBrains_Mono } from "next/font/google";
+import { Oswald, Libre_Franklin, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/components/luft/AuthProvider";
+import { Header } from "@/components/luft/Header";
 
-const archivo = Archivo({
-  variable: "--font-archivo",
+const oswald = Oswald({
+  variable: "--font-oswald",
   subsets: ["latin"],
-  weight: ["800"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const libreFranklin = Libre_Franklin({
+  variable: "--font-libre-franklin",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -21,9 +23,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Executive Outdoor Solutions | Des Moines Metro Lawn Care & Landscaping",
+  title: "LUFT — Buy. Sell. Breathe air-cooled.",
   description:
-    "Lawn care, landscaping & hardscape, and holiday lighting for the Des Moines metro since 2013. One crew, start to finish.",
+    "The marketplace and workshop for air-cooled Porsche 911s. Every air-cooled 911, 912, and 930 for sale in America — priced against real sold comps.",
 };
 
 export default function RootLayout({
@@ -34,9 +36,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
+      className={`${oswald.variable} ${libreFranklin.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-screen">{children}</body>
+      <body>
+        <AuthProvider>
+          <Header />
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
