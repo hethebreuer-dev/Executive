@@ -1,43 +1,354 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ *\
+   LUFT design system
+   Editorial, near-monochrome. White bg, near-black ink, 1px hairlines,
+   square corners, mono "spec-sheet" accents. No accent color.
+\* ------------------------------------------------------------------ */
+
 :root {
-  --color-ink: #424143;
-  --color-signal: #60cc33;
-  --color-signal-ink: #17300a;
-  --color-light-gray: #d9dbde;
-  --color-white: #ffffff;
-  --color-steel: #363537;
-  --color-charcoal: #2e2d2f;
-  --color-footer: #1e1d1f;
-  --color-muted: #a9a8aa;
-  --color-subtle: #7a797b;
-  --color-border-dim: #5a595b;
-  --color-thumb: #4a494b;
-  --color-light-ink: #5a595b;
+  --ink: #0d0d0d;
+  --bg: #ffffff;
+  --muted: #5e5e5a;
+  --faint: #8a8a85;
+  --placeholder: #adaca7;
+  --hairline: #e6e5e2;
+  --hairline-soft: #eeeeec;
+  --link-hover: #3f3f3d;
+  --panel: #fafafa;
 }
 
 @theme inline {
-  --color-ink: var(--color-ink);
-  --color-signal: var(--color-signal);
-  --color-signal-ink: var(--color-signal-ink);
-  --color-light-gray: var(--color-light-gray);
-  --color-white: var(--color-white);
-  --color-steel: var(--color-steel);
-  --color-charcoal: var(--color-charcoal);
-  --color-footer: var(--color-footer);
-  --color-muted: var(--color-muted);
-  --color-subtle: var(--color-subtle);
-  --color-border-dim: var(--color-border-dim);
-  --color-thumb: var(--color-thumb);
-  --color-light-ink: var(--color-light-ink);
+  --color-ink: var(--ink);
+  --color-bg: var(--bg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-placeholder: var(--placeholder);
+  --color-hairline: var(--hairline);
 
-  --font-display: var(--font-archivo), sans-serif;
-  --font-body: var(--font-inter), sans-serif;
-  --font-data: var(--font-jetbrains-mono), monospace;
+  --font-display: var(--font-oswald), sans-serif;
+  --font-body: var(--font-libre-franklin), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
-  background: var(--color-charcoal);
-  color: var(--color-white);
-  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-libre-franklin), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+}
+
+a {
+  color: var(--ink);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--link-hover);
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* Spec-sheet label + mono accent -------------------------------------- */
+.lbl {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+.display {
+  font-family: var(--font-oswald), sans-serif;
+}
+
+/* Live status dot ----------------------------------------------------- */
+@keyframes luftpulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 13, 13, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(13, 13, 13, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 13, 13, 0);
+  }
+}
+.luft-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  flex: 0 0 auto;
+}
+.luft-dot--pulse {
+  animation: luftpulse 2s infinite;
+}
+
+/* Container ------------------------------------------------------------ */
+.luft-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+@media (max-width: 860px) {
+  .luft-container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+/* Responsive grid helpers (collapse to 1 col ≤860, 2 col 560–860) ------ */
+.luft-grid-2,
+.luft-grid-3,
+.luft-grid-4,
+.luft-grid-5 {
+  display: grid;
+}
+.luft-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.luft-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.luft-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.luft-grid-5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+@media (min-width: 561px) and (max-width: 860px) {
+  .luft-grid-3,
+  .luft-grid-4,
+  .luft-grid-5 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 860px) {
+  .luft-grid-2,
+  .luft-grid-3,
+  .luft-grid-4,
+  .luft-grid-5 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Horizontal-scroll wide rows ----------------------------------------- */
+.luft-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.luft-scroll > div {
+  min-width: 640px;
+}
+
+/* Placeholder image slot (diagonal hatch) ----------------------------- */
+.luft-hatch {
+  background: repeating-linear-gradient(
+    135deg,
+    #f1f0ed 0 12px,
+    #e5e4e0 12px 24px
+  );
+}
+.luft-hatch--fine {
+  background: repeating-linear-gradient(
+    135deg,
+    #f1f0ed 0 10px,
+    #e5e4e0 10px 20px
+  );
+}
+
+/* Buttons ------------------------------------------------------------- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+}
+.btn-primary:hover {
+  color: var(--bg);
+}
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  border: 1px solid var(--ink);
+  cursor: pointer;
+}
+
+/* Form controls (LUFT square, hairline) ------------------------------- */
+.luft-field {
+  width: 100%;
+  border: 1px solid #d9d8d4;
+  background: #ffffff;
+  padding: 13px 14px;
+  font-family: var(--font-libre-franklin), sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  border-radius: 0;
+}
+.luft-field:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+.luft-field::placeholder {
+  color: var(--placeholder);
+}
+textarea.luft-field {
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* Header / mobile menu ------------------------------------------------- */
+.luft-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline);
+}
+.luft-bar {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 40px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+@media (max-width: 860px) {
+  .luft-bar {
+    padding: 0 20px;
+    gap: 20px;
+  }
+}
+.luft-hamburger {
+  display: none;
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ink);
+  background: #fff;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.luft-mobile-menu {
+  background: #fff;
+  padding: 8px 20px 24px;
+  border-top: 1px solid var(--hairline);
+}
+.luft-mobile-menu a,
+.luft-mobile-menu button.luft-mm-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-oswald), sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  padding: 16px 2px;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink);
+  background: none;
+  cursor: pointer;
+}
+.luft-mobile-menu a.luft-mm-cta {
+  margin-top: 18px;
+  padding: 16px;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  text-align: center;
+}
+@media (max-width: 860px) {
+  .luft-hamburger {
+    display: flex;
+  }
+  .luft-nav-desktop {
+    display: none !important;
+  }
+  .luft-header-right {
+    display: none !important;
+  }
+}
+@media (min-width: 861px) {
+  .luft-mobile-menu {
+    display: none !important;
+  }
+}
+
+/* Auth popovers ------------------------------------------------------- */
+.auth-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(13, 13, 13, 0.55);
+  backdrop-filter: blur(4px);
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px;
+}
+.auth-menu-pop {
+  position: fixed;
+  top: 64px;
+  right: 24px;
+  z-index: 60;
+  border: 1px solid var(--ink);
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(13, 13, 13, 0.16);
+}
+.auth-menu-pop a {
+  display: block;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 13px 20px;
+  border-bottom: 1px solid #eceae6;
+  white-space: nowrap;
+  min-width: 200px;
+}
+.auth-menu-pop a:hover {
+  background: #faf9f7;
+}
+
+/* Mobile H1 clamp ----------------------------------------------------- */
+@media (max-width: 860px) {
+  h1.luft-h1 {
+    font-size: clamp(34px, 9.5vw, 58px) !important;
+    line-height: 1.03 !important;
+  }
+  .luft-sticky-aside {
+    position: static !important;
+    top: auto !important;
+    width: 100% !important;
+  }
 }

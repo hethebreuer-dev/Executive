@@ -1,154 +1,392 @@
-import Image from "next/image";
 import Link from "next/link";
-import { HeroShell } from "@/components/HeroShell";
-import { PageShell } from "@/components/PageShell";
-import { Footer } from "@/components/Footer";
-import { ServiceImageCard } from "@/components/ServiceImageCard";
-import { GoogleReviewsBadge } from "@/components/GoogleReviewsBadge";
-import { Card, LightCard, LinkButton, MonoLabel } from "@/components/ui";
+import { LISTINGS, GENERATIONS } from "@/lib/luft";
+import { FooterGrid } from "@/components/luft/Footer";
 import {
-  CREW_COUNT,
-  FOUNDED_YEAR,
-  PHONE,
-  SERVICE_AREA_CITIES,
-  SERVICES,
-  TESTIMONIALS,
-  YEARS_IN_METRO,
-} from "@/lib/content";
+  CtaPrimary,
+  CtaSecondary,
+  ImageSlot,
+  ListingCard,
+  LiveRow,
+  SectionHead,
+} from "@/components/luft/pieces";
 
-const HOMEPAGE_PREVIEW_IMAGES = [
-  "/images/gallery/hardscape-pool-patio-featured.jpg",
-  "/images/gallery/hardscape-paver-steps-walkway.jpg",
-  "/images/gallery/hardscape-outdoor-kitchen.jpg",
+const STATS = [
+  { label: "Live listings", value: "214" },
+  { label: "Median · all air-cooled", value: "$95k" },
+  { label: "Sources tracked", value: "40+" },
+  { label: "Sold comps on file", value: "12,400" },
 ];
 
-export default function Home() {
-  const lawnCare = SERVICES.find((s) => s.slug === "lawn-care")!;
-  const landscaping = SERVICES.find((s) => s.slug === "landscaping-hardscape")!;
-  const holidayLighting = SERVICES.find((s) => s.slug === "holiday-lighting")!;
+const VALUE_PROPS = [
+  {
+    n: "01",
+    title: "Aggregated, not siloed",
+    body: "Auction houses, dealers, and private sellers across 40+ US sources — every air-cooled 911 in one continuously-updated feed.",
+  },
+  {
+    n: "02",
+    title: "Priced on real comps",
+    body: "Every car is benchmarked against verified sold results for its exact model and year — so you bid on data, not hype.",
+  },
+  {
+    n: "03",
+    title: "Built for owners",
+    body: "The relationship doesn’t end at the sale. Keep your car right with chassis-specific service guides and AI diagnostics.",
+  },
+];
+
+export default function HomePage() {
+  const featured = [1, 2, 4].map((id) => LISTINGS.find((l) => l.id === id)!);
 
   return (
-    <PageShell>
-      <HeroShell>
-        <GoogleReviewsBadge />
-        <h1 className="font-display max-w-[560px] text-3xl sm:text-[40px] font-extrabold leading-[1.15] text-white mb-4">
-          Des Moines metro&rsquo;s outdoor spaces, handled by one crew.
-        </h1>
-        <p className="max-w-[480px] text-sm text-muted mb-7">
-          Serving Central Iowa since {FOUNDED_YEAR} — lawn care, landscaping and hardscape, and
-          holiday lighting.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <LinkButton href="/design" variant="green" className="w-full sm:w-auto py-2.5 sm:py-2">
-            Try the AI design tool
-          </LinkButton>
-          <LinkButton href="/contact" variant="outline" className="w-full sm:w-auto py-2.5 sm:py-2">
-            Get a free quote
-          </LinkButton>
-        </div>
-      </HeroShell>
-
-      <div className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_1fr] gap-3">
-        <Card className="col-span-2 sm:col-span-1 flex items-center gap-4">
-          <div className="flex-1">
-            <p className="font-display font-extrabold text-base text-white mb-1.5">AI design assist</p>
-            <p className="text-[13px] text-muted">
-              Upload a photo, get a concept back — then talk to a real designer.
-            </p>
-          </div>
-          <LinkButton href="/design" className="font-data whitespace-nowrap">
-            start ›
-          </LinkButton>
-        </Card>
-        <Card>
-          <p className="font-data text-2xl sm:text-3xl text-signal m-0">{YEARS_IN_METRO}</p>
-          <p className="text-xs text-muted mt-1.5 m-0">years in Des Moines metro</p>
-        </Card>
-        <Card>
-          <p className="font-data text-2xl sm:text-3xl text-signal m-0">{CREW_COUNT}</p>
-          <p className="text-xs text-muted mt-1.5 m-0">full-time crew</p>
-        </Card>
-      </div>
-
-      <div id="services" className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3">
-        <ServiceImageCard
-          large
-          href={`/services/${landscaping.slug}`}
-          image={landscaping.projectImages![0]}
-          icon={landscaping.icon}
-          title={landscaping.title}
-          desc={landscaping.shortDesc}
-        />
-        <div className="flex flex-col gap-3">
-          <ServiceImageCard
-            href={`/services/${lawnCare.slug}`}
-            image={lawnCare.projectImages![0]}
-            icon={lawnCare.icon}
-            title={lawnCare.title}
-            desc={lawnCare.shortDesc}
-          />
-          <ServiceImageCard
-            href={`/services/${holidayLighting.slug}`}
-            image={holidayLighting.projectImages![0]}
-            icon={holidayLighting.icon}
-            title={holidayLighting.title}
-            desc={holidayLighting.shortDesc}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-3">
-        <Card>
-          <MonoLabel className="mt-0">RECENT PROJECTS</MonoLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5">
-            {HOMEPAGE_PREVIEW_IMAGES.map((src, i) => (
-              <div
-                key={src}
-                className={`relative aspect-square overflow-hidden rounded-lg bg-thumb ${i > 0 ? "hidden sm:block" : ""}`}
-              >
-                <Image src={src} alt="Recent project" fill className="object-cover" />
-              </div>
-            ))}
-            <Link href="/gallery" className="aspect-square rounded-lg bg-thumb flex items-center justify-center">
-              <span className="font-data text-xs text-signal">view all</span>
-            </Link>
-          </div>
-        </Card>
-        <LightCard className="flex flex-col justify-between text-charcoal">
+    <div style={{ background: "#ffffff" }}>
+      {/* HERO */}
+      <section className="luft-container" style={{ padding: "64px 40px 0" }}>
+        <div
+          className="luft-grid-2"
+          style={{ gridTemplateColumns: "1.08fr 1fr", gap: 56, alignItems: "end" }}
+        >
           <div>
-            <MonoLabel className="mt-0 text-light-ink">INSTANT ESTIMATE</MonoLabel>
-            <div className="rounded-md bg-white px-3.5 py-3 my-3 text-[13px] text-muted">
-              Enter your address
+            <LiveRow marginBottom={22}>Live · 214 air-cooled listings right now</LiveRow>
+            <h1
+              className="display luft-h1"
+              style={{
+                fontWeight: 600,
+                fontSize: 82,
+                lineHeight: 0.92,
+                textTransform: "uppercase",
+              }}
+            >
+              Buy. Sell.
+              <br />
+              Breathe&nbsp;air-cooled.
+            </h1>
+            <p
+              style={{
+                marginTop: 24,
+                fontSize: 17,
+                lineHeight: 1.55,
+                color: "#5e5e5a",
+                maxWidth: 520,
+              }}
+            >
+              Every air-cooled 911, 912, and 930 for sale in America — one market.
+              Buy against real sold comps, sell to enthusiasts who know the
+              difference, and keep it breathing long after the keys change hands.
+            </p>
+            <div style={{ display: "flex", gap: 12, marginTop: 34, flexWrap: "wrap" }}>
+              <CtaPrimary href="/marketplace" large>
+                Browse the market →
+              </CtaPrimary>
+              <CtaSecondary href="/market-data" large>
+                Explore market data
+              </CtaSecondary>
             </div>
           </div>
-          <LinkButton href="/contact" className="text-center">
-            Get my estimate
-          </LinkButton>
-        </LightCard>
-      </div>
+          <ImageSlot
+            src="/luft/hero-road.jpg"
+            alt="Air-cooled 911s at speed"
+            tag="Get on the road"
+            height={520}
+          />
+        </div>
 
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 rounded-xl bg-steel px-5 py-4 sm:px-6 sm:py-4.5">
-        <span className="font-data text-xs text-muted">
-          {SERVICE_AREA_CITIES.join(" · ").toUpperCase()}
-        </span>
-        <a href="tel:+15154433278" className="font-data text-xs text-signal">
-          {PHONE}
-        </a>
-      </div>
-
-      <Card>
-        <MonoLabel className="mt-0">FROM THE NEIGHBORHOOD</MonoLabel>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3.5">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.city} className="rounded-lg bg-ink p-4">
-              <p className="text-[13px] text-light-gray leading-relaxed mb-2.5">&ldquo;{t.quote}&rdquo;</p>
-              <p className="font-data text-[11px] text-signal m-0">{t.city}</p>
+        <div
+          className="luft-grid-4"
+          style={{ border: "1px solid #e6e5e2", marginTop: 48 }}
+        >
+          {STATS.map((s, i) => (
+            <div
+              key={s.label}
+              style={{
+                padding: "26px 28px",
+                borderRight: i < STATS.length - 1 ? "1px solid #e6e5e2" : "none",
+              }}
+            >
+              <div className="lbl">{s.label}</div>
+              <div className="mono" style={{ fontSize: 30, fontWeight: 500, marginTop: 10 }}>
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
-      </Card>
+      </section>
 
-      <Footer />
-    </PageShell>
+      {/* FEATURED LISTINGS */}
+      <section className="luft-container" style={{ padding: "88px 40px 0" }}>
+        <SectionHead
+          title="Live on the market"
+          action={
+            <Link href="/marketplace" style={{ fontSize: 14, color: "#5e5e5a" }}>
+              View all 214 →
+            </Link>
+          }
+        />
+        <div className="luft-grid-3" style={{ gap: 30, marginTop: 32 }}>
+          {featured.map((c) => (
+            <ListingCard key={c.id} c={c} href={`/listing/${c.id}`} />
+          ))}
+        </div>
+      </section>
+
+      {/* MARKET DATA BAND */}
+      <section className="luft-container" style={{ padding: "88px 40px 0" }}>
+        <div className="luft-grid-2" style={{ gap: 56, alignItems: "center" }}>
+          <div>
+            <div className="lbl" style={{ color: "#0d0d0d" }}>
+              Market Data
+            </div>
+            <h2
+              className="display"
+              style={{
+                fontWeight: 600,
+                fontSize: 46,
+                lineHeight: 1,
+                textTransform: "uppercase",
+                margin: "12px 0 16px",
+              }}
+            >
+              Priced against what actually sold
+            </h2>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: "#5e5e5a", maxWidth: 440 }}>
+              No wishful asking prices. Every listing is benchmarked to verified
+              auction and dealer results by generation, model, and year — so you
+              know a fair number before you bid.
+            </p>
+            <Link
+              href="/market-data"
+              style={{
+                display: "inline-block",
+                marginTop: 26,
+                border: "1px solid #0d0d0d",
+                fontSize: 15,
+                fontWeight: 600,
+                padding: "15px 28px",
+              }}
+            >
+              See the full market data →
+            </Link>
+          </div>
+          <div style={{ border: "1px solid #e6e5e2", padding: "28px 30px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span className="lbl">993 Carrera · median</span>
+              <span className="mono" style={{ fontSize: 13 }}>
+                ↑ 11.4% / 1Y
+              </span>
+            </div>
+            <div
+              className="mono"
+              style={{ fontSize: 40, fontWeight: 500, letterSpacing: "-0.02em", marginTop: 12 }}
+            >
+              $150,000
+            </div>
+            <svg
+              viewBox="0 0 480 120"
+              preserveAspectRatio="none"
+              style={{ width: "100%", height: 120, marginTop: 20, display: "block" }}
+            >
+              <polyline
+                points="0,104 40,98 80,100 120,88 160,84 200,76 240,72 280,60 320,54 360,42 400,34 440,24 480,14"
+                fill="none"
+                stroke="#0d0d0d"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+              <span className="lbl">2021</span>
+              <span className="lbl">Today</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* GENERATIONS */}
+      <section className="luft-container" style={{ padding: "88px 40px 0" }}>
+        <div style={{ borderTop: "1px solid #0d0d0d", paddingTop: 24 }}>
+          <h2
+            className="display"
+            style={{ fontWeight: 600, fontSize: 34, textTransform: "uppercase" }}
+          >
+            Browse by generation
+          </h2>
+        </div>
+        <div className="luft-grid-5" style={{ gap: 16, marginTop: 32 }}>
+          {GENERATIONS.map((g) => (
+            <Link
+              key={g.label}
+              href="/marketplace"
+              style={{ border: "1px solid #e6e5e2", display: "flex", flexDirection: "column" }}
+            >
+              <div
+                className="luft-hatch--fine"
+                style={{ aspectRatio: "1 / 1", position: "relative" }}
+              >
+                <span
+                  className="mono"
+                  style={{ position: "absolute", bottom: 10, left: 10, fontSize: 9, color: "#a3a29d" }}
+                >
+                  [ {g.label} ]
+                </span>
+              </div>
+              <div style={{ padding: 16 }}>
+                <h3
+                  className="display"
+                  style={{ fontWeight: 500, fontSize: 22, textTransform: "uppercase" }}
+                >
+                  {g.label}
+                </h3>
+                <div className="mono" style={{ fontSize: 11, color: "#8a8a85", marginTop: 5 }}>
+                  {g.years}
+                </div>
+                <div className="mono" style={{ fontSize: 14, marginTop: 10 }}>
+                  {g.from}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* WORKSHOP BAND */}
+      <section style={{ background: "#0d0d0d", color: "#ffffff", marginTop: 96 }}>
+        <div
+          className="luft-container luft-grid-2"
+          style={{ padding: "80px 40px", gap: 56, alignItems: "center" }}
+        >
+          <div>
+            <div className="lbl" style={{ color: "#cfcfca" }}>
+              The Workshop · AI Service &amp; Restoration
+            </div>
+            <h2
+              className="display"
+              style={{
+                fontWeight: 600,
+                fontSize: 52,
+                lineHeight: 0.98,
+                textTransform: "uppercase",
+                margin: "14px 0 16px",
+              }}
+            >
+              Own it.
+              <br />
+              Understand it. Fix it.
+            </h2>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: "#b0afaa", maxWidth: 440 }}>
+              Guided, torque-spec-accurate service walkthroughs tuned to your exact
+              chassis — plus an AI that diagnoses symptoms from a stubborn CIS cold
+              start to a full 964 top-end refresh.
+            </p>
+            <div style={{ display: "flex", gap: 24, marginTop: 26, alignItems: "center", flexWrap: "wrap" }}>
+              <Link
+                href="/workshop"
+                style={{
+                  background: "#ffffff",
+                  color: "#0d0d0d",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  padding: "15px 28px",
+                }}
+              >
+                Open the Workshop →
+              </Link>
+              <span className="mono" style={{ fontSize: 12, color: "#cfcfca" }}>
+                Free to browse · Pro $19/mo
+              </span>
+            </div>
+          </div>
+          <div style={{ position: "relative", width: "100%", height: 400, border: "1px solid #262626", overflow: "hidden" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/luft/restoration.jpg"
+              alt="Bare 911 bodyshell on a restoration cart"
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+            <span
+              className="mono"
+              style={{
+                position: "absolute",
+                top: 16,
+                left: 16,
+                fontSize: 10,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                background: "#ffffff",
+                color: "#0d0d0d",
+                padding: "5px 9px",
+              }}
+            >
+              Restoration
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* VALUE PROPS */}
+      <section className="luft-container" style={{ padding: "80px 40px 0" }}>
+        <div
+          className="luft-grid-3"
+          style={{ gap: 1, background: "#e6e5e2", border: "1px solid #e6e5e2" }}
+        >
+          {VALUE_PROPS.map((v) => (
+            <div key={v.n} style={{ background: "#ffffff", padding: "36px 32px" }}>
+              <div className="mono" style={{ fontSize: 13, color: "#8a8a85" }}>
+                {v.n}
+              </div>
+              <h3
+                className="display"
+                style={{
+                  fontWeight: 500,
+                  fontSize: 24,
+                  textTransform: "uppercase",
+                  margin: "16px 0 10px",
+                }}
+              >
+                {v.title}
+              </h3>
+              <p style={{ fontSize: 15, lineHeight: 1.6, color: "#5e5e5a" }}>{v.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="luft-container" style={{ padding: "88px 40px 0" }}>
+        <div
+          style={{
+            border: "1px solid #0d0d0d",
+            padding: "56px 48px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 40,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <h2
+              className="display"
+              style={{ fontWeight: 600, fontSize: 40, lineHeight: 1, textTransform: "uppercase" }}
+            >
+              Selling an air-cooled 911?
+            </h2>
+            <p style={{ fontSize: 16, color: "#5e5e5a", marginTop: 12, maxWidth: 460 }}>
+              List once and reach every serious air-cooled buyer in the country —
+              with a fair-market price band built in.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <CtaPrimary href="/sell" large>
+              List your car
+            </CtaPrimary>
+            <CtaSecondary href="/market-data" large>
+              Get a valuation
+            </CtaSecondary>
+          </div>
+        </div>
+      </section>
+
+      <FooterGrid />
+    </div>
   );
 }

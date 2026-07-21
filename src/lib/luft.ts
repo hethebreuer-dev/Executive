@@ -1,0 +1,84 @@
+// LUFT shared data + helpers (the legacy UI-facing shape).
+//
+// `LISTINGS` is now DERIVED from the mock connector (connector #0) — see
+// src/lib/luft/. Real data flows through the same canonical model + repository
+// seam; the mock is just the first connector. Figures (214 listings, $95k
+// median, 12,400 comps, "↑ 4.8% / 90d") remain placeholders until the ingestion
+// pipelines are live. See docs/DATA_ARCHITECTURE.md.
+
+import { MOCK_LISTINGS } from "@/lib/luft/connectors/mock-connector";
+import type { CanonicalListing } from "@/lib/luft/model";
+
+export const TAGLINE = "Buy. Sell. Breathe air-cooled.";
+export const DISCLAIMER = "Not affiliated with Dr. Ing. h.c. F. Porsche AG";
+export const SOURCES_LINE = "Aggregated from 40+ US sources";
+
+export type ModelKey = "all" | "911" | "912" | "930" | "964" | "993";
+
+export const MODEL_DEFS: { key: ModelKey; label: string }[] = [
+  { key: "all", label: "All air-cooled" },
+  { key: "911", label: "911 / SC / Carrera" },
+  { key: "912", label: "912" },
+  { key: "930", label: "930 Turbo" },
+  { key: "964", label: "964" },
+  { key: "993", label: "993" },
+];
+
+export type Listing = {
+  id: number;
+  year: number;
+  title: string;
+  key: Exclude<ModelKey, "all">;
+  price: number;
+  miles: number;
+  trans: string;
+  body: string;
+  city: string;
+  state: string;
+  source: string;
+  delta: number; // % vs comps
+  caption: string;
+  blurb: string;
+};
+
+/** Map a canonical listing down to the legacy UI shape. */
+function toLegacy(c: CanonicalListing, i: number): Listing {
+  return {
+    id: i + 1,
+    year: c.year,
+    title: c.title,
+    key: c.modelFamily,
+    price: c.price,
+    miles: c.mileage ?? 0,
+    trans: c.transmission,
+    body: c.body,
+    city: c.city ?? "",
+    state: c.state ?? "",
+    source: c.source,
+    delta: c.compDeltaPct ?? 0,
+    caption: c.caption ?? "",
+    blurb: c.blurb ?? "",
+  };
+}
+
+export const LISTINGS: Listing[] = MOCK_LISTINGS.map(toLegacy);
+
+export const GENERATIONS = [
+  { key: "912", label: "912", years: "1965–1976", from: "from $38k" },
+  { key: "911", label: "911 · SC · Carrera", years: "1965–1989", from: "from $48k" },
+  { key: "930", label: "930 Turbo", years: "1975–1989", from: "from $120k" },
+  { key: "964", label: "964", years: "1989–1994", from: "from $70k" },
+  { key: "993", label: "993", years: "1994–1998", from: "from $95k" },
+];
+
+export const usd = (n: number) => "$" + n.toLocaleString("en-US");
+export const usdk = (n: number) =>
+  n >= 1000 ? "$" + Math.round(n / 1000) + "k" : "$" + n;
+export const miles = (n: number) => n.toLocaleString("en-US") + " mi";
+
+export function deltaText(d: number) {
+  return d > 0 ? "+" + d + "% vs comps" : d < 0 ? d + "% vs comps" : "At market";
+}
+export function deltaColor(d: number) {
+  return d > 0 ? "#0d0d0d" : d < 0 ? "#7a7a76" : "#9a9a95";
+}
