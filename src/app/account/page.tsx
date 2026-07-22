@@ -303,7 +303,7 @@ export default function AccountPage() {
 
         {tab === "listings" && (
           <>
-            <div style={{ border: "1px solid #0d0d0d", display: "grid", gridTemplateColumns: "280px 1fr" }}>
+            <div className="luft-stack-sm" style={{ border: "1px solid #0d0d0d", display: "grid", gridTemplateColumns: "280px 1fr" }}>
               <div className="luft-hatch" style={{ position: "relative", borderRight: "1px solid #e6e5e2", minHeight: 220 }}>
                 <span className="mono" style={{ position: "absolute", top: 12, left: 12, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", background: "#0d0d0d", color: "#fff", padding: "5px 8px" }}>
                   {listing.status}
