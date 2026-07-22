@@ -3,6 +3,7 @@
 // connector that normalizes its source into CanonicalListing / SoldComp.
 
 import type { CanonicalListing, SoldComp } from "../model";
+import type { ConnectorContext } from "./context";
 
 /**
  * How a source is reached, roughly in order of preference/robustness:
@@ -24,21 +25,28 @@ export interface ConnectorMeta {
   name: string;
   tier: ConnectorTier;
   provides: Pipeline[];
-  /** When false the registry skips it (planned / needs credentials). */
+  /** Turned on in the registry (implemented + intended). Separate from whether
+   * it's *configured* — see isConfigured(). */
   enabled: boolean;
   /** Optional pointer: Apify actor id, API docs, partnership contact, etc. */
   ref?: string;
   notes?: string;
 }
 
-export interface ListingConnector {
+interface ConnectorBase {
   meta: ConnectorMeta;
-  fetchListings(): Promise<CanonicalListing[]>;
+  /** Whether this connector has what it needs to run in this context (creds,
+   * flags). Defaults to true. The repository runs a connector only when
+   * `meta.enabled && isConfigured(ctx)`. */
+  isConfigured?(ctx: ConnectorContext): boolean;
 }
 
-export interface CompConnector {
-  meta: ConnectorMeta;
-  fetchComps(): Promise<SoldComp[]>;
+export interface ListingConnector extends ConnectorBase {
+  fetchListings(ctx: ConnectorContext): Promise<CanonicalListing[]>;
+}
+
+export interface CompConnector extends ConnectorBase {
+  fetchComps(ctx: ConnectorContext): Promise<SoldComp[]>;
 }
 
 export type AnyConnector = Partial<ListingConnector & CompConnector> & {
@@ -51,6 +59,10 @@ export function providesListings(c: AnyConnector): c is ListingConnector & AnyCo
 
 export function providesComps(c: AnyConnector): c is CompConnector & AnyConnector {
   return typeof c.fetchComps === "function" && c.meta.provides.includes("comps");
+}
+
+export function isConfigured(c: AnyConnector, ctx: ConnectorContext): boolean {
+  return c.isConfigured ? c.isConfigured(ctx) : true;
 }
 
 /** Thrown by scaffolded connectors that are catalogued but not yet implemented. */

@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import type { ListingQuery, ListingSort, ModelFamily } from "@/lib/luft/model";
-import { repository } from "@/lib/luft/repository";
+import { repository } from "@/lib/luft/factory";
 
 const FAMILIES: (ModelFamily | "all")[] = ["all", "911", "912", "930", "964", "993"];
 const SORTS: ListingSort[] = [

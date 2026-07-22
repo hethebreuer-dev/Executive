@@ -3,7 +3,7 @@
 // seed data; once eBay (or any connector) is configured, real cars flow in here
 // with no change to the client UI below.
 
-import { repository } from "@/lib/luft/repository";
+import { repository } from "@/lib/luft/factory";
 import { toLegacyListing, type Listing } from "@/lib/luft";
 import { MarketplaceClient } from "./MarketplaceClient";
 

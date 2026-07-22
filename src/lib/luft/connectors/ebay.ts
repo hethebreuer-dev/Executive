@@ -1,9 +1,10 @@
 // eBay Motors via the official Browse API — the cleanest first live source
-// (sanctioned OAuth API, no scraping). Self-enables when credentials are present:
+// (sanctioned OAuth API, no scraping). Self-enables when credentials are present
+// in the context:
 //
-//   EBAY_APP_ID     eBay developer App ID   (OAuth client_id)
-//   EBAY_CERT_ID    eBay developer Cert ID  (OAuth client_secret)
-//   EBAY_ENV        "production" (default) | "sandbox"
+//   EBAY_APP_ID       eBay developer App ID   (OAuth client_id)
+//   EBAY_CERT_ID      eBay developer Cert ID  (OAuth client_secret)
+//   EBAY_ENV          "production" (default) | "sandbox"
 //   EBAY_MARKETPLACE  marketplace id, default "EBAY_US"
 //
 // Get credentials at https://developer.ebay.com → create a keyset. Browse API
@@ -12,37 +13,33 @@
 
 import type { CanonicalListing, ListingType } from "../model";
 import { classifyModelFamily } from "../normalize";
-import {
-  type ConnectorMeta,
-  type ListingConnector,
-} from "./connector";
+import type { ConnectorContext } from "./context";
+import { type ConnectorMeta, type ListingConnector } from "./connector";
 
-const APP_ID = process.env.EBAY_APP_ID;
-const CERT_ID = process.env.EBAY_CERT_ID;
-const ENABLED = Boolean(APP_ID && CERT_ID);
+const CARS_CATEGORY = "6001"; // eBay Motors → Cars & Trucks
 
-const HOST =
-  process.env.EBAY_ENV === "sandbox"
+function host(ctx: ConnectorContext) {
+  return ctx.env("EBAY_ENV") === "sandbox"
     ? "https://api.sandbox.ebay.com"
     : "https://api.ebay.com";
-const MARKETPLACE = process.env.EBAY_MARKETPLACE || "EBAY_US";
-const CARS_CATEGORY = "6001"; // eBay Motors → Cars & Trucks
+}
 
 // --- OAuth application token (client-credentials), cached until expiry --------
 let tokenCache: { token: string; expiresAt: number } | null = null;
 
-async function appToken(): Promise<string> {
+async function appToken(ctx: ConnectorContext): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now() + 60_000) {
     return tokenCache.token;
   }
-  const basic = Buffer.from(`${APP_ID}:${CERT_ID}`).toString("base64");
-  const res = await fetch(`${HOST}/identity/v1/oauth2/token`, {
+  const basic = ctx.base64(`${ctx.env("EBAY_APP_ID")}:${ctx.env("EBAY_CERT_ID")}`);
+  const res = await fetch(`${host(ctx)}/identity/v1/oauth2/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basic}`,
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: "grant_type=client_credentials&scope=" +
+    body:
+      "grant_type=client_credentials&scope=" +
       encodeURIComponent("https://api.ebay.com/oauth/api_scope"),
   });
   if (!res.ok) throw new Error(`eBay OAuth failed: ${res.status}`);
@@ -73,16 +70,18 @@ export const ebayConnector: ListingConnector = {
     name: "eBay Motors",
     tier: "api",
     provides: ["listings"],
-    enabled: ENABLED,
+    enabled: true,
     ref: "ebay:browse-api",
-    notes: ENABLED
-      ? "Live via Browse API."
-      : "Set EBAY_APP_ID + EBAY_CERT_ID to enable.",
+    notes: "Live via Browse API. Set EBAY_APP_ID + EBAY_CERT_ID to configure.",
   } satisfies ConnectorMeta,
 
-  async fetchListings(): Promise<CanonicalListing[]> {
-    if (!ENABLED) return [];
-    const token = await appToken();
+  isConfigured(ctx) {
+    return Boolean(ctx.env("EBAY_APP_ID") && ctx.env("EBAY_CERT_ID"));
+  },
+
+  async fetchListings(ctx): Promise<CanonicalListing[]> {
+    const token = await appToken(ctx);
+    const marketplace = ctx.env("EBAY_MARKETPLACE") || "EBAY_US";
 
     const params = new URLSearchParams({
       q: "Porsche 911 912 930 air-cooled",
@@ -93,14 +92,12 @@ export const ebayConnector: ListingConnector = {
     });
 
     const res = await fetch(
-      `${HOST}/buy/browse/v1/item_summary/search?${params}`,
+      `${host(ctx)}/buy/browse/v1/item_summary/search?${params}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          "X-EBAY-C-MARKETPLACE-ID": MARKETPLACE,
+          "X-EBAY-C-MARKETPLACE-ID": marketplace,
         },
-        // Cache at the fetch layer; ingestion cadence is controlled upstream.
-        next: { revalidate: 900 },
       }
     );
     if (!res.ok) throw new Error(`eBay Browse search failed: ${res.status}`);
@@ -122,9 +119,7 @@ function mapItem(item: EbayItemSummary): CanonicalListing | null {
   if (!family) return null; // filter out non-air-cooled results
 
   const buyingOptions = item.buyingOptions ?? [];
-  const listingType: ListingType = buyingOptions.includes("AUCTION")
-    ? "auction"
-    : "bin";
+  const listingType: ListingType = buyingOptions.includes("AUCTION") ? "auction" : "bin";
   const now = new Date().toISOString();
   const photos = [
     item.image?.imageUrl,

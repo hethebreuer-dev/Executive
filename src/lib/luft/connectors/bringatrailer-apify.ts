@@ -6,16 +6,16 @@
 // the template for every "apify" / "scrape" tier source.
 //
 // Scaffold: the run logic is real, but field mapping needs to be pinned to the
-// actor's actual output and BaT's model taxonomy before enabling. Flip
-// `enabled` on once APIFY_TOKEN is set and `mapItem` is verified.
+// actor's actual output and BaT's model taxonomy before enabling. Left
+// meta.enabled=false until mapItem is verified; also requires APIFY_TOKEN.
 
 import type { CanonicalListing } from "../model";
+import { classifyModelFamily } from "../normalize";
 import {
   ConnectorNotImplemented,
   type ConnectorMeta,
   type ListingConnector,
 } from "./connector";
-import { classifyModelFamily } from "../normalize";
 
 const ACTOR = "silentflow~bringatrailer-scraper";
 
@@ -40,13 +40,17 @@ export const bringATrailerApify: ListingConnector = {
     name: "Bring a Trailer",
     tier: "apify",
     provides: ["listings", "comps"],
-    enabled: false, // flip on once APIFY_TOKEN is set + mapItem verified
+    enabled: false, // flip on once mapItem is verified against the actor output
     ref: "apify:silentflow/bringatrailer-scraper",
     notes: "Managed Apify actor. Needs APIFY_TOKEN; sold results also feed comps.",
   } satisfies ConnectorMeta,
 
-  async fetchListings(): Promise<CanonicalListing[]> {
-    const token = process.env.APIFY_TOKEN;
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN"));
+  },
+
+  async fetchListings(ctx): Promise<CanonicalListing[]> {
+    const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("bring-a-trailer");
 
     const res = await fetch(
