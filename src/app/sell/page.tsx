@@ -609,7 +609,11 @@ function Labeled({
 }
 
 function TwoCol({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 22 }}>{children}</div>;
+  return (
+    <div className="luft-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 22 }}>
+      {children}
+    </div>
+  );
 }
 
 function ChoiceButton({

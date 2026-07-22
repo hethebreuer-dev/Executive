@@ -133,11 +133,14 @@ a:hover {
 .luft-grid-5 {
   grid-template-columns: repeat(5, 1fr);
 }
+/* !important so these win over per-section inline grid-template-columns
+   (e.g. the hero's "1.08fr 1fr"); without it inline styles keep the grid from
+   collapsing on mobile. */
 @media (min-width: 561px) and (max-width: 860px) {
   .luft-grid-3,
   .luft-grid-4,
   .luft-grid-5 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr !important;
   }
 }
 @media (max-width: 860px) {
@@ -145,7 +148,16 @@ a:hover {
   .luft-grid-3,
   .luft-grid-4,
   .luft-grid-5 {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Raw two-column blocks (form field pairs, spec tables, the account listing
+   card) collapse to one column on phones. Opt-in per block; !important beats
+   their inline grid-template-columns. */
+@media (max-width: 560px) {
+  .luft-stack-sm {
+    grid-template-columns: 1fr !important;
   }
 }
 

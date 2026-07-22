@@ -191,7 +191,7 @@ export default async function ListingPage({
           </p>
 
           <BlockHead>Specification</BlockHead>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 56px" }}>
+          <div className="luft-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 56px" }}>
             {SPECS.map((s) => (
               <div
                 key={s.k}
@@ -214,7 +214,7 @@ export default async function ListingPage({
           </div>
 
           <BlockHead>Condition &amp; inclusions</BlockHead>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 56px", maxWidth: 720 }}>
+          <div className="luft-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 56px", maxWidth: 720 }}>
             {INCLUSIONS.map((i) => (
               <div key={i} style={{ display: "flex", gap: 12, fontSize: 15, color: "#3f3f3d", lineHeight: 1.4 }}>
                 <span className="mono" style={{ color: "#8a8a85" }}>
