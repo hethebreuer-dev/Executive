@@ -122,20 +122,46 @@ Connectors ──▶ Registry ──▶ Repository ──▶ /api/listings ─�
 
 ---
 
-## Infrastructure (Phase 1+)
+## Infrastructure — Cloudflare D1 + Worker (built)
 
-Not in the repo yet; what live data needs:
+The store is **Cloudflare D1** (SQLite) and ingestion runs in a **Cloudflare
+Worker** on a cron. Connectors are runtime-portable (they take a
+`ConnectorContext` — [`connectors/context.ts`](../src/lib/luft/connectors/context.ts)
+/ [`context-node.ts`](../src/lib/luft/connectors/context-node.ts)), so the exact
+same connector code runs in Node (the app) and in the Worker.
 
-- **Store** — Postgres (Neon/Supabase) for `listings` + `sold_comps`, plus a
-  search index if/when free-text search grows up.
-- **Ingestion workers** — a scheduler/queue running connectors on per-source
-  cadences, writing normalized + deduped records. (Vercel Cron for simple polls;
-  a dedicated worker/queue for heavier scrape/actor jobs.)
-- **Images** — cache/proxy source photos to our own CDN (hotlinking breaks and
-  leaks referrers).
-- **Secrets** — per-source API keys / `APIFY_TOKEN` / partnership credentials.
-- **App** — Next reads via route handlers with tag-based revalidation
-  (`revalidateTag`) so ingestion can push fresh data without a redeploy.
+```
+Worker (cron) ─ connectors ─▶ normalize + dedupe ─▶ D1 (listings, sold_comps)
+                                                        │
+App ─ repository factory ─ D1Repository (D1 HTTP API) ──┘   ← when CF creds set
+                         └ InMemoryRepository (live) ───────    otherwise
+```
+
+- **Worker** — [`worker/src/index.ts`](../worker/src/index.ts): `scheduled()`
+  cron ingest + a secret-guarded `POST /ingest` and `GET /health`. Upserts on the
+  dedupe key so re-runs merge instead of duplicating.
+- **Schema** — [`worker/schema.sql`](../worker/schema.sql).
+- **Read path** — [`repository-d1.ts`](../src/lib/luft/repository-d1.ts) reads D1
+  over its HTTP query API (works from any runtime).
+  [`factory.ts`](../src/lib/luft/factory.ts) returns the D1 repo when
+  `CF_ACCOUNT_ID` / `CF_D1_DATABASE_ID` / `CF_D1_API_TOKEN` are set, else the
+  in-memory one — so the app flips to ingested data with zero code change.
+- **Still to add** — image caching to our own CDN (don't hotlink source photos);
+  tag-based revalidation (`revalidateTag`) once we want push-fresh reads.
+
+### Deploy the ingestion Worker
+
+```bash
+cd worker && npm install
+npx wrangler d1 create luft                 # paste the id into wrangler.toml
+npm run migrate                             # applies schema.sql to remote D1
+npx wrangler secret put EBAY_APP_ID         # + EBAY_CERT_ID, INGEST_SECRET, APIFY_TOKEN
+npm run deploy                              # cron starts ingesting
+```
+
+Then point the app at D1 by setting `CF_ACCOUNT_ID` / `CF_D1_DATABASE_ID` /
+`CF_D1_API_TOKEN` in its environment. Trigger a one-off ingest any time with
+`POST /ingest` and the `x-ingest-secret` header.
 
 ---
 
@@ -143,9 +169,16 @@ Not in the repo yet; what live data needs:
 
 - **Phase 0 — the seam ✅** _(done)_ canonical model, connector interface, source
   catalog, mock connector #0, in-memory repository, `/api/listings`. UI unchanged.
-- **Phase 1 — first live source** wire **eBay Motors Browse API** (or the BaT
-  Apify actor) end-to-end; stand up Postgres + one ingestion worker; point the
-  Marketplace at `/api/listings`.
+- **Phase 1 — first live source 🚧** _(in progress)_ **eBay Motors** connector
+  built ([`connectors/ebay.ts`](../src/lib/luft/connectors/ebay.ts)): OAuth
+  app-token flow + Browse API search + air-cooled filtering, self-enabling on
+  `EBAY_APP_ID`/`EBAY_CERT_ID`. The **Marketplace now reads the repository**
+  server-side, so live cars appear the moment credentials are set — no code
+  change. Remaining: eBay credentials, then stand up Postgres + a Cloudflare
+  Worker to ingest on a schedule (today's read path fetches on request).
+- **Phase 1.5 — persistence ✅** _(built)_ Cloudflare **D1** store + a **Worker**
+  cron that ingests through the connectors, and a D1-backed read path the app
+  flips to via env. Needs deploy + eBay creds to light up end-to-end.
 - **Phase 2 — comps** license **Classic.com or Hagerty** (and/or ingest BaT sold
   results); build the aggregation job; make medians / trend / bands real.
 - **Phase 3 — breadth** add sources tier-by-tier behind the connector interface;

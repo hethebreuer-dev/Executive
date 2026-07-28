@@ -1,0 +1,22 @@
+name = "luft-ingest"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Create the DB with `wrangler d1 create luft`, then paste the returned id here.
+[[d1_databases]]
+binding = "DB"
+database_name = "luft"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# Ingest on a schedule (every 30 min). Tighten for auctions nearing close.
+[triggers]
+crons = ["*/30 * * * *"]
+
+# Non-secret vars. Set "1" once real sources cover the catalog to drop the mock.
+[vars]
+LUFT_DISABLE_MOCK = "0"
+
+# Secrets — set with `wrangler secret put <NAME>` (never commit these):
+#   EBAY_APP_ID, EBAY_CERT_ID, EBAY_ENV, EBAY_MARKETPLACE
+#   APIFY_TOKEN
+#   INGEST_SECRET   (guards POST /ingest)

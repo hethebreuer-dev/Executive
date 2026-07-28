@@ -62,6 +62,10 @@ export const mockConnector: ListingConnector & CompConnector = {
     enabled: true,
     notes: "Seeded placeholder data — connector #0. Remove once real sources cover the catalog.",
   } satisfies ConnectorMeta,
+  // Steps aside when LUFT_DISABLE_MOCK=1 (real sources cover the catalog).
+  isConfigured(ctx) {
+    return ctx.env("LUFT_DISABLE_MOCK") !== "1";
+  },
   async fetchListings() {
     return MOCK_LISTINGS;
   },
