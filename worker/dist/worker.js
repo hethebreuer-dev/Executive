@@ -69,39 +69,57 @@ function dedupeListings(listings) {
   return [...byKey.values()];
 }
 
-// src/lib/luft/connectors/bringatrailer-apify.ts
-var ACTOR = "silentflow~bringatrailer-scraper";
-var bringATrailerApify = {
-  meta: {
-    id: "bring-a-trailer",
-    name: "Bring a Trailer",
-    tier: "apify",
-    provides: ["listings", "comps"],
-    enabled: false,
-    // flip on once mapItem is verified against the actor output
-    ref: "apify:silentflow/bringatrailer-scraper",
-    notes: "Managed Apify actor. Needs APIFY_TOKEN; sold results also feed comps."
-  },
-  isConfigured(ctx) {
-    return Boolean(ctx.env("APIFY_TOKEN"));
-  },
-  async fetchListings(ctx) {
-    const token = ctx.env("APIFY_TOKEN");
-    if (!token) throw new ConnectorNotImplemented("bring-a-trailer");
-    const res = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        // Actor-specific input — e.g. a search for air-cooled 911s.
-        body: JSON.stringify({ search: "air-cooled 911", maxItems: 200 })
-      }
-    );
-    if (!res.ok) throw new Error(`BaT/Apify actor failed: ${res.status}`);
-    const items = await res.json();
-    return items.map(mapItem).filter((x) => x !== null);
+// src/lib/luft/connectors/apify.ts
+function resolveActor(ctx, cfg) {
+  return (cfg.actorEnv ? ctx.env(cfg.actorEnv) : void 0) || cfg.actorId || "";
+}
+function makeApifyConnector(cfg) {
+  return {
+    meta: {
+      id: cfg.id,
+      name: cfg.name,
+      tier: "apify",
+      provides: ["listings"],
+      // Turned on in the registry; isConfigured gates on token + a resolved actor.
+      enabled: cfg.enabled ?? true,
+      ref: cfg.actorId ? `apify:${cfg.actorId}` : `apify:(set ${cfg.actorEnv ?? "actorId"})`,
+      notes: "Managed Apify actor. Needs APIFY_TOKEN + an actor id (config or the actorEnv secret)."
+    },
+    isConfigured(ctx) {
+      return Boolean(ctx.env("APIFY_TOKEN") && resolveActor(ctx, cfg));
+    },
+    async fetchListings(ctx) {
+      const token = ctx.env("APIFY_TOKEN");
+      const actorId = resolveActor(ctx, cfg);
+      if (!token || !actorId) throw new ConnectorNotImplemented(cfg.id);
+      const actor = actorId.replace("/", "~");
+      const res = await fetch(
+        `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${token}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(cfg.input ?? {})
+        }
+      );
+      if (!res.ok) throw new Error(`Apify actor ${actorId} failed: ${res.status}`);
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : [];
+      const map = cfg.map ?? guessCanonical;
+      return items.map((it) => map(it, cfg)).filter((x) => x !== null);
+    }
+  };
+}
+function pick(item, keys) {
+  for (const k of keys) {
+    if (item[k] != null && item[k] !== "") return item[k];
+    const hit = Object.keys(item).find((ik) => ik.toLowerCase() === k.toLowerCase());
+    if (hit && item[hit] != null && item[hit] !== "") return item[hit];
   }
-};
+  return void 0;
+}
+function str(v) {
+  return typeof v === "string" ? v : v == null ? void 0 : String(v);
+}
 function num(v) {
   if (typeof v === "number") return v;
   if (typeof v === "string") {
@@ -110,40 +128,114 @@ function num(v) {
   }
   return void 0;
 }
-function mapItem(item) {
-  const title = (item.title ?? "").trim();
-  const year = num(item.year);
-  const price = num(item.price);
-  if (!title || !year || price === void 0) return null;
+function toPhotos(v) {
+  if (!Array.isArray(v)) return typeof v === "string" ? [v] : [];
+  return v.map((x) => typeof x === "string" ? x : str(x?.url ?? x?.src ?? x?.imageUrl)).filter((u) => Boolean(u));
+}
+function bodyFrom(title) {
+  if (/targa/i.test(title)) return "Targa";
+  if (/cabriolet|convertible|\bcab\b/i.test(title)) return "Cabriolet";
+  return "Coupe";
+}
+function guessCanonical(item, cfg) {
+  const title = (str(pick(item, ["title", "name", "listingTitle", "heading", "headline"])) ?? "").trim();
+  const priceRaw = pick(item, ["price", "currentBid", "current_bid", "soldPrice", "sold_price", "askingPrice", "buyItNowPrice", "amount", "bid"]);
+  const price = num(priceRaw);
+  const year = num(pick(item, ["year", "modelYear", "model_year"])) ?? num(title.match(/\b(19\d{2})\b/)?.[1]);
+  if (!title || !year || price == null) return null;
   const family = classifyModelFamily(title);
   if (!family) return null;
-  const [city, state] = (item.location ?? "").split(",").map((s) => s.trim());
+  const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "href"])) ?? "#";
+  const sourceId = str(pick(item, ["id", "listingId", "lotId", "vin"])) ?? url;
+  const location = str(pick(item, ["location", "city", "region", "sellerLocation"])) ?? "";
+  const [city, state] = location.split(",").map((s) => s.trim());
+  const soldAt = str(pick(item, ["soldAt", "sold_at", "endedAt", "soldDate"]));
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
-    id: `bring-a-trailer:${item.url ?? title}`,
-    source: "Bring a Trailer",
-    sourceId: String(item.url ?? title),
-    url: item.url ?? "#",
+    id: `${cfg.id}:${sourceId}`,
+    source: cfg.name,
+    sourceId,
+    url,
     firstSeen: now,
     lastSeen: now,
-    status: item.soldAt ? "sold" : "active",
+    status: soldAt ? "sold" : "active",
     year,
     modelFamily: family,
-    trim: title.replace(/^\d{4}\s+/, ""),
-    body: /targa/i.test(title) ? "Targa" : /cabriolet|cab\b/i.test(title) ? "Cabriolet" : "Coupe",
-    transmission: item.transmission ?? "Unknown",
-    vin: item.vin,
-    mileage: num(item.mileage),
-    listingType: "auction",
-    sellerType: "auction",
+    trim: title.replace(/^\d{4}\s+(porsche\s+)?/i, ""),
+    body: bodyFrom(title),
+    transmission: str(pick(item, ["transmission", "gearbox"])) ?? (/automatic|tiptronic|sportomatic/i.test(title) ? "Automatic" : /manual|\d-spd|\d-speed/i.test(title) ? "Manual" : "Unknown"),
+    vin: str(pick(item, ["vin", "chassis"])),
+    mileage: num(pick(item, ["mileage", "miles", "odometer"])),
+    exteriorColor: str(pick(item, ["exteriorColor", "color", "paint"])),
+    listingType: cfg.listingType ?? (priceRaw != null && String(pick(item, ["currentBid", "bid"]) ?? "") !== "" ? "auction" : "classified"),
+    sellerType: cfg.sellerType ?? "dealer",
     price,
-    currency: "USD",
-    city,
-    state,
-    photos: item.images ?? [],
-    title
+    currency: str(pick(item, ["currency"])) ?? "USD",
+    endsAt: str(pick(item, ["endsAt", "endDate", "auctionEnd"])),
+    city: city || void 0,
+    state: state || void 0,
+    photos: toPhotos(pick(item, ["images", "photos", "imageUrls", "image_urls", "media", "image"])),
+    title: title.replace(/^\d{4}\s+/, `${year} `)
   };
 }
+
+// src/lib/luft/connectors/apify-sites.ts
+var APIFY_SITES = [
+  {
+    id: "bring-a-trailer",
+    name: "Bring a Trailer",
+    actorId: "silentflow/bringatrailer-scraper",
+    actorEnv: "APIFY_ACTOR_BAT",
+    input: { search: "air-cooled 911", maxItems: 200 },
+    listingType: "auction",
+    sellerType: "auction"
+  },
+  {
+    id: "cars-and-bids",
+    name: "Cars & Bids",
+    actorId: "",
+    actorEnv: "APIFY_ACTOR_CARS_AND_BIDS",
+    input: { search: "Porsche 911", maxItems: 200 },
+    listingType: "auction",
+    sellerType: "private"
+  },
+  {
+    id: "pcarmarket",
+    name: "PCARMARKET",
+    actorId: "",
+    actorEnv: "APIFY_ACTOR_PCARMARKET",
+    input: { search: "air-cooled Porsche" },
+    listingType: "auction"
+  },
+  {
+    id: "hemmings",
+    name: "Hemmings",
+    actorId: "",
+    actorEnv: "APIFY_ACTOR_HEMMINGS",
+    input: { search: "Porsche 911", maxItems: 200 },
+    listingType: "classified",
+    sellerType: "dealer"
+  },
+  {
+    id: "classiccars-com",
+    name: "ClassicCars.com",
+    actorId: "",
+    actorEnv: "APIFY_ACTOR_CLASSICCARS",
+    input: { search: "Porsche 911", maxItems: 200 },
+    listingType: "classified",
+    sellerType: "dealer"
+  },
+  {
+    id: "autotrader-classics",
+    name: "Autotrader Classics",
+    actorId: "",
+    actorEnv: "APIFY_ACTOR_AUTOTRADER",
+    input: { make: "Porsche", model: "911" },
+    listingType: "dealer",
+    sellerType: "dealer"
+  }
+];
+var apifyConnectors = APIFY_SITES.map(makeApifyConnector);
 
 // src/lib/luft/connectors/ebay.ts
 var CARS_CATEGORY = "6001";
@@ -206,10 +298,10 @@ var ebayConnector = {
     );
     if (!res.ok) throw new Error(`eBay Browse search failed: ${res.status}`);
     const json = await res.json();
-    return (json.itemSummaries ?? []).map(mapItem2).filter((x) => x !== null);
+    return (json.itemSummaries ?? []).map(mapItem).filter((x) => x !== null);
   }
 };
-function mapItem2(item) {
+function mapItem(item) {
   const title = (item.title ?? "").trim();
   const price = item.price?.value ? parseFloat(item.price.value) : NaN;
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
@@ -314,8 +406,8 @@ var CONNECTORS = [
   // connector #0 — steps aside when LUFT_DISABLE_MOCK=1
   ebayConnector,
   // configured when EBAY_APP_ID + EBAY_CERT_ID are set
-  bringATrailerApify
-  // meta.enabled=false until mapping verified
+  ...apifyConnectors
+  // Apify-actor sources (BaT wired; others need actorId)
 ];
 var activeConnectors = (ctx) => CONNECTORS.filter((c) => c.meta.enabled && isConfigured(c, ctx));
 

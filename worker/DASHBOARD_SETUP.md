@@ -36,6 +36,33 @@ On the Worker → **Settings**:
   `x-ingest-secret: <your secret>`. Even before eBay, the mock connector writes
   12 seed cars into D1 — proof the loop works end-to-end.
 
+## 5b. Turn on scrape sources (Apify) — the MVP data path
+
+eBay's API was denied, so real cars come from **managed Apify actors** (one per
+site; they handle the scraping, we normalize the output).
+
+1. Create an account at [apify.com](https://apify.com) → **Settings → Integrations
+   → API token**. Add it to the Worker as secret **`APIFY_TOKEN`**.
+2. For each site, find its actor in the **Apify Store** (search the site name) and
+   add its id as a Worker secret. The Worker reads these — no code change:
+   - **`APIFY_ACTOR_BAT`** — Bring a Trailer (pre-wired in code to
+     `silentflow/bringatrailer-scraper`; the secret overrides it if you prefer another)
+   - **`APIFY_ACTOR_CARS_AND_BIDS`** — Cars & Bids
+   - **`APIFY_ACTOR_PCARMARKET`** — PCARMARKET
+   - **`APIFY_ACTOR_HEMMINGS`** — Hemmings
+   - **`APIFY_ACTOR_CLASSICCARS`** — ClassicCars.com
+   - **`APIFY_ACTOR_AUTOTRADER`** — Autotrader Classics
+
+   Value format is `username/actor-name` (e.g. `silentflow/bringatrailer-scraper`).
+3. Redeploy, then trigger `POST /ingest` (or wait for cron). Each configured
+   source runs; a source with no actor id / no token is silently skipped, so a
+   broken one never blocks the others. Set **`LUFT_DISABLE_MOCK`** = `1` once real
+   sources are flowing to drop the 12 seed cars.
+
+> Field mapping is intentionally tolerant (it probes common field names), so most
+> actors map without custom code. Once real data lands we may tighten one or two
+> mappings per actor — send me a sample item from a run and I'll pin it.
+
 ## 6. Point the app at D1
 In the app's environment (your host's settings), set:
 - **`CF_ACCOUNT_ID`** — your Cloudflare account id.
