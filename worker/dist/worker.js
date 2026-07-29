@@ -138,18 +138,18 @@ function bodyFrom(title) {
   return "Coupe";
 }
 function guessCanonical(item, cfg) {
-  const title = (str(pick(item, ["title", "name", "listingTitle", "heading", "headline"])) ?? "").trim();
-  const priceRaw = pick(item, ["price", "currentBid", "current_bid", "soldPrice", "sold_price", "askingPrice", "buyItNowPrice", "amount", "bid"]);
+  const title = (str(pick(item, ["title", "name", "listingTitle", "heading", "headline", "vehicleTitle"])) ?? "").trim();
+  const priceRaw = pick(item, ["price", "soldPrice", "sold_price", "sellingPrice", "soldFor", "salePrice", "currentBid", "current_bid", "finalBid", "winningBid", "highBid", "bidAmount", "askingPrice", "buyItNowPrice", "priceUsd", "amount", "bid"]);
   const price = num(priceRaw);
   const year = num(pick(item, ["year", "modelYear", "model_year"])) ?? num(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!title || !year || price == null) return null;
   const family = classifyModelFamily(title);
   if (!family) return null;
-  const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "href"])) ?? "#";
-  const sourceId = str(pick(item, ["id", "listingId", "lotId", "vin"])) ?? url;
+  const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "sourceUrl", "auctionUrl", "permalink", "href"])) ?? "#";
+  const sourceId = str(pick(item, ["id", "listingId", "lotId", "slug", "vin"])) ?? url;
   const location = str(pick(item, ["location", "city", "region", "sellerLocation"])) ?? "";
   const [city, state] = location.split(",").map((s) => s.trim());
-  const soldAt = str(pick(item, ["soldAt", "sold_at", "endedAt", "soldDate"]));
+  const soldAt = str(pick(item, ["soldAt", "sold_at", "soldDate"]));
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
     id: `${cfg.id}:${sourceId}`,
@@ -174,7 +174,7 @@ function guessCanonical(item, cfg) {
     endsAt: str(pick(item, ["endsAt", "endDate", "auctionEnd"])),
     city: city || void 0,
     state: state || void 0,
-    photos: toPhotos(pick(item, ["images", "photos", "imageUrls", "image_urls", "media", "image"])),
+    photos: toPhotos(pick(item, ["images", "photos", "imageUrls", "image_urls", "photoUrls", "imageLinks", "gallery", "media", "mainImage", "image", "thumbnail"])),
     title: title.replace(/^\d{4}\s+/, `${year} `)
   };
 }
@@ -186,16 +186,29 @@ var APIFY_SITES = [
     name: "Bring a Trailer",
     actorId: "silentflow/bringatrailer-scraper",
     actorEnv: "APIFY_ACTOR_BAT",
-    // Best-effort input: the actor's form shows "Search keywords", so we send a
-    // superset of likely key names + a result cap (actors ignore unknown keys).
-    // If a run returns nothing, send me the actor's JSON input to pin it exactly.
+    // silentflow/bringatrailer-scraper takes startUrls (BaT model-category
+    // pages) + maxItems + includeDetails. Curated air-cooled set; classifier
+    // drops anything that isn't a 911/912/930/964/993.
     input: {
-      searchKeywords: ["Porsche 911", "Porsche 912", "Porsche 930"],
-      searchTerms: ["Porsche 911", "Porsche 912", "Porsche 930"],
-      search: "Porsche 911",
-      maxItems: 150,
-      maxResults: 150,
-      limit: 150
+      includeDetails: true,
+      maxItems: 120,
+      startUrls: [
+        "https://bringatrailer.com/porsche/911-carrera-1974-1977/",
+        "https://bringatrailer.com/porsche/911-carrera-3-2/",
+        "https://bringatrailer.com/porsche/911-carrera-rs-1973/",
+        "https://bringatrailer.com/porsche/911sc/",
+        "https://bringatrailer.com/porsche/912/",
+        "https://bringatrailer.com/porsche/912e/",
+        "https://bringatrailer.com/porsche/930-turbo/",
+        "https://bringatrailer.com/porsche/964/",
+        "https://bringatrailer.com/porsche/964-turbo/",
+        "https://bringatrailer.com/porsche/964-carrera-rs/",
+        "https://bringatrailer.com/porsche/993/",
+        "https://bringatrailer.com/porsche/993-911-carrera-s/",
+        "https://bringatrailer.com/porsche/993-911-carrera-4/",
+        "https://bringatrailer.com/porsche/993-911-carrera-4s/",
+        "https://bringatrailer.com/porsche/993-turbo/"
+      ].map((url) => ({ url }))
     },
     listingType: "auction",
     sellerType: "auction"

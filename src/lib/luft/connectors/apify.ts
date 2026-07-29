@@ -128,8 +128,8 @@ function bodyFrom(title: string): BodyStyle {
 
 /** Best-effort generic mapper across unknown Apify actor outputs. */
 export function guessCanonical(item: Raw, cfg: ApifySiteConfig): CanonicalListing | null {
-  const title = (str(pick(item, ["title", "name", "listingTitle", "heading", "headline"])) ?? "").trim();
-  const priceRaw = pick(item, ["price", "currentBid", "current_bid", "soldPrice", "sold_price", "askingPrice", "buyItNowPrice", "amount", "bid"]);
+  const title = (str(pick(item, ["title", "name", "listingTitle", "heading", "headline", "vehicleTitle"])) ?? "").trim();
+  const priceRaw = pick(item, ["price", "soldPrice", "sold_price", "sellingPrice", "soldFor", "salePrice", "currentBid", "current_bid", "finalBid", "winningBid", "highBid", "bidAmount", "askingPrice", "buyItNowPrice", "priceUsd", "amount", "bid"]);
   const price = num(priceRaw);
   const year = num(pick(item, ["year", "modelYear", "model_year"])) ?? num(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!title || !year || price == null) return null;
@@ -137,11 +137,13 @@ export function guessCanonical(item: Raw, cfg: ApifySiteConfig): CanonicalListin
   const family = classifyModelFamily(title);
   if (!family) return null; // keep it air-cooled 911/912/930 only
 
-  const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "href"])) ?? "#";
-  const sourceId = str(pick(item, ["id", "listingId", "lotId", "vin"])) ?? url;
+  const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "sourceUrl", "auctionUrl", "permalink", "href"])) ?? "#";
+  const sourceId = str(pick(item, ["id", "listingId", "lotId", "slug", "vin"])) ?? url;
   const location = str(pick(item, ["location", "city", "region", "sellerLocation"])) ?? "";
   const [city, state] = location.split(",").map((s) => s.trim());
-  const soldAt = str(pick(item, ["soldAt", "sold_at", "endedAt", "soldDate"]));
+  // Conservative sold detection — default to active so live cars show; refine
+  // once we've seen the actor's real output fields.
+  const soldAt = str(pick(item, ["soldAt", "sold_at", "soldDate"]));
   const now = new Date().toISOString();
 
   return {
@@ -169,7 +171,7 @@ export function guessCanonical(item: Raw, cfg: ApifySiteConfig): CanonicalListin
     endsAt: str(pick(item, ["endsAt", "endDate", "auctionEnd"])),
     city: city || undefined,
     state: state || undefined,
-    photos: toPhotos(pick(item, ["images", "photos", "imageUrls", "image_urls", "media", "image"])),
+    photos: toPhotos(pick(item, ["images", "photos", "imageUrls", "image_urls", "photoUrls", "imageLinks", "gallery", "media", "mainImage", "image", "thumbnail"])),
     title: title.replace(/^\d{4}\s+/, `${year} `),
   };
 }

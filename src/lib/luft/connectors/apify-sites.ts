@@ -16,16 +16,29 @@ export const APIFY_SITES: ApifySiteConfig[] = [
     name: "Bring a Trailer",
     actorId: "silentflow/bringatrailer-scraper",
     actorEnv: "APIFY_ACTOR_BAT",
-    // Best-effort input: the actor's form shows "Search keywords", so we send a
-    // superset of likely key names + a result cap (actors ignore unknown keys).
-    // If a run returns nothing, send me the actor's JSON input to pin it exactly.
+    // silentflow/bringatrailer-scraper takes startUrls (BaT model-category
+    // pages) + maxItems + includeDetails. Curated air-cooled set; classifier
+    // drops anything that isn't a 911/912/930/964/993.
     input: {
-      searchKeywords: ["Porsche 911", "Porsche 912", "Porsche 930"],
-      searchTerms: ["Porsche 911", "Porsche 912", "Porsche 930"],
-      search: "Porsche 911",
-      maxItems: 150,
-      maxResults: 150,
-      limit: 150,
+      includeDetails: true,
+      maxItems: 120,
+      startUrls: [
+        "https://bringatrailer.com/porsche/911-carrera-1974-1977/",
+        "https://bringatrailer.com/porsche/911-carrera-3-2/",
+        "https://bringatrailer.com/porsche/911-carrera-rs-1973/",
+        "https://bringatrailer.com/porsche/911sc/",
+        "https://bringatrailer.com/porsche/912/",
+        "https://bringatrailer.com/porsche/912e/",
+        "https://bringatrailer.com/porsche/930-turbo/",
+        "https://bringatrailer.com/porsche/964/",
+        "https://bringatrailer.com/porsche/964-turbo/",
+        "https://bringatrailer.com/porsche/964-carrera-rs/",
+        "https://bringatrailer.com/porsche/993/",
+        "https://bringatrailer.com/porsche/993-911-carrera-s/",
+        "https://bringatrailer.com/porsche/993-911-carrera-4/",
+        "https://bringatrailer.com/porsche/993-911-carrera-4s/",
+        "https://bringatrailer.com/porsche/993-turbo/",
+      ].map((url) => ({ url })),
     },
     listingType: "auction",
     sellerType: "auction",
