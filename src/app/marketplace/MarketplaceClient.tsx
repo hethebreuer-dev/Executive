@@ -13,7 +13,7 @@ import {
   type ModelKey,
 } from "@/lib/luft";
 import { FooterSimple } from "@/components/luft/Footer";
-import { ImageSlot, LiveRow } from "@/components/luft/pieces";
+import { CardLink, CardPhoto, ImageSlot, LiveRow } from "@/components/luft/pieces";
 
 type SortKey =
   | "relevance"
@@ -485,7 +485,8 @@ function PriceBox({ children }: { children: React.ReactNode }) {
 
 function FeaturedCard({ c }: { c: Listing }) {
   return (
-    <article
+    <CardLink
+      c={c}
       className="luft-grid-2"
       style={{
         gridTemplateColumns: "1.15fr 1fr",
@@ -494,9 +495,10 @@ function FeaturedCard({ c }: { c: Listing }) {
         borderRadius: 3,
         overflow: "hidden",
         margin: "32px 0 44px",
+        color: "inherit",
       }}
     >
-      <div className="luft-hatch" style={{ position: "relative", minHeight: 360 }}>
+      <CardPhoto c={c} style={{ minHeight: 360 }}>
         <span
           className="mono"
           style={{
@@ -514,10 +516,12 @@ function FeaturedCard({ c }: { c: Listing }) {
         >
           Featured
         </span>
-        <span className="mono" style={{ position: "absolute", bottom: 16, left: 16, fontSize: 11, color: "#8a8a85" }}>
-          [ {c.caption} ]
-        </span>
-      </div>
+        {!c.photos?.length && (
+          <span className="mono" style={{ position: "absolute", bottom: 16, left: 16, fontSize: 11, color: "#8a8a85" }}>
+            [ {c.caption} ]
+          </span>
+        )}
+      </CardPhoto>
       <div style={{ padding: "38px 40px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -543,7 +547,7 @@ function FeaturedCard({ c }: { c: Listing }) {
           <div style={{ display: "flex", gap: 26, paddingBottom: 22, borderBottom: "1px solid #f1f0ed" }}>
             <SpecMini label="Mileage" value={miles(c.miles)} />
             <SpecMini label="Gearbox" value={c.trans} />
-            <SpecMini label="Location" value={`${c.city}, ${c.state}`} />
+            <SpecMini label="Location" value={[c.city, c.state].filter(Boolean).join(", ") || "—"} />
           </div>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: 22 }}>
             <div>
@@ -554,16 +558,15 @@ function FeaturedCard({ c }: { c: Listing }) {
                 {usd(c.price)}
               </div>
             </div>
-            <Link
-              href={`/listing/${c.id}`}
+            <span
               style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 14, fontWeight: 600, padding: "14px 26px", borderRadius: 2 }}
             >
               View listing →
-            </Link>
+            </span>
           </div>
         </div>
       </div>
-    </article>
+    </CardLink>
   );
 }
 
@@ -589,8 +592,12 @@ function ResultCard({
   saved: boolean;
   onSave: () => void;
 }) {
+  const meta = [miles(c.miles), c.trans, [c.city, c.state].filter(Boolean).join(", ")]
+    .filter(Boolean)
+    .join(" · ");
   return (
-    <article
+    <CardLink
+      c={c}
       style={{
         border: "1px solid #e6e5e2",
         background: "#ffffff",
@@ -598,9 +605,10 @@ function ResultCard({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        color: "inherit",
       }}
     >
-      <div className="luft-hatch" style={{ position: "relative", aspectRatio: "4 / 3" }}>
+      <CardPhoto c={c} style={{ aspectRatio: "4 / 3" }}>
         <span
           className="mono"
           style={{
@@ -618,9 +626,14 @@ function ResultCard({
         >
           {c.source}
         </span>
-        <button
-          type="button"
-          onClick={onSave}
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSave();
+          }}
           style={{
             position: "absolute",
             top: 12,
@@ -637,10 +650,12 @@ function ResultCard({
           }}
         >
           {saved ? "Saved" : "+ Save"}
-        </button>
-        <span className="mono" style={{ position: "absolute", bottom: 12, left: 12, fontSize: 10, color: "#a3a29d" }}>
-          [ {c.caption} ]
         </span>
+        {!c.photos?.length && (
+          <span className="mono" style={{ position: "absolute", bottom: 12, left: 12, fontSize: 10, color: "#a3a29d" }}>
+            [ {c.caption} ]
+          </span>
+        )}
         <span
           className="mono"
           style={{
@@ -656,23 +671,21 @@ function ResultCard({
         >
           {deltaText(c.delta)}
         </span>
-      </div>
+      </CardPhoto>
       <div style={{ padding: "18px 18px 20px", display: "flex", flexDirection: "column", flex: 1 }}>
         <h3 className="display" style={{ fontWeight: 500, fontSize: 25, lineHeight: 1.05, letterSpacing: "-0.005em" }}>
           {c.year} {c.title}
         </h3>
         <div className="mono" style={{ fontSize: 12, color: "#8a8a85", marginTop: 7 }}>
-          {miles(c.miles)} · {c.trans} · {c.city}, {c.state}
+          {meta}
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", paddingTop: 18 }}>
           <span className="mono" style={{ fontSize: 21, fontWeight: 500, letterSpacing: "-0.01em" }}>
             {usd(c.price)}
           </span>
-          <Link href={`/listing/${c.id}`} style={{ fontSize: 12, color: "#0d0d0d", fontWeight: 500 }}>
-            View →
-          </Link>
+          <span style={{ fontSize: 12, color: "#0d0d0d", fontWeight: 500 }}>View →</span>
         </div>
       </div>
-    </article>
+    </CardLink>
   );
 }

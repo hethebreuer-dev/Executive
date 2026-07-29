@@ -1,5 +1,65 @@
 import Link from "next/link";
-import { deltaText, type Listing, usd, miles } from "@/lib/luft";
+import { deltaText, listingHref, type Listing, usd, miles } from "@/lib/luft";
+
+// A card link that goes out to the source (new tab) when the listing has a real
+// URL, else to the internal detail page.
+export function CardLink({
+  c,
+  style,
+  className,
+  children,
+}: {
+  c: Listing;
+  style?: React.CSSProperties;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const { href, external } = listingHref(c);
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" style={style} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} style={style} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+// The listing photo (cover) or the hatch placeholder when there's none.
+export function CardPhoto({
+  c,
+  children,
+  style,
+  className = "luft-hatch",
+}: {
+  c: Listing;
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
+  className?: string;
+}) {
+  const photo = c.photos?.[0];
+  return (
+    <div
+      className={photo ? "" : className}
+      style={{ position: "relative", overflow: "hidden", background: photo ? "#e5e4e0" : undefined, ...style }}
+    >
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photo}
+          alt={`${c.year} ${c.title}`}
+          loading="lazy"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : null}
+      {children}
+    </div>
+  );
+}
 
 // Live status row: pulsing dot + mono label.
 export function LiveRow({
@@ -97,13 +157,13 @@ export function ImageSlot({
 }
 
 // Marketplace / Home listing card (4:3).
-export function ListingCard({ c, href = "/listing/1" }: { c: Listing; href?: string }) {
+export function ListingCard({ c }: { c: Listing; href?: string }) {
   return (
-    <Link
-      href={href}
+    <CardLink
+      c={c}
       style={{ border: "1px solid #e6e5e2", display: "flex", flexDirection: "column" }}
     >
-      <div className="luft-hatch" style={{ position: "relative", aspectRatio: "4 / 3" }}>
+      <CardPhoto c={c} style={{ aspectRatio: "4 / 3" }}>
         <span
           className="mono"
           style={{
@@ -120,12 +180,14 @@ export function ListingCard({ c, href = "/listing/1" }: { c: Listing; href?: str
         >
           {c.source}
         </span>
-        <span
-          className="mono"
-          style={{ position: "absolute", bottom: 12, left: 12, fontSize: 10, color: "#a3a29d" }}
-        >
-          [ {c.caption} ]
-        </span>
+        {!c.photos?.length && (
+          <span
+            className="mono"
+            style={{ position: "absolute", bottom: 12, left: 12, fontSize: 10, color: "#a3a29d" }}
+          >
+            [ {c.caption} ]
+          </span>
+        )}
         <span
           className="mono"
           style={{
@@ -140,7 +202,7 @@ export function ListingCard({ c, href = "/listing/1" }: { c: Listing; href?: str
         >
           {deltaText(c.delta)}
         </span>
-      </div>
+      </CardPhoto>
       <div style={{ padding: 18, display: "flex", flexDirection: "column", flex: 1 }}>
         <h3
           className="display"
@@ -158,7 +220,7 @@ export function ListingCard({ c, href = "/listing/1" }: { c: Listing; href?: str
           {usd(c.price)}
         </div>
       </div>
-    </Link>
+    </CardLink>
   );
 }
 

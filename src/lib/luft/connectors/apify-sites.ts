@@ -16,7 +16,17 @@ export const APIFY_SITES: ApifySiteConfig[] = [
     name: "Bring a Trailer",
     actorId: "silentflow/bringatrailer-scraper",
     actorEnv: "APIFY_ACTOR_BAT",
-    input: { search: "air-cooled 911", maxItems: 200 },
+    // Best-effort input: the actor's form shows "Search keywords", so we send a
+    // superset of likely key names + a result cap (actors ignore unknown keys).
+    // If a run returns nothing, send me the actor's JSON input to pin it exactly.
+    input: {
+      searchKeywords: ["Porsche 911", "Porsche 912", "Porsche 930"],
+      searchTerms: ["Porsche 911", "Porsche 912", "Porsche 930"],
+      search: "Porsche 911",
+      maxItems: 150,
+      maxResults: 150,
+      limit: 150,
+    },
     listingType: "auction",
     sellerType: "auction",
   },
