@@ -26,6 +26,7 @@ export const MODEL_DEFS: { key: ModelKey; label: string }[] = [
 
 export type Listing = {
   id: number;
+  canonicalId: string;
   year: number;
   title: string;
   key: Exclude<ModelKey, "all">;
@@ -39,12 +40,15 @@ export type Listing = {
   delta: number; // % vs comps
   caption: string;
   blurb: string;
+  url: string; // source listing URL ("#" for mock)
+  photos: string[];
 };
 
 /** Map a canonical listing down to the legacy UI shape. */
 export function toLegacyListing(c: CanonicalListing, i: number): Listing {
   return {
     id: i + 1,
+    canonicalId: c.id,
     year: c.year,
     title: c.title,
     key: c.modelFamily,
@@ -58,7 +62,19 @@ export function toLegacyListing(c: CanonicalListing, i: number): Listing {
     delta: c.compDeltaPct ?? 0,
     caption: c.caption ?? "",
     blurb: c.blurb ?? "",
+    url: c.url,
+    photos: c.photos ?? [],
   };
+}
+
+/** Where a listing card should link: out to the source when it's a real URL,
+ * otherwise the internal detail page (used by the mock seed). */
+export function listingHref(l: Pick<Listing, "url" | "id">): {
+  href: string;
+  external: boolean;
+} {
+  if (l.url && /^https?:\/\//i.test(l.url)) return { href: l.url, external: true };
+  return { href: `/listing/${l.id}`, external: false };
 }
 
 export const LISTINGS: Listing[] = MOCK_LISTINGS.map(toLegacyListing);
