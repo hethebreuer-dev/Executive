@@ -9,13 +9,21 @@
 // APIFY_TOKEN exists, so half-configured sites never break ingestion.
 
 import { makeApifyConnector, type ApifySiteConfig } from "./apify";
+import { classicComSite } from "./classic-com";
 
 export const APIFY_SITES: ApifySiteConfig[] = [
+  // Classic.com — the working MVP source (aggregates 1M+ auction + dealer
+  // listings). Runs on APIFY_TOKEN alone; exact output mapper in classic-com.ts.
+  classicComSite,
   {
     id: "bring-a-trailer",
     name: "Bring a Trailer",
     actorId: "silentflow/bringatrailer-scraper",
     actorEnv: "APIFY_ACTOR_BAT",
+    // DISABLED: BaT hard-blocks scrapers (403 on every request via the free
+    // proxy). Needs residential proxies or a partnership — not an MVP path.
+    // Re-enable only with a proxy solution that actually gets through.
+    enabled: false,
     // silentflow/bringatrailer-scraper takes startUrls (BaT model-category
     // pages) + maxItems + includeDetails. Curated air-cooled set; classifier
     // drops anything that isn't a 911/912/930/964/993.
