@@ -365,8 +365,8 @@ var classicComConnector = {
             body: JSON.stringify({
               startUrl,
               result_type: "listings",
-              results_wanted: 25,
-              max_pages: 2,
+              results_wanted: 100,
+              max_pages: 4,
               proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: [] }
             })
           }
@@ -540,9 +540,11 @@ var mockConnector = {
     enabled: true,
     notes: "Seeded placeholder data \u2014 connector #0. Remove once real sources cover the catalog."
   },
-  // Steps aside when LUFT_DISABLE_MOCK=1 (real sources cover the catalog).
+  // Off by default now that real sources cover the catalog — opt in with
+  // LUFT_ENABLE_MOCK=1 (e.g. local dev against an empty D1). This is a code
+  // default, so production never ingests mock rows without a dashboard variable.
   isConfigured(ctx) {
-    return ctx.env("LUFT_DISABLE_MOCK") !== "1";
+    return ctx.env("LUFT_ENABLE_MOCK") === "1";
   },
   async fetchListings() {
     return MOCK_LISTINGS;
@@ -555,7 +557,7 @@ var mockConnector = {
 // src/lib/luft/registry.ts
 var CONNECTORS = [
   mockConnector,
-  // connector #0 — steps aside when LUFT_DISABLE_MOCK=1
+  // connector #0 — off by default; opt in with LUFT_ENABLE_MOCK=1
   ebayConnector,
   // configured when EBAY_APP_ID + EBAY_CERT_ID are set
   classicComConnector,

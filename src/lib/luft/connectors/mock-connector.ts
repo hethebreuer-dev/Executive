@@ -62,9 +62,11 @@ export const mockConnector: ListingConnector & CompConnector = {
     enabled: true,
     notes: "Seeded placeholder data — connector #0. Remove once real sources cover the catalog.",
   } satisfies ConnectorMeta,
-  // Steps aside when LUFT_DISABLE_MOCK=1 (real sources cover the catalog).
+  // Off by default now that real sources cover the catalog — opt in with
+  // LUFT_ENABLE_MOCK=1 (e.g. local dev against an empty D1). This is a code
+  // default, so production never ingests mock rows without a dashboard variable.
   isConfigured(ctx) {
-    return ctx.env("LUFT_DISABLE_MOCK") !== "1";
+    return ctx.env("LUFT_ENABLE_MOCK") === "1";
   },
   async fetchListings() {
     return MOCK_LISTINGS;

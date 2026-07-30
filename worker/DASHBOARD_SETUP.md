@@ -25,7 +25,7 @@ On the Worker → **Settings**:
   - Secret **`INGEST_SECRET`** = any random string (guards `POST /ingest`).
   - Secret **`EBAY_APP_ID`**, **`EBAY_CERT_ID`** (once your eBay keyset is approved).
   - Optional: **`EBAY_ENV`** = `sandbox` to test, **`EBAY_MARKETPLACE`**, **`APIFY_TOKEN`**.
-  - Optional var **`LUFT_DISABLE_MOCK`** = `1` once real sources cover the catalog.
+  - The 12 seed/mock cars are OFF by default. Only set var **`LUFT_ENABLE_MOCK`** = `1` if you want them back (e.g. bootstrapping an empty D1).
 
 ## 4. Schedule it
 **Settings → Triggers → Cron Triggers → Add** → `*/30 * * * *` → Save.
@@ -56,8 +56,8 @@ site; they handle the scraping, we normalize the output).
    Value format is `username/actor-name` (e.g. `silentflow/bringatrailer-scraper`).
 3. Redeploy, then trigger `POST /ingest` (or wait for cron). Each configured
    source runs; a source with no actor id / no token is silently skipped, so a
-   broken one never blocks the others. Set **`LUFT_DISABLE_MOCK`** = `1` once real
-   sources are flowing to drop the 12 seed cars.
+   broken one never blocks the others. The 12 seed cars are off by default; set
+   **`LUFT_ENABLE_MOCK`** = `1` only if you want to seed an empty D1.
 
 > Field mapping is intentionally tolerant (it probes common field names), so most
 > actors map without custom code. Once real data lands we may tighten one or two

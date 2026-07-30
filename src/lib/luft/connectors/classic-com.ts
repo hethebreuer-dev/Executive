@@ -137,8 +137,8 @@ export const classicComConnector: ListingConnector = {
             body: JSON.stringify({
               startUrl,
               result_type: "listings",
-              results_wanted: 25,
-              max_pages: 2,
+              results_wanted: 100,
+              max_pages: 4,
               proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: [] },
             }),
           }
