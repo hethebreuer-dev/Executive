@@ -37,9 +37,6 @@ interface SourceReport {
 async function ingest(
   env: Env
 ): Promise<{ listings: number; comps: number; swept: number; sources: SourceReport[] }> {
-  // Captured before we fetch: any row refreshed this run gets a last_seen
-  // stamped during/after fetch (> runStart), so it survives the stale-sweep.
-  const runStart = new Date().toISOString();
   const ctx = workerContext(env as unknown as Record<string, unknown>);
   const connectors = activeConnectors(ctx);
 
@@ -73,10 +70,13 @@ async function ingest(
   const listings = [...byId.values()];
   await upsertListings(env.DB, listings);
 
-  // Stale-sweep: drop each connector's ACTIVE rows that weren't refreshed this
-  // run (last_seen < runStart) — i.e. cars sold or delisted since we last saw
-  // them. Scoped per-connector via the id prefix and skipped when a connector
+  // Stale-sweep with a 6-hour grace period: drop each connector's ACTIVE rows
+  // only if they haven't been seen for 6h — NOT merely absent from this run.
+  // Scrapers return a different subset each run (rotating proxies), so a
+  // one-run miss shouldn't delist a real car; 6h ≈ many consecutive runs.
+  // Scoped per-connector via the id prefix and skipped when a connector
   // returned nothing, so a transient fetch failure can never wipe good data.
+  const staleCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
   let swept = 0;
   for (const r of perConnector) {
     if (!r.items.length) continue;
@@ -84,7 +84,7 @@ async function ingest(
       const res = await env.DB.prepare(
         "DELETE FROM listings WHERE status = 'active' AND last_seen < ? AND id LIKE ?"
       )
-        .bind(runStart, `${r.id}:%`)
+        .bind(staleCutoff, `${r.id}:%`)
         .run();
       swept += res.meta?.changes ?? 0;
     } catch (e) {

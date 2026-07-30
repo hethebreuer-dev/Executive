@@ -523,8 +523,8 @@ var PAGE_FUNCTION = `async function pageFunction(context) {
 var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
 function parsePrice2(s) {
   const currency = /eur|€/i.test(s) ? "EUR" : "USD";
-  const digits = s.replace(/[^0-9]/g, "");
-  const n = digits ? parseInt(digits, 10) : NaN;
+  const first = s.replace(/,/g, "").match(/\d+/);
+  const n = first ? parseInt(first[0], 10) : NaN;
   return { price: Number.isNaN(n) ? void 0 : n, currency };
 }
 function parseMileage2(s) {
@@ -718,7 +718,6 @@ var activeConnectors = (ctx) => CONNECTORS.filter((c) => c.meta.enabled && isCon
 
 // worker/src/index.ts
 async function ingest(env) {
-  const runStart = (/* @__PURE__ */ new Date()).toISOString();
   const ctx = workerContext(env);
   const connectors = activeConnectors(ctx);
   await migrateDedupeIndex(env.DB);
@@ -741,13 +740,14 @@ async function ingest(env) {
   for (const l of merged) byId.set(l.id, l);
   const listings = [...byId.values()];
   await upsertListings(env.DB, listings);
+  const staleCutoff = new Date(Date.now() - 6 * 60 * 60 * 1e3).toISOString();
   let swept = 0;
   for (const r of perConnector) {
     if (!r.items.length) continue;
     try {
       const res = await env.DB.prepare(
         "DELETE FROM listings WHERE status = 'active' AND last_seen < ? AND id LIKE ?"
-      ).bind(runStart, `${r.id}:%`).run();
+      ).bind(staleCutoff, `${r.id}:%`).run();
       swept += res.meta?.changes ?? 0;
     } catch (e) {
       console.error(`[${r.id}] sweep failed:`, e);
