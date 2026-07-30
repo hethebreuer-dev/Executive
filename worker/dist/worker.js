@@ -264,9 +264,130 @@ var APIFY_SITES = [
 ];
 var apifyConnectors = APIFY_SITES.map(makeApifyConnector);
 
-// src/lib/luft/connectors/classic-com.ts
-var ACTOR = "shahidirfan~classic-com-cars-scraper";
+// src/lib/luft/connectors/autotrader.ts
+var ACTOR = "apify~cheerio-scraper";
 var START_URLS = [
+  "https://classics.autotrader.com/classic-cars-for-sale/porsche-911-for-sale?year_max=1998&year_min=1963",
+  "https://classics.autotrader.com/classic-cars-for-sale/porsche-912-for-sale?year_max=1998&year_min=1963"
+];
+var PAGE_FUNCTION = `async function pageFunction(context) {
+  var $ = context.$;
+  var out = [];
+  $('.listing-box-v2').each(function () {
+    var card = $(this);
+    var link = card.find('a[href^="/classic-cars/"]').first().attr('href') || '';
+    var title = card.find('.listing-name').first().text().replace(/\\s+/g, ' ').trim();
+    var price = card.find('.listing-price--standard').first().text().replace(/\\s+/g, ' ').trim();
+    var mileage = '';
+    card.find('.listing-spec').each(function () {
+      var t = $(this).text().replace(/\\s+/g, ' ').trim();
+      if (!mileage && /mi\\b/i.test(t)) mileage = t;
+    });
+    var seller = card.find('.listing-seller-info-item.font-bold').first().text().replace(/\\s+/g, ' ').trim();
+    var image = card.find('img').first().attr('src') || '';
+    if (link && title) out.push({ link: link, title: title, price: price, mileage: mileage, seller: seller, image: image });
+  });
+  return out;
+}`;
+var str2 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice(s) {
+  if (!s) return void 0;
+  const digits = s.replace(/[^0-9]/g, "");
+  if (!digits) return void 0;
+  const n = parseInt(digits, 10);
+  return Number.isNaN(n) ? void 0 : n;
+}
+function parseMileage(s) {
+  if (!s) return void 0;
+  const digits = s.replace(/[^0-9]/g, "");
+  if (!digits) return void 0;
+  const n = parseInt(digits, 10);
+  return Number.isNaN(n) ? void 0 : n;
+}
+function bodyFrom2(title) {
+  if (/targa/i.test(title)) return "Targa";
+  if (/cabriolet|convertible|cabrio|speedster/i.test(title)) return "Cabriolet";
+  return "Coupe";
+}
+function autotraderMap(item) {
+  const rawTitle = (str2(item.title) ?? "").trim();
+  const year = Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
+  if (!rawTitle || !year) return null;
+  const family = classifyModelFamily(rawTitle);
+  if (!family) return null;
+  const price = parsePrice(str2(item.price));
+  if (price == null) return null;
+  const link = str2(item.link) ?? "";
+  const url = link.startsWith("http") ? link : `https://classics.autotrader.com${link}`;
+  const title = rawTitle.replace(/^\d{4}\s+porsche\s+/i, "").trim();
+  const image = str2(item.image);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  return {
+    id: `autotrader:${url}`,
+    source: str2(item.seller) || "Autotrader Classics",
+    sourceId: url,
+    url,
+    firstSeen: now,
+    lastSeen: now,
+    status: "active",
+    year,
+    modelFamily: family,
+    trim: title,
+    body: bodyFrom2(rawTitle),
+    transmission: "Unknown",
+    mileage: parseMileage(str2(item.mileage)),
+    listingType: "dealer",
+    sellerType: "dealer",
+    price,
+    currency: "USD",
+    photos: image ? [image] : [],
+    title
+  };
+}
+var autotraderConnector = {
+  meta: {
+    id: "autotrader",
+    name: "Autotrader Classics",
+    tier: "apify",
+    provides: ["listings"],
+    enabled: true,
+    ref: "apify:apify/cheerio-scraper",
+    notes: "Single-stage cheerio crawl of the porsche-911/912 search pages. Runs on APIFY_TOKEN."
+  },
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN"));
+  },
+  async fetchListings(ctx) {
+    const token = ctx.env("APIFY_TOKEN");
+    if (!token) throw new ConnectorNotImplemented("autotrader");
+    const res = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          startUrls: START_URLS.map((url) => ({ url })),
+          pageFunction: PAGE_FUNCTION,
+          proxyConfiguration: { useApifyProxy: true },
+          maxRequestsPerCrawl: 12
+        })
+      }
+    );
+    if (!res.ok) throw new Error(`Autotrader actor failed: ${res.status}`);
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : [];
+    const out = [];
+    for (const it of items) {
+      const mapped = autotraderMap(it);
+      if (mapped) out.push(mapped);
+    }
+    return out;
+  }
+};
+
+// src/lib/luft/connectors/classic-com.ts
+var ACTOR2 = "shahidirfan~classic-com-cars-scraper";
+var START_URLS2 = [
   "https://www.classic.com/m/porsche/911/f-body/",
   // 1963–1973 (proven)
   "https://www.classic.com/m/porsche/911/g-body/",
@@ -281,45 +402,45 @@ var START_URLS = [
   "https://www.classic.com/m/porsche/911/f-body/lwb/912/coupe/",
   "https://www.classic.com/m/porsche/911/f-body/swb/912/targa/"
 ];
-var str2 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
-function parsePrice(s) {
+var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice2(s) {
   if (!s) return void 0;
   const digits = s.replace(/[^0-9.]/g, "");
   if (!digits) return void 0;
   const n = parseFloat(digits);
   return Number.isNaN(n) ? void 0 : Math.round(n);
 }
-function parseMileage(s) {
+function parseMileage2(s) {
   if (!s) return void 0;
   const m = s.replace(/,/g, "").match(/([\d.]+)\s*(k)?/i);
   if (!m) return void 0;
   const n = parseFloat(m[1]) * (m[2] ? 1e3 : 1);
   return Number.isNaN(n) ? void 0 : Math.round(n);
 }
-function bodyFrom2(title) {
+function bodyFrom3(title) {
   if (/targa/i.test(title)) return "Targa";
   if (/cabriolet|convertible|\bcab\b/i.test(title)) return "Cabriolet";
   return "Coupe";
 }
 function classicComMap(item) {
-  const title = str2(item.title)?.trim();
+  const title = str3(item.title)?.trim();
   if (!title) return null;
-  const location = str2(item.location) ?? "";
+  const location = str3(item.location) ?? "";
   if (location && !/usa|united states/i.test(location)) return null;
-  const price = parsePrice(str2(item.price));
+  const price = parsePrice2(str3(item.price));
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!year || price == null) return null;
   const family = classifyModelFamily(title);
   if (!family) return null;
-  const url = str2(item.url) ?? "#";
+  const url = str3(item.url) ?? "#";
   const [city, state] = location.split(",").map((s) => s.trim());
-  const status = /sold/i.test(str2(item.listing_status) ?? "") ? "sold" : "active";
-  const primary = str2(item.image_url);
+  const status = /sold/i.test(str3(item.listing_status) ?? "") ? "sold" : "active";
+  const primary = str3(item.image_url);
   const photos = Array.isArray(item.image_urls) ? item.image_urls.filter((u) => typeof u === "string") : primary ? [primary] : [];
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
     id: `classic-com:${url}`,
-    source: str2(item.seller) || "Classic.com",
+    source: str3(item.seller) || "Classic.com",
     sourceId: url,
     url,
     firstSeen: now,
@@ -328,13 +449,13 @@ function classicComMap(item) {
     year,
     modelFamily: family,
     trim: title.replace(/^\d{4}\s+porsche\s+/i, ""),
-    body: bodyFrom2(title),
-    transmission: str2(item.transmission) ?? "Unknown",
-    mileage: parseMileage(str2(item.mileage)),
+    body: bodyFrom3(title),
+    transmission: str3(item.transmission) ?? "Unknown",
+    mileage: parseMileage2(str3(item.mileage)),
     listingType: "dealer",
     sellerType: "dealer",
     price,
-    currency: str2(item.price)?.includes("\u20AC") ? "EUR" : "USD",
+    currency: str3(item.price)?.includes("\u20AC") ? "EUR" : "USD",
     city: city || void 0,
     state: state || void 0,
     photos,
@@ -358,10 +479,10 @@ var classicComConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("classic-com");
     const out = [];
-    for (const startUrl of START_URLS) {
+    for (const startUrl of START_URLS2) {
       try {
         const res = await fetch(
-          `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}`,
+          `https://api.apify.com/v2/acts/${ACTOR2}/run-sync-get-dataset-items?token=${token}`,
           {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -497,8 +618,8 @@ function mapItem(item) {
 }
 
 // src/lib/luft/connectors/elferspot.ts
-var ACTOR2 = "apify~cheerio-scraper";
-var START_URLS2 = [
+var ACTOR3 = "apify~cheerio-scraper";
+var START_URLS3 = [
   "https://www.elferspot.com/en/search/?series%5B%5D=911-f-model&country%5B%5D=C_NA&sorting=newest",
   "https://www.elferspot.com/en/search/?series%5B%5D=912&country%5B%5D=C_NA&sorting=newest",
   "https://www.elferspot.com/en/search/?series%5B%5D=911-g-model&country%5B%5D=C_NA&sorting=newest",
@@ -506,7 +627,7 @@ var START_URLS2 = [
   "https://www.elferspot.com/en/search/?series%5B%5D=964&country%5B%5D=C_NA&sorting=newest",
   "https://www.elferspot.com/en/search/?series%5B%5D=993&country%5B%5D=C_NA&sorting=newest"
 ];
-var PAGE_FUNCTION = `async function pageFunction(context) {
+var PAGE_FUNCTION2 = `async function pageFunction(context) {
   var $ = context.$;
   var url = context.request.url;
   if (url.indexOf('/en/car/') === -1) return null;
@@ -520,14 +641,14 @@ var PAGE_FUNCTION = `async function pageFunction(context) {
   var image = $('meta[property="og:image"]').attr('content') || '';
   return { url: url, price: price, image: image, specs: specs };
 }`;
-var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
-function parsePrice2(s) {
+var str4 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice3(s) {
   const currency = /eur|€/i.test(s) ? "EUR" : "USD";
   const first = s.replace(/,/g, "").match(/\d+/);
   const n = first ? parseInt(first[0], 10) : NaN;
   return { price: Number.isNaN(n) ? void 0 : n, currency };
 }
-function parseMileage2(s) {
+function parseMileage3(s) {
   if (!s) return void 0;
   const m = s.replace(/[,.](?=\d{3}\b)/g, "").match(/([\d]+)/);
   if (!m) return void 0;
@@ -535,7 +656,7 @@ function parseMileage2(s) {
   if (/\bkm\b/i.test(s)) n = Math.round(n * 0.621371);
   return Number.isNaN(n) ? void 0 : n;
 }
-function bodyFrom3(body) {
+function bodyFrom4(body) {
   const b = (body ?? "").toLowerCase();
   if (/targa/.test(b)) return "Targa";
   if (/cabrio|convertible|spyder|speedster/.test(b)) return "Cabriolet";
@@ -545,15 +666,15 @@ function elferspotMap(item) {
   const specs = item.specs ?? {};
   const model = (specs["Model"] ?? "").trim();
   const year = Number((specs["Year of construction"] ?? "").match(/\b(19|20)\d{2}\b/)?.[0]);
-  const title = model || (str3(item.title) ?? "").replace(/^porsche\s+/i, "").trim();
+  const title = model || (str4(item.title) ?? "").replace(/^porsche\s+/i, "").trim();
   if (!title || !year) return null;
   const family = classifyModelFamily(`${year} Porsche ${title}`);
   if (!family) return null;
-  const { price, currency } = parsePrice2(str3(item.price) ?? "");
+  const { price, currency } = parsePrice3(str4(item.price) ?? "");
   if (price == null || currency !== "USD") return null;
-  const url = str3(item.url) ?? "#";
+  const url = str4(item.url) ?? "#";
   const vin = (specs["VIN"] ?? "").match(/\b[A-HJ-NPR-Z0-9]{11,17}\b/i)?.[0];
-  const image = str3(item.image);
+  const image = str4(item.image);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
     id: `elferspot:${url}`,
@@ -566,10 +687,10 @@ function elferspotMap(item) {
     year,
     modelFamily: family,
     trim: title,
-    body: bodyFrom3(specs["Body"]),
+    body: bodyFrom4(specs["Body"]),
     transmission: specs["Transmission"] || "Unknown",
     vin,
-    mileage: parseMileage2(specs["Mileage"]),
+    mileage: parseMileage3(specs["Mileage"]),
     exteriorColor: specs["Exterior color"] || void 0,
     interiorColor: specs["Interior color"] || void 0,
     listingType: "dealer",
@@ -600,15 +721,15 @@ var elferspotConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("elferspot");
     const input = {
-      startUrls: START_URLS2.map((url) => ({ url })),
+      startUrls: START_URLS3.map((url) => ({ url })),
       linkSelector: "a.content-teaser",
       globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
-      pageFunction: PAGE_FUNCTION,
+      pageFunction: PAGE_FUNCTION2,
       proxyConfiguration: { useApifyProxy: true },
       maxRequestsPerCrawl: 400,
       maxConcurrency: 20
     };
-    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR2}/runs?token=${token}`, {
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR3}/runs?token=${token}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(input)
@@ -711,6 +832,8 @@ var CONNECTORS = [
   // working MVP source — runs on APIFY_TOKEN alone
   elferspotConnector,
   // two-stage cheerio crawl — runs on APIFY_TOKEN alone
+  autotraderConnector,
+  // single-stage cheerio crawl — runs on APIFY_TOKEN alone
   ...apifyConnectors
   // other Apify-actor sources (need actorId/actorEnv)
 ];

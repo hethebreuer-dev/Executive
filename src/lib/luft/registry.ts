@@ -4,6 +4,7 @@
 // the full roadmap; this is what actually executes.
 
 import { apifyConnectors } from "./connectors/apify-sites";
+import { autotraderConnector } from "./connectors/autotrader";
 import { classicComConnector } from "./connectors/classic-com";
 import { isConfigured, type AnyConnector } from "./connectors/connector";
 import type { ConnectorContext } from "./connectors/context";
@@ -16,6 +17,7 @@ export const CONNECTORS: AnyConnector[] = [
   ebayConnector, // configured when EBAY_APP_ID + EBAY_CERT_ID are set
   classicComConnector, // working MVP source — runs on APIFY_TOKEN alone
   elferspotConnector, // two-stage cheerio crawl — runs on APIFY_TOKEN alone
+  autotraderConnector, // single-stage cheerio crawl — runs on APIFY_TOKEN alone
   ...apifyConnectors, // other Apify-actor sources (need actorId/actorEnv)
 ];
 
