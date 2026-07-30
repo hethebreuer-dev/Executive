@@ -140,25 +140,46 @@ export const elferspotConnector: ListingConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("elferspot");
 
-    const res = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          startUrls: START_URLS.map((url) => ({ url })),
-          linkSelector: "a.content-teaser",
-          globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
-          pageFunction: PAGE_FUNCTION,
-          proxyConfiguration: { useApifyProxy: true },
-          maxRequestsPerCrawl: 400,
-          maxConcurrency: 20,
-        }),
-      }
-    );
-    if (!res.ok) throw new Error(`Elferspot actor failed: ${res.status}`);
+    const input = {
+      startUrls: START_URLS.map((url) => ({ url })),
+      linkSelector: "a.content-teaser",
+      globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
+      pageFunction: PAGE_FUNCTION,
+      proxyConfiguration: { useApifyProxy: true },
+      maxRequestsPerCrawl: 400,
+      maxConcurrency: 20,
+    };
 
-    const data = (await res.json()) as unknown;
+    // The crawl loads one page per car and takes minutes — past run-sync's ~100s
+    // gateway limit (a 524). So start the run async, poll it, then read the
+    // dataset; every request here stays short.
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (!start.ok) throw new Error(`Elferspot start failed: ${start.status}`);
+    const run = ((await start.json()) as {
+      data: { id: string; defaultDatasetId: string; status: string };
+    }).data;
+
+    const deadline = Date.now() + 280_000; // ~4.7 min ceiling
+    let status = run.status;
+    while (status === "READY" || status === "RUNNING") {
+      if (Date.now() > deadline) throw new Error("Elferspot run timed out (still running)");
+      await new Promise((r) => setTimeout(r, 5000));
+      const poll = await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${token}`);
+      if (!poll.ok) throw new Error(`Elferspot poll failed: ${poll.status}`);
+      status = ((await poll.json()) as { data: { status: string } }).data.status;
+    }
+    if (status !== "SUCCEEDED") throw new Error(`Elferspot run ${status}`);
+
+    const ds = await fetch(
+      `https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${token}&clean=true`
+    );
+    if (!ds.ok) throw new Error(`Elferspot dataset failed: ${ds.status}`);
+
+    const data = (await ds.json()) as unknown;
     const items: Raw[] = Array.isArray(data) ? (data as Raw[]) : [];
     const out: CanonicalListing[] = [];
     for (const it of items) {
