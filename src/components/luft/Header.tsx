@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Auth } from "./Auth";
 
@@ -20,8 +20,15 @@ function isActive(pathname: string, href: string) {
 
 export function Header() {
   const pathname = usePathname() || "/";
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
   const onMarketplace = pathname.startsWith("/marketplace");
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    router.push(q.trim() ? `/marketplace?q=${encodeURIComponent(q.trim())}` : "/marketplace");
+  }
 
   return (
     <header className="luft-header">
@@ -69,8 +76,8 @@ export function Header() {
           style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}
         >
           {onMarketplace ? (
-            <Link
-              href="/marketplace"
+            <form
+              onSubmit={submitSearch}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -82,10 +89,22 @@ export function Header() {
                 width: 260,
               }}
             >
-              <span style={{ fontSize: 13, color: "#adaca7" }}>
-                Search year, model, spec…
-              </span>
-            </Link>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search year, model, spec…"
+                aria-label="Search listings"
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  outline: "none",
+                  width: "100%",
+                  fontSize: 13,
+                  color: "#0d0d0d",
+                  fontFamily: "var(--font-libre-franklin), sans-serif",
+                }}
+              />
+            </form>
           ) : null}
           <Auth />
           {!onMarketplace && (
