@@ -49,11 +49,15 @@ const PAGE_FUNCTION = `async function pageFunction(context) {
 const str = (v: unknown): string | undefined =>
   typeof v === "string" ? v : v == null ? undefined : String(v);
 
-/** "USD 239,995" → {price:239995, currency:"USD"} · "Price on request" → {} */
+/**
+ * "USD 239,995" → 239995 · "USD 220,000 - 275,000" → 220000 (range low/"from")
+ * · "Price on request" → undefined. Many Elferspot listings quote a range, so
+ * take the FIRST number, not every digit concatenated together.
+ */
 function parsePrice(s: string): { price?: number; currency: string } {
   const currency = /eur|€/i.test(s) ? "EUR" : "USD";
-  const digits = s.replace(/[^0-9]/g, "");
-  const n = digits ? parseInt(digits, 10) : NaN;
+  const first = s.replace(/,/g, "").match(/\d+/);
+  const n = first ? parseInt(first[0], 10) : NaN;
   return { price: Number.isNaN(n) ? undefined : n, currency };
 }
 
