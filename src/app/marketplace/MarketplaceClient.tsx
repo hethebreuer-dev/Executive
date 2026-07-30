@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   MODEL_DEFS,
@@ -32,6 +33,28 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "year-asc", label: "Year: oldest" },
 ];
 
+const BODY_OPTIONS = ["Coupe", "Targa", "Cabriolet"];
+const TRANS_OPTIONS = ["Manual", "Tiptronic", "Sportomatic"];
+
+/** Match a coarse transmission group against the free-text transmission field
+ *  (e.g. "5-spd G50", "6-spd manual", "Tiptronic", "Sportomatic"). */
+function matchTrans(group: string, trans: string): boolean {
+  const t = trans.toLowerCase();
+  if (group === "Manual") return /manual|-spd|\bspd\b|speed|915|g50/.test(t);
+  if (group === "Tiptronic") return /tiptronic|automatic/.test(t);
+  if (group === "Sportomatic") return /sportomatic/.test(t);
+  return false;
+}
+
+/** "$30k" / "30k" / "30000" → 30000 · "" → null */
+function parsePriceInput(s: string): number | null {
+  const cleaned = s.trim().toLowerCase().replace(/[$,\s]/g, "");
+  if (!cleaned) return null;
+  const n = parseFloat(cleaned.replace(/[^0-9.]/g, ""));
+  if (Number.isNaN(n)) return null;
+  return /k\+?$/.test(cleaned) ? Math.round(n * 1000) : Math.round(n);
+}
+
 function sortListings(list: Listing[], sort: SortKey) {
   const out = [...list];
   switch (sort) {
@@ -51,13 +74,65 @@ function sortListings(list: Listing[], sort: SortKey) {
 }
 
 export function MarketplaceClient({ listings }: { listings: Listing[] }) {
+  const qParam = useSearchParams().get("q") ?? "";
   const [model, setModel] = useState<ModelKey>("all");
   const [sort, setSort] = useState<SortKey>("relevance");
   const [saved, setSaved] = useState<Record<number, boolean>>({});
+  const [query, setQuery] = useState(qParam);
+  const [bodies, setBodies] = useState<string[]>([]);
+  const [transmissions, setTransmissions] = useState<string[]>([]);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+
+  // Re-sync the search box when the header submits ?q=… on this page — done
+  // during render (React's "adjust state on prop change" pattern), not an effect.
+  const [prevQ, setPrevQ] = useState(qParam);
+  if (qParam !== prevQ) {
+    setPrevQ(qParam);
+    setQuery(qParam);
+  }
+
+  const toggle = (list: string[], setList: (v: string[]) => void, val: string) =>
+    setList(list.includes(val) ? list.filter((x) => x !== val) : [...list, val]);
+
+  const hasFilters =
+    model !== "all" ||
+    query.trim() !== "" ||
+    bodies.length > 0 ||
+    transmissions.length > 0 ||
+    minPrice !== "" ||
+    maxPrice !== "";
+
+  function resetFilters() {
+    setModel("all");
+    setQuery("");
+    setBodies([]);
+    setTransmissions([]);
+    setMinPrice("");
+    setMaxPrice("");
+  }
 
   const view = useMemo(() => {
-    const filtered =
+    let filtered =
       model === "all" ? [...listings] : listings.filter((c) => c.key === model);
+
+    if (bodies.length) filtered = filtered.filter((c) => bodies.includes(c.body));
+    if (transmissions.length)
+      filtered = filtered.filter((c) => transmissions.some((t) => matchTrans(t, c.trans)));
+
+    const min = parsePriceInput(minPrice);
+    const max = parsePriceInput(maxPrice);
+    if (min != null) filtered = filtered.filter((c) => c.price >= min);
+    if (max != null) filtered = filtered.filter((c) => c.price <= max);
+
+    const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length) {
+      filtered = filtered.filter((c) => {
+        const hay = `${c.year} ${c.title} ${c.source} ${c.city} ${c.state} ${c.trans} ${c.body}`.toLowerCase();
+        return tokens.every((t) => hay.includes(t));
+      });
+    }
+
     const list = sortListings(filtered, sort);
     const prices = list.map((c) => c.price).sort((a, b) => a - b);
     const median = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
@@ -86,7 +161,7 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
       marketLabel: md ? md.label : "All air-cooled",
       sparkPoints: spark,
     };
-  }, [model, sort, listings]);
+  }, [model, sort, listings, query, bodies, transmissions, minPrice, maxPrice]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: listings.length };
@@ -248,21 +323,71 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
             </div>
           </div>
 
-          <CheckGroup title="Body" items={["Coupe", "Targa", "Cabriolet"]} />
+          <CheckGroup
+            title="Body"
+            items={BODY_OPTIONS}
+            selected={bodies}
+            onToggle={(v) => toggle(bodies, setBodies, v)}
+          />
 
           <div style={{ padding: "22px 0", borderBottom: "1px solid #e6e5e2" }}>
             <FilterLabel>Price</FilterLabel>
             <div style={{ display: "flex", gap: 8 }}>
-              <PriceBox>$30k</PriceBox>
-              <PriceBox>$600k+</PriceBox>
+              <PriceInput value={minPrice} onChange={setMinPrice} placeholder="$30k" />
+              <PriceInput value={maxPrice} onChange={setMaxPrice} placeholder="$600k+" />
             </div>
           </div>
 
-          <CheckGroup title="Transmission" items={["Manual", "Tiptronic", "Sportomatic"]} last />
+          <CheckGroup
+            title="Transmission"
+            items={TRANS_OPTIONS}
+            selected={transmissions}
+            onToggle={(v) => toggle(transmissions, setTransmissions, v)}
+            last
+          />
         </aside>
 
         {/* RESULTS */}
         <main>
+          <div style={{ position: "relative", marginBottom: 18 }}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search year, model, spec, source… (e.g. “1973 Carrera RS”)"
+              style={{
+                width: "100%",
+                border: "1px solid #e6e5e2",
+                background: "#fafafa",
+                borderRadius: 2,
+                padding: "13px 40px 13px 16px",
+                fontSize: 14,
+                color: "#0d0d0d",
+                fontFamily: "var(--font-libre-franklin), sans-serif",
+                outline: "none",
+              }}
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "#8a8a85",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
           <div
             style={{
               display: "flex",
@@ -278,6 +403,24 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
             <div style={{ fontSize: 14, color: "#5e5e5a" }}>
               <strong style={{ color: "#0d0d0d", fontWeight: 600 }}>{view.count}</strong>{" "}
               {view.count === 1 ? "car listed" : "cars listed"} · {view.marketLabel}
+              {hasFilters && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  style={{
+                    marginLeft: 12,
+                    border: "none",
+                    background: "transparent",
+                    color: "#8a8a85",
+                    fontSize: 13,
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-libre-franklin), sans-serif",
+                  }}
+                >
+                  Clear all
+                </button>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 13, color: "#8a8a85" }}>Sort</span>
@@ -448,46 +591,95 @@ function FilterLabel({ children }: { children: React.ReactNode }) {
 function CheckGroup({
   title,
   items,
+  selected,
+  onToggle,
   last,
 }: {
   title: string;
   items: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
   last?: boolean;
 }) {
   return (
     <div style={{ padding: "22px 0", borderBottom: last ? "none" : "1px solid #e6e5e2" }}>
       <FilterLabel>{title}</FilterLabel>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {items.map((it) => (
-          <label
-            key={it}
-            style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "#3f3f3d", cursor: "pointer" }}
-          >
-            <span style={{ width: 14, height: 14, border: "1px solid #adaca7", borderRadius: 2 }} />
-            {it}
-          </label>
-        ))}
+        {items.map((it) => {
+          const on = selected.includes(it);
+          return (
+            <button
+              key={it}
+              type="button"
+              onClick={() => onToggle(it)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 14,
+                color: on ? "#0d0d0d" : "#3f3f3d",
+                cursor: "pointer",
+                border: "none",
+                background: "transparent",
+                padding: 0,
+                textAlign: "left",
+                fontFamily: "var(--font-libre-franklin), sans-serif",
+                fontWeight: on ? 600 : 400,
+              }}
+            >
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  flexShrink: 0,
+                  border: on ? "1px solid #0d0d0d" : "1px solid #adaca7",
+                  background: on ? "#0d0d0d" : "transparent",
+                  borderRadius: 2,
+                  color: "#ffffff",
+                  fontSize: 11,
+                  lineHeight: "13px",
+                  textAlign: "center",
+                }}
+              >
+                {on ? "✓" : ""}
+              </span>
+              {it}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function PriceBox({ children }: { children: React.ReactNode }) {
+function PriceInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
   return (
-    <div
+    <input
       className="mono"
+      inputMode="numeric"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
       style={{
         flex: 1,
+        width: "100%",
         border: "1px solid #e6e5e2",
         background: "#fafafa",
         borderRadius: 2,
         padding: "8px 10px",
         fontSize: 12,
-        color: "#8a8a85",
+        color: "#0d0d0d",
+        outline: "none",
       }}
-    >
-      {children}
-    </div>
+    />
   );
 }
 
