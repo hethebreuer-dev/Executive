@@ -56,12 +56,18 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number; swep
   let swept = 0;
   for (const r of perConnector) {
     if (!r.items.length) continue;
-    const res = await env.DB.prepare(
-      "DELETE FROM listings WHERE status = 'active' AND last_seen < ? AND id LIKE ?"
-    )
-      .bind(runStart, `${r.id}:%`)
-      .run();
-    swept += res.meta?.changes ?? 0;
+    try {
+      const res = await env.DB.prepare(
+        "DELETE FROM listings WHERE status = 'active' AND last_seen < ? AND id LIKE ?"
+      )
+        .bind(runStart, `${r.id}:%`)
+        .run();
+      swept += res.meta?.changes ?? 0;
+    } catch (e) {
+      // The listings are already upserted; a failed sweep just leaves stale
+      // rows for next run — never fail the whole ingest over it.
+      console.error(`[${r.id}] sweep failed:`, e);
+    }
   }
 
   const compResults = await Promise.all(
@@ -92,19 +98,23 @@ async function upsertListings(db: D1Database, listings: CanonicalListing[]) {
        comp_delta_pct=excluded.comp_delta_pct, photos=excluded.photos,
        url=excluded.url, title=excluded.title, mileage=excluded.mileage`
   );
-  await db.batch(
-    listings.map((l) =>
-      stmt.bind(
-        l.id, l.source, l.sourceId, l.url, l.firstSeen, l.lastSeen, l.status, l.year,
-        l.modelFamily, l.trim, l.body, l.transmission, l.vin ?? null,
-        l.matchingNumbers == null ? null : l.matchingNumbers ? 1 : 0, l.mileage ?? null,
-        l.exteriorColor ?? null, l.interiorColor ?? null, l.listingType, l.sellerType,
-        Math.round(l.price), l.currency, l.endsAt ?? null, l.city ?? null, l.state ?? null,
-        l.compDeltaPct ?? null, JSON.stringify(l.photos ?? []), l.title,
-        l.caption ?? null, l.blurb ?? null, dedupeKey(l)
-      )
+  const bound = listings.map((l) =>
+    stmt.bind(
+      l.id, l.source, l.sourceId, l.url, l.firstSeen, l.lastSeen, l.status, l.year,
+      l.modelFamily, l.trim, l.body, l.transmission, l.vin ?? null,
+      l.matchingNumbers == null ? null : l.matchingNumbers ? 1 : 0, l.mileage ?? null,
+      l.exteriorColor ?? null, l.interiorColor ?? null, l.listingType, l.sellerType,
+      Math.round(l.price), l.currency, l.endsAt ?? null, l.city ?? null, l.state ?? null,
+      l.compDeltaPct ?? null, JSON.stringify(l.photos ?? []), l.title,
+      l.caption ?? null, l.blurb ?? null, dedupeKey(l)
     )
   );
+  // Chunk the batch: photo arrays make rows large, and a single batch of many
+  // hundreds can exceed D1's request-size limit (an opaque 500). 25 is safe.
+  const CHUNK = 25;
+  for (let i = 0; i < bound.length; i += CHUNK) {
+    await db.batch(bound.slice(i, i + CHUNK));
+  }
 }
 
 async function upsertComps(db: D1Database, comps: SoldComp[]) {
@@ -145,8 +155,16 @@ const handler = {
       if (!env.INGEST_SECRET || request.headers.get("x-ingest-secret") !== env.INGEST_SECRET) {
         return new Response("Unauthorized", { status: 401 });
       }
-      const result = await ingest(env);
-      return Response.json({ ok: true, ...result });
+      try {
+        const result = await ingest(env);
+        return Response.json({ ok: true, ...result });
+      } catch (e) {
+        // Surface the real error as JSON so the browser console shows the
+        // message instead of Cloudflare's HTML 500 page.
+        console.error("ingest failed:", e);
+        const message = e instanceof Error ? `${e.message}\n${e.stack ?? ""}` : String(e);
+        return Response.json({ ok: false, error: message }, { status: 500 });
+      }
     }
 
     return new Response("LUFT ingest worker", { status: 200 });
