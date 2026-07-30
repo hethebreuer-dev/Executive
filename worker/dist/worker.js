@@ -599,24 +599,37 @@ var elferspotConnector = {
   async fetchListings(ctx) {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("elferspot");
-    const res = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR2}/run-sync-get-dataset-items?token=${token}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          startUrls: START_URLS2.map((url) => ({ url })),
-          linkSelector: "a.content-teaser",
-          globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
-          pageFunction: PAGE_FUNCTION,
-          proxyConfiguration: { useApifyProxy: true },
-          maxRequestsPerCrawl: 400,
-          maxConcurrency: 20
-        })
-      }
+    const input = {
+      startUrls: START_URLS2.map((url) => ({ url })),
+      linkSelector: "a.content-teaser",
+      globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
+      pageFunction: PAGE_FUNCTION,
+      proxyConfiguration: { useApifyProxy: true },
+      maxRequestsPerCrawl: 400,
+      maxConcurrency: 20
+    };
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR2}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input)
+    });
+    if (!start.ok) throw new Error(`Elferspot start failed: ${start.status}`);
+    const run = (await start.json()).data;
+    const deadline = Date.now() + 28e4;
+    let status = run.status;
+    while (status === "READY" || status === "RUNNING") {
+      if (Date.now() > deadline) throw new Error("Elferspot run timed out (still running)");
+      await new Promise((r) => setTimeout(r, 5e3));
+      const poll = await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${token}`);
+      if (!poll.ok) throw new Error(`Elferspot poll failed: ${poll.status}`);
+      status = (await poll.json()).data.status;
+    }
+    if (status !== "SUCCEEDED") throw new Error(`Elferspot run ${status}`);
+    const ds = await fetch(
+      `https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${token}&clean=true`
     );
-    if (!res.ok) throw new Error(`Elferspot actor failed: ${res.status}`);
-    const data = await res.json();
+    if (!ds.ok) throw new Error(`Elferspot dataset failed: ${ds.status}`);
+    const data = await ds.json();
     const items = Array.isArray(data) ? data : [];
     const out = [];
     for (const it of items) {
