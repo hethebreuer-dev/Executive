@@ -496,6 +496,137 @@ function mapItem(item) {
   };
 }
 
+// src/lib/luft/connectors/elferspot.ts
+var ACTOR2 = "apify~cheerio-scraper";
+var START_URLS2 = [
+  "https://www.elferspot.com/en/search/?series%5B%5D=911-f-model&country%5B%5D=C_NA&sorting=newest",
+  "https://www.elferspot.com/en/search/?series%5B%5D=912&country%5B%5D=C_NA&sorting=newest",
+  "https://www.elferspot.com/en/search/?series%5B%5D=911-g-model&country%5B%5D=C_NA&sorting=newest",
+  "https://www.elferspot.com/en/search/?series%5B%5D=930&country%5B%5D=C_NA&sorting=newest",
+  "https://www.elferspot.com/en/search/?series%5B%5D=964&country%5B%5D=C_NA&sorting=newest",
+  "https://www.elferspot.com/en/search/?series%5B%5D=993&country%5B%5D=C_NA&sorting=newest"
+];
+var PAGE_FUNCTION = `async function pageFunction(context) {
+  var $ = context.$;
+  var url = context.request.url;
+  if (url.indexOf('/en/car/') === -1) return null;
+  var price = $('.price .p').first().text().replace(/\\s+/g, ' ').trim();
+  var specs = {};
+  $('table.fahrzeugdaten tr').each(function () {
+    var label = $(this).find('td.label').text().replace(/\\s+/g, ' ').replace(/:\\s*$/, '').trim();
+    var value = $(this).find('td.content').text().replace(/\\s+/g, ' ').trim();
+    if (label) specs[label] = value;
+  });
+  var image = $('meta[property="og:image"]').attr('content') || '';
+  return { url: url, price: price, image: image, specs: specs };
+}`;
+var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice2(s) {
+  const currency = /eur|€/i.test(s) ? "EUR" : "USD";
+  const digits = s.replace(/[^0-9]/g, "");
+  const n = digits ? parseInt(digits, 10) : NaN;
+  return { price: Number.isNaN(n) ? void 0 : n, currency };
+}
+function parseMileage2(s) {
+  if (!s) return void 0;
+  const m = s.replace(/[,.](?=\d{3}\b)/g, "").match(/([\d]+)/);
+  if (!m) return void 0;
+  let n = parseInt(m[1], 10);
+  if (/\bkm\b/i.test(s)) n = Math.round(n * 0.621371);
+  return Number.isNaN(n) ? void 0 : n;
+}
+function bodyFrom3(body) {
+  const b = (body ?? "").toLowerCase();
+  if (/targa/.test(b)) return "Targa";
+  if (/cabrio|convertible|spyder|speedster/.test(b)) return "Cabriolet";
+  return "Coupe";
+}
+function elferspotMap(item) {
+  const specs = item.specs ?? {};
+  const model = (specs["Model"] ?? "").trim();
+  const year = Number((specs["Year of construction"] ?? "").match(/\b(19|20)\d{2}\b/)?.[0]);
+  const title = model || (str3(item.title) ?? "").replace(/^porsche\s+/i, "").trim();
+  if (!title || !year) return null;
+  const family = classifyModelFamily(`${year} Porsche ${title}`);
+  if (!family) return null;
+  const { price, currency } = parsePrice2(str3(item.price) ?? "");
+  if (price == null || currency !== "USD") return null;
+  const url = str3(item.url) ?? "#";
+  const vin = (specs["VIN"] ?? "").match(/\b[A-HJ-NPR-Z0-9]{11,17}\b/i)?.[0];
+  const image = str3(item.image);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  return {
+    id: `elferspot:${url}`,
+    source: "Elferspot",
+    sourceId: specs["Elferspot ID"] || url,
+    url,
+    firstSeen: now,
+    lastSeen: now,
+    status: "active",
+    year,
+    modelFamily: family,
+    trim: title,
+    body: bodyFrom3(specs["Body"]),
+    transmission: specs["Transmission"] || "Unknown",
+    vin,
+    mileage: parseMileage2(specs["Mileage"]),
+    exteriorColor: specs["Exterior color"] || void 0,
+    interiorColor: specs["Interior color"] || void 0,
+    listingType: "dealer",
+    sellerType: "dealer",
+    price,
+    currency,
+    // Elferspot exposes only the country for location.
+    city: /united states|usa/i.test(specs["Car location"] ?? "") ? "United States" : void 0,
+    state: void 0,
+    photos: image ? [image] : [],
+    title
+  };
+}
+var elferspotConnector = {
+  meta: {
+    id: "elferspot",
+    name: "Elferspot",
+    tier: "apify",
+    provides: ["listings"],
+    enabled: true,
+    ref: "apify:apify/cheerio-scraper",
+    notes: "Two-stage cheerio crawl of the 6 NA generation pages. Runs on APIFY_TOKEN."
+  },
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN"));
+  },
+  async fetchListings(ctx) {
+    const token = ctx.env("APIFY_TOKEN");
+    if (!token) throw new ConnectorNotImplemented("elferspot");
+    const res = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR2}/run-sync-get-dataset-items?token=${token}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          startUrls: START_URLS2.map((url) => ({ url })),
+          linkSelector: "a.content-teaser",
+          globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
+          pageFunction: PAGE_FUNCTION,
+          proxyConfiguration: { useApifyProxy: true },
+          maxRequestsPerCrawl: 400,
+          maxConcurrency: 20
+        })
+      }
+    );
+    if (!res.ok) throw new Error(`Elferspot actor failed: ${res.status}`);
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : [];
+    const out = [];
+    for (const it of items) {
+      const mapped = elferspotMap(it);
+      if (mapped) out.push(mapped);
+    }
+    return out;
+  }
+};
+
 // src/lib/luft/connectors/mock-connector.ts
 var NOW = "2026-07-21T00:00:00.000Z";
 function seed(n, data) {
@@ -565,6 +696,8 @@ var CONNECTORS = [
   // configured when EBAY_APP_ID + EBAY_CERT_ID are set
   classicComConnector,
   // working MVP source — runs on APIFY_TOKEN alone
+  elferspotConnector,
+  // two-stage cheerio crawl — runs on APIFY_TOKEN alone
   ...apifyConnectors
   // other Apify-actor sources (need actorId/actorEnv)
 ];
