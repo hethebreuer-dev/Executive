@@ -572,18 +572,29 @@ var activeConnectors = (ctx) => CONNECTORS.filter((c) => c.meta.enabled && isCon
 
 // worker/src/index.ts
 async function ingest(env) {
+  const runStart = (/* @__PURE__ */ new Date()).toISOString();
   const ctx = workerContext(env);
   const connectors = activeConnectors(ctx);
-  const listingResults = await Promise.all(
-    connectors.filter(providesListings).map(
-      (c) => c.fetchListings(ctx).catch((e) => {
+  const perConnector = await Promise.all(
+    connectors.filter(providesListings).map(async (c) => {
+      try {
+        return { id: c.meta.id, items: await c.fetchListings(ctx) };
+      } catch (e) {
         console.error(`[${c.meta.id}] listings failed:`, e);
-        return [];
-      })
-    )
+        return { id: c.meta.id, items: [] };
+      }
+    })
   );
-  const listings = dedupeListings(listingResults.flat());
+  const listings = dedupeListings(perConnector.flatMap((r) => r.items));
   await upsertListings(env.DB, listings);
+  let swept = 0;
+  for (const r of perConnector) {
+    if (!r.items.length) continue;
+    const res = await env.DB.prepare(
+      "DELETE FROM listings WHERE status = 'active' AND last_seen < ? AND id LIKE ?"
+    ).bind(runStart, `${r.id}:%`).run();
+    swept += res.meta?.changes ?? 0;
+  }
   const compResults = await Promise.all(
     connectors.filter(providesComps).map(
       (c) => c.fetchComps(ctx).catch((e) => {
@@ -594,7 +605,7 @@ async function ingest(env) {
   );
   const comps = compResults.flat();
   await upsertComps(env.DB, comps);
-  return { listings: listings.length, comps: comps.length };
+  return { listings: listings.length, comps: comps.length, swept };
 }
 async function upsertListings(db, listings) {
   if (!listings.length) return;

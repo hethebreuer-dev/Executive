@@ -28,20 +28,41 @@ export interface Env {
   LUFT_ENABLE_MOCK?: string;
 }
 
-async function ingest(env: Env): Promise<{ listings: number; comps: number }> {
+async function ingest(env: Env): Promise<{ listings: number; comps: number; swept: number }> {
+  // Captured before we fetch: any row refreshed this run gets a last_seen
+  // stamped during/after fetch (> runStart), so it survives the stale-sweep.
+  const runStart = new Date().toISOString();
   const ctx = workerContext(env as unknown as Record<string, unknown>);
   const connectors = activeConnectors(ctx);
 
-  const listingResults = await Promise.all(
-    connectors.filter(providesListings).map((c) =>
-      c.fetchListings(ctx).catch((e) => {
+  // Keep results grouped by connector so the sweep can be scoped per source.
+  const perConnector = await Promise.all(
+    connectors.filter(providesListings).map(async (c) => {
+      try {
+        return { id: c.meta.id, items: await c.fetchListings(ctx) };
+      } catch (e) {
         console.error(`[${c.meta.id}] listings failed:`, e);
-        return [] as CanonicalListing[];
-      })
-    )
+        return { id: c.meta.id, items: [] as CanonicalListing[] };
+      }
+    })
   );
-  const listings = dedupeListings(listingResults.flat());
+  const listings = dedupeListings(perConnector.flatMap((r) => r.items));
   await upsertListings(env.DB, listings);
+
+  // Stale-sweep: drop each connector's ACTIVE rows that weren't refreshed this
+  // run (last_seen < runStart) — i.e. cars sold or delisted since we last saw
+  // them. Scoped per-connector via the id prefix and skipped when a connector
+  // returned nothing, so a transient fetch failure can never wipe good data.
+  let swept = 0;
+  for (const r of perConnector) {
+    if (!r.items.length) continue;
+    const res = await env.DB.prepare(
+      "DELETE FROM listings WHERE status = 'active' AND last_seen < ? AND id LIKE ?"
+    )
+      .bind(runStart, `${r.id}:%`)
+      .run();
+    swept += res.meta?.changes ?? 0;
+  }
 
   const compResults = await Promise.all(
     connectors.filter(providesComps).map((c) =>
@@ -54,7 +75,7 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number }> {
   const comps = compResults.flat();
   await upsertComps(env.DB, comps);
 
-  return { listings: listings.length, comps: comps.length };
+  return { listings: listings.length, comps: comps.length, swept };
 }
 
 async function upsertListings(db: D1Database, listings: CanonicalListing[]) {
