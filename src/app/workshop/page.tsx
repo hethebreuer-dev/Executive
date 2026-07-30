@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { FooterSimple } from "@/components/luft/Footer";
+import { WorkshopChat } from "./WorkshopChat";
 
 type Step = { title: string; desc: string; torque?: string };
 type Job = {
@@ -441,33 +442,7 @@ export default function WorkshopPage() {
           </div>
 
           {/* AI ASSISTANT */}
-          <div style={{ border: "1px solid #e6e5e2", borderTop: "none", background: "#0d0d0d", color: "#ffffff", padding: "30px 32px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ffffff" }} />
-              <span className="lbl" style={{ color: "#cfcfca" }}>
-                Ask the Workshop · AI, tuned to {chassis.replace(/\s*\(.*\)$/, "")}
-              </span>
-            </div>
-            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ alignSelf: "flex-end", maxWidth: "70%", background: "#262626", padding: "13px 16px", fontSize: 14, lineHeight: 1.5 }}>
-                {ai.q}
-              </div>
-              <div style={{ alignSelf: "flex-start", maxWidth: "82%", border: "1px solid #262626", background: "#151515", padding: "15px 18px", fontSize: 14, lineHeight: 1.6, color: "#dcdcd8" }}>
-                {ai.a}
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 22, border: "1px solid #262626", background: "#151515", padding: "14px 16px" }}>
-              <span style={{ flex: 1, fontSize: 14, color: "#8a8a85" }}>Describe a symptom, or ask about any step…</span>
-              <span style={{ background: "#ffffff", color: "#0d0d0d", fontWeight: 600, fontSize: 13, padding: "8px 16px" }}>Ask →</span>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-              {ai.prompts.map((p) => (
-                <span key={p} className="mono" style={{ fontSize: 11, border: "1px solid #262626", color: "#b0afaa", padding: "7px 12px" }}>
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
+          <WorkshopChat chassis={chassis} suggestions={ai.prompts} />
         </main>
       </div>
 
