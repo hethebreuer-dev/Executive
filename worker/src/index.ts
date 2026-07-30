@@ -35,6 +35,9 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number; swep
   const ctx = workerContext(env as unknown as Record<string, unknown>);
   const connectors = activeConnectors(ctx);
 
+  // Ensure dedupe_key is a NON-unique index before we upsert (self-healing).
+  await migrateDedupeIndex(env.DB);
+
   // Keep results grouped by connector so the sweep can be scoped per source.
   const perConnector = await Promise.all(
     connectors.filter(providesListings).map(async (c) => {
@@ -46,7 +49,14 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number; swep
       }
     })
   );
-  const listings = dedupeListings(perConnector.flatMap((r) => r.items));
+  // dedupeListings merges same-car-across-sources by fuzzy key; then collapse
+  // any exact id (= source URL) duplicates, since one car can appear on several
+  // Classic.com pages (e.g. the f-body parent and the nested 912 page). A batch
+  // must never carry the same PK twice.
+  const merged = dedupeListings(perConnector.flatMap((r) => r.items));
+  const byId = new Map<string, CanonicalListing>();
+  for (const l of merged) byId.set(l.id, l);
+  const listings = [...byId.values()];
   await upsertListings(env.DB, listings);
 
   // Stale-sweep: drop each connector's ACTIVE rows that weren't refreshed this
@@ -84,8 +94,26 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number; swep
   return { listings: listings.length, comps: comps.length, swept };
 }
 
+// Drop any UNIQUE index on dedupe_key and recreate it non-unique. Idempotent
+// and cheap at this table size, so it's safe to run each ingest — existing D1s
+// get healed without a manual console migration. dedupe_key is a fuzzy merge
+// hint (applied in-memory by dedupeListings), not a hard identity: a UNIQUE
+// constraint on it fights the id PK when a car's derived key drifts between
+// scrapes, which is what was throwing "UNIQUE constraint failed: listings.id".
+async function migrateDedupeIndex(db: D1Database) {
+  try {
+    await db.batch([
+      db.prepare("DROP INDEX IF EXISTS idx_listings_dedupe"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_listings_dedupe ON listings(dedupe_key)"),
+    ]);
+  } catch (e) {
+    console.error("dedupe index migration skipped:", e);
+  }
+}
+
 async function upsertListings(db: D1Database, listings: CanonicalListing[]) {
   if (!listings.length) return;
+  // Upsert on the stable primary key (id = source URL), NOT dedupe_key.
   const stmt = db.prepare(
     `INSERT INTO listings (
        id, source, source_id, url, first_seen, last_seen, status, year,
@@ -93,10 +121,11 @@ async function upsertListings(db: D1Database, listings: CanonicalListing[]) {
        exterior_color, interior_color, listing_type, seller_type, price, currency,
        ends_at, city, state, comp_delta_pct, photos, title, caption, blurb, dedupe_key
      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-     ON CONFLICT(dedupe_key) DO UPDATE SET
+     ON CONFLICT(id) DO UPDATE SET
        last_seen=excluded.last_seen, status=excluded.status, price=excluded.price,
        comp_delta_pct=excluded.comp_delta_pct, photos=excluded.photos,
-       url=excluded.url, title=excluded.title, mileage=excluded.mileage`
+       url=excluded.url, title=excluded.title, mileage=excluded.mileage,
+       dedupe_key=excluded.dedupe_key`
   );
   const bound = listings.map((l) =>
     stmt.bind(
