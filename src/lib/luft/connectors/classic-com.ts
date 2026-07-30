@@ -1,15 +1,33 @@
 // Classic.com via the shahidirfan/classic-com-cars-scraper Apify actor.
 //
-// Classic.com is an aggregator (1M+ listings across auctions + dealers), and
-// this actor scrapes it cleanly (unlike BaT, which hard-blocks scrapers). This
-// is the MVP data source. Output mapper is pinned to the actor's real fields
-// (see a sample item below); US listings only, priced ones only.
+// Classic.com aggregates 1M+ auction + dealer listings and scrapes cleanly
+// (unlike BaT, which hard-blocks). This is the MVP data source.
+//
+// The actor takes ONE startUrl per run (a Classic.com model page) plus
+// result_type / results_wanted / max_pages / proxyConfiguration — confirmed from
+// a real run. We loop over the air-cooled generation pages and concat; each run
+// is isolated so an off slug never breaks the others. The `/f-body/` URL is
+// proven; the rest follow Classic.com's confirmed `/m/porsche/911/<gen>/` shape.
 
 import type { CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
-import type { ApifySiteConfig } from "./apify";
+import {
+  ConnectorNotImplemented,
+  type ConnectorMeta,
+  type ListingConnector,
+} from "./connector";
 
 type Raw = Record<string, unknown>;
+
+const ACTOR = "shahidirfan~classic-com-cars-scraper";
+
+const START_URLS = [
+  "https://www.classic.com/m/porsche/911/f-body/", // 1963–1973 (proven)
+  "https://www.classic.com/m/porsche/911/g-body/", // 1974–1989 SC / Carrera 3.2
+  "https://www.classic.com/m/porsche/911/964/", // 1989–1994
+  "https://www.classic.com/m/porsche/911/993/", // 1994–1998
+  "https://www.classic.com/m/porsche/912/", // 912 / 912E
+];
 
 const str = (v: unknown): string | undefined =>
   typeof v === "string" ? v : v == null ? undefined : String(v);
@@ -38,7 +56,7 @@ function bodyFrom(title: string): CanonicalListing["body"] {
   return "Coupe";
 }
 
-export function classicComMap(item: Raw, cfg: ApifySiteConfig): CanonicalListing | null {
+export function classicComMap(item: Raw): CanonicalListing | null {
   const title = str(item.title)?.trim();
   if (!title) return null;
 
@@ -58,7 +76,7 @@ export function classicComMap(item: Raw, cfg: ApifySiteConfig): CanonicalListing
   const status = /sold/i.test(str(item.listing_status) ?? "") ? "sold" : "active";
   const primary = str(item.image_url);
   const photos = Array.isArray(item.image_urls)
-    ? (item.image_urls.filter((u): u is string => typeof u === "string"))
+    ? item.image_urls.filter((u): u is string => typeof u === "string")
     : primary
       ? [primary]
       : [];
@@ -66,7 +84,6 @@ export function classicComMap(item: Raw, cfg: ApifySiteConfig): CanonicalListing
 
   return {
     id: `classic-com:${url}`,
-    // Classic.com aggregates dealers/auctions; surface the seller as the source.
     source: str(item.seller) || "Classic.com",
     sourceId: url,
     url,
@@ -79,8 +96,8 @@ export function classicComMap(item: Raw, cfg: ApifySiteConfig): CanonicalListing
     body: bodyFrom(title),
     transmission: str(item.transmission) ?? "Unknown",
     mileage: parseMileage(str(item.mileage)),
-    listingType: cfg.listingType ?? "dealer",
-    sellerType: cfg.sellerType ?? "dealer",
+    listingType: "dealer",
+    sellerType: "dealer",
     price,
     currency: str(item.price)?.includes("€") ? "EUR" : "USD",
     city: city || undefined,
@@ -90,25 +107,56 @@ export function classicComMap(item: Raw, cfg: ApifySiteConfig): CanonicalListing
   };
 }
 
-export const classicComSite: ApifySiteConfig = {
-  id: "classic-com",
-  name: "Classic.com",
-  actorId: "shahidirfan/classic-com-cars-scraper",
-  actorEnv: "APIFY_ACTOR_CLASSIC_COM",
-  // Best-effort input — the actor's log confirms `requestedResults` + `maxPages`;
-  // the search key is sent under several likely names (actors ignore unknowns).
-  input: {
-    search: "Porsche 911",
-    query: "Porsche 911",
-    keyword: "Porsche 911",
-    keywords: "Porsche 911",
-    searchTerm: "Porsche 911",
-    requestedResults: 120,
-    maxResults: 120,
-    maxItems: 120,
-    maxPages: 6,
+export const classicComConnector: ListingConnector = {
+  meta: {
+    id: "classic-com",
+    name: "Classic.com",
+    tier: "apify",
+    provides: ["listings"],
+    enabled: true,
+    ref: "apify:shahidirfan/classic-com-cars-scraper",
+    notes: "Aggregator (1M+ listings). Runs on APIFY_TOKEN; one actor run per generation page.",
+  } satisfies ConnectorMeta,
+
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN"));
   },
-  listingType: "dealer",
-  sellerType: "dealer",
-  map: classicComMap,
+
+  async fetchListings(ctx): Promise<CanonicalListing[]> {
+    const token = ctx.env("APIFY_TOKEN");
+    if (!token) throw new ConnectorNotImplemented("classic-com");
+
+    const out: CanonicalListing[] = [];
+    for (const startUrl of START_URLS) {
+      try {
+        const res = await fetch(
+          `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              startUrl,
+              result_type: "listings",
+              results_wanted: 25,
+              max_pages: 2,
+              proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: [] },
+            }),
+          }
+        );
+        if (!res.ok) {
+          console.error(`classic.com ${startUrl}: HTTP ${res.status}`);
+          continue;
+        }
+        const data = (await res.json()) as unknown;
+        const items: Raw[] = Array.isArray(data) ? (data as Raw[]) : [];
+        for (const it of items) {
+          const mapped = classicComMap(it);
+          if (mapped) out.push(mapped);
+        }
+      } catch (e) {
+        console.error(`classic.com ${startUrl} failed:`, e);
+      }
+    }
+    return out;
+  },
 };
