@@ -575,6 +575,7 @@ async function ingest(env) {
   const runStart = (/* @__PURE__ */ new Date()).toISOString();
   const ctx = workerContext(env);
   const connectors = activeConnectors(ctx);
+  await migrateDedupeIndex(env.DB);
   const perConnector = await Promise.all(
     connectors.filter(providesListings).map(async (c) => {
       try {
@@ -585,7 +586,10 @@ async function ingest(env) {
       }
     })
   );
-  const listings = dedupeListings(perConnector.flatMap((r) => r.items));
+  const merged = dedupeListings(perConnector.flatMap((r) => r.items));
+  const byId = /* @__PURE__ */ new Map();
+  for (const l of merged) byId.set(l.id, l);
+  const listings = [...byId.values()];
   await upsertListings(env.DB, listings);
   let swept = 0;
   for (const r of perConnector) {
@@ -611,6 +615,16 @@ async function ingest(env) {
   await upsertComps(env.DB, comps);
   return { listings: listings.length, comps: comps.length, swept };
 }
+async function migrateDedupeIndex(db) {
+  try {
+    await db.batch([
+      db.prepare("DROP INDEX IF EXISTS idx_listings_dedupe"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_listings_dedupe ON listings(dedupe_key)")
+    ]);
+  } catch (e) {
+    console.error("dedupe index migration skipped:", e);
+  }
+}
 async function upsertListings(db, listings) {
   if (!listings.length) return;
   const stmt = db.prepare(
@@ -620,10 +634,11 @@ async function upsertListings(db, listings) {
        exterior_color, interior_color, listing_type, seller_type, price, currency,
        ends_at, city, state, comp_delta_pct, photos, title, caption, blurb, dedupe_key
      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-     ON CONFLICT(dedupe_key) DO UPDATE SET
+     ON CONFLICT(id) DO UPDATE SET
        last_seen=excluded.last_seen, status=excluded.status, price=excluded.price,
        comp_delta_pct=excluded.comp_delta_pct, photos=excluded.photos,
-       url=excluded.url, title=excluded.title, mileage=excluded.mileage`
+       url=excluded.url, title=excluded.title, mileage=excluded.mileage,
+       dedupe_key=excluded.dedupe_key`
   );
   const bound = listings.map(
     (l) => stmt.bind(

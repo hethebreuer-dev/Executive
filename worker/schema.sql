@@ -32,10 +32,14 @@ CREATE TABLE IF NOT EXISTS listings (
   title           TEXT NOT NULL,
   caption         TEXT,
   blurb           TEXT,
-  dedupe_key      TEXT NOT NULL               -- VIN or fuzzy identity (merge key)
+  dedupe_key      TEXT NOT NULL               -- VIN or fuzzy identity (merge hint)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_listings_dedupe  ON listings(dedupe_key);
+-- dedupe_key is a FUZZY merge hint, applied in-memory by dedupeListings each
+-- run — NOT a hard identity. It must stay NON-unique: a car's derived key can
+-- drift between scrapes while its URL-based id (the PK) is stable, and two
+-- different cars can share a fuzzy key. Upserts reconcile on id, not this.
+CREATE INDEX IF NOT EXISTS idx_listings_dedupe  ON listings(dedupe_key);
 CREATE INDEX        IF NOT EXISTS idx_listings_family  ON listings(model_family);
 CREATE INDEX        IF NOT EXISTS idx_listings_status  ON listings(status);
 CREATE INDEX        IF NOT EXISTS idx_listings_price   ON listings(price);
