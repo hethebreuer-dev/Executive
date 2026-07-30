@@ -179,13 +179,105 @@ function guessCanonical(item, cfg) {
   };
 }
 
+// src/lib/luft/connectors/classic-com.ts
+var str2 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice(s) {
+  if (!s) return void 0;
+  const digits = s.replace(/[^0-9.]/g, "");
+  if (!digits) return void 0;
+  const n = parseFloat(digits);
+  return Number.isNaN(n) ? void 0 : Math.round(n);
+}
+function parseMileage(s) {
+  if (!s) return void 0;
+  const m = s.replace(/,/g, "").match(/([\d.]+)\s*(k)?/i);
+  if (!m) return void 0;
+  const n = parseFloat(m[1]) * (m[2] ? 1e3 : 1);
+  return Number.isNaN(n) ? void 0 : Math.round(n);
+}
+function bodyFrom2(title) {
+  if (/targa/i.test(title)) return "Targa";
+  if (/cabriolet|convertible|\bcab\b/i.test(title)) return "Cabriolet";
+  return "Coupe";
+}
+function classicComMap(item, cfg) {
+  const title = str2(item.title)?.trim();
+  if (!title) return null;
+  const location = str2(item.location) ?? "";
+  if (location && !/usa|united states/i.test(location)) return null;
+  const price = parsePrice(str2(item.price));
+  const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
+  if (!year || price == null) return null;
+  const family = classifyModelFamily(title);
+  if (!family) return null;
+  const url = str2(item.url) ?? "#";
+  const [city, state] = location.split(",").map((s) => s.trim());
+  const status = /sold/i.test(str2(item.listing_status) ?? "") ? "sold" : "active";
+  const primary = str2(item.image_url);
+  const photos = Array.isArray(item.image_urls) ? item.image_urls.filter((u) => typeof u === "string") : primary ? [primary] : [];
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  return {
+    id: `classic-com:${url}`,
+    // Classic.com aggregates dealers/auctions; surface the seller as the source.
+    source: str2(item.seller) || "Classic.com",
+    sourceId: url,
+    url,
+    firstSeen: now,
+    lastSeen: now,
+    status,
+    year,
+    modelFamily: family,
+    trim: title.replace(/^\d{4}\s+porsche\s+/i, ""),
+    body: bodyFrom2(title),
+    transmission: str2(item.transmission) ?? "Unknown",
+    mileage: parseMileage(str2(item.mileage)),
+    listingType: cfg.listingType ?? "dealer",
+    sellerType: cfg.sellerType ?? "dealer",
+    price,
+    currency: str2(item.price)?.includes("\u20AC") ? "EUR" : "USD",
+    city: city || void 0,
+    state: state || void 0,
+    photos,
+    title
+  };
+}
+var classicComSite = {
+  id: "classic-com",
+  name: "Classic.com",
+  actorId: "shahidirfan/classic-com-cars-scraper",
+  actorEnv: "APIFY_ACTOR_CLASSIC_COM",
+  // Best-effort input — the actor's log confirms `requestedResults` + `maxPages`;
+  // the search key is sent under several likely names (actors ignore unknowns).
+  input: {
+    search: "Porsche 911",
+    query: "Porsche 911",
+    keyword: "Porsche 911",
+    keywords: "Porsche 911",
+    searchTerm: "Porsche 911",
+    requestedResults: 120,
+    maxResults: 120,
+    maxItems: 120,
+    maxPages: 6
+  },
+  listingType: "dealer",
+  sellerType: "dealer",
+  map: classicComMap
+};
+
 // src/lib/luft/connectors/apify-sites.ts
 var APIFY_SITES = [
+  // Classic.com — the working MVP source (aggregates 1M+ auction + dealer
+  // listings). Runs on APIFY_TOKEN alone; exact output mapper in classic-com.ts.
+  classicComSite,
   {
     id: "bring-a-trailer",
     name: "Bring a Trailer",
     actorId: "silentflow/bringatrailer-scraper",
     actorEnv: "APIFY_ACTOR_BAT",
+    // DISABLED: BaT hard-blocks scrapers (403 on every request via the free
+    // proxy). Needs residential proxies or a partnership — not an MVP path.
+    // Re-enable only with a proxy solution that actually gets through.
+    enabled: false,
     // silentflow/bringatrailer-scraper takes startUrls (BaT model-category
     // pages) + maxItems + includeDetails. Curated air-cooled set; classifier
     // drops anything that isn't a 911/912/930/964/993.
