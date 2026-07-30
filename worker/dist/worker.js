@@ -712,10 +712,14 @@ async function ingest(env) {
   const perConnector = await Promise.all(
     connectors.filter(providesListings).map(async (c) => {
       try {
-        return { id: c.meta.id, items: await c.fetchListings(ctx) };
+        return { id: c.meta.id, items: await c.fetchListings(ctx), error: void 0 };
       } catch (e) {
         console.error(`[${c.meta.id}] listings failed:`, e);
-        return { id: c.meta.id, items: [] };
+        return {
+          id: c.meta.id,
+          items: [],
+          error: e instanceof Error ? e.message : String(e)
+        };
       }
     })
   );
@@ -746,7 +750,12 @@ async function ingest(env) {
   );
   const comps = compResults.flat();
   await upsertComps(env.DB, comps);
-  return { listings: listings.length, comps: comps.length, swept };
+  const sources = perConnector.map((r) => ({
+    id: r.id,
+    count: r.items.length,
+    ...r.error ? { error: r.error } : {}
+  }));
+  return { listings: listings.length, comps: comps.length, swept, sources };
 }
 async function migrateDedupeIndex(db) {
   try {

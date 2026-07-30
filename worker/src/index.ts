@@ -28,7 +28,15 @@ export interface Env {
   LUFT_ENABLE_MOCK?: string;
 }
 
-async function ingest(env: Env): Promise<{ listings: number; comps: number; swept: number }> {
+interface SourceReport {
+  id: string;
+  count: number;
+  error?: string;
+}
+
+async function ingest(
+  env: Env
+): Promise<{ listings: number; comps: number; swept: number; sources: SourceReport[] }> {
   // Captured before we fetch: any row refreshed this run gets a last_seen
   // stamped during/after fetch (> runStart), so it survives the stale-sweep.
   const runStart = new Date().toISOString();
@@ -38,14 +46,20 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number; swep
   // Ensure dedupe_key is a NON-unique index before we upsert (self-healing).
   await migrateDedupeIndex(env.DB);
 
-  // Keep results grouped by connector so the sweep can be scoped per source.
+  // Keep results grouped by connector so the sweep can be scoped per source,
+  // and capture per-connector errors so /ingest can report them (a refused or
+  // failing source is otherwise invisible — it just returns nothing).
   const perConnector = await Promise.all(
     connectors.filter(providesListings).map(async (c) => {
       try {
-        return { id: c.meta.id, items: await c.fetchListings(ctx) };
+        return { id: c.meta.id, items: await c.fetchListings(ctx), error: undefined as string | undefined };
       } catch (e) {
         console.error(`[${c.meta.id}] listings failed:`, e);
-        return { id: c.meta.id, items: [] as CanonicalListing[] };
+        return {
+          id: c.meta.id,
+          items: [] as CanonicalListing[],
+          error: e instanceof Error ? e.message : String(e),
+        };
       }
     })
   );
@@ -91,7 +105,13 @@ async function ingest(env: Env): Promise<{ listings: number; comps: number; swep
   const comps = compResults.flat();
   await upsertComps(env.DB, comps);
 
-  return { listings: listings.length, comps: comps.length, swept };
+  const sources: SourceReport[] = perConnector.map((r) => ({
+    id: r.id,
+    count: r.items.length,
+    ...(r.error ? { error: r.error } : {}),
+  }));
+
+  return { listings: listings.length, comps: comps.length, swept, sources };
 }
 
 // Drop any UNIQUE index on dedupe_key and recreate it non-unique. Idempotent
