@@ -4,6 +4,7 @@
 // the full roadmap; this is what actually executes.
 
 import { apifyConnectors } from "./connectors/apify-sites";
+import { classicComConnector } from "./connectors/classic-com";
 import { isConfigured, type AnyConnector } from "./connectors/connector";
 import type { ConnectorContext } from "./connectors/context";
 import { ebayConnector } from "./connectors/ebay";
@@ -12,7 +13,8 @@ import { mockConnector } from "./connectors/mock-connector";
 export const CONNECTORS: AnyConnector[] = [
   mockConnector, // connector #0 — steps aside when LUFT_DISABLE_MOCK=1
   ebayConnector, // configured when EBAY_APP_ID + EBAY_CERT_ID are set
-  ...apifyConnectors, // Apify-actor sources (BaT wired; others need actorId)
+  classicComConnector, // working MVP source — runs on APIFY_TOKEN alone
+  ...apifyConnectors, // other Apify-actor sources (need actorId/actorEnv)
 ];
 
 export const activeConnectors = (ctx: ConnectorContext): AnyConnector[] =>

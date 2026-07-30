@@ -9,12 +9,11 @@
 // APIFY_TOKEN exists, so half-configured sites never break ingestion.
 
 import { makeApifyConnector, type ApifySiteConfig } from "./apify";
-import { classicComSite } from "./classic-com";
 
+// Classic.com is NOT here — it has its own bespoke connector (classic-com.ts,
+// registered directly in registry.ts) because it loops one actor run per
+// generation page with a custom input schema that the generic factory can't model.
 export const APIFY_SITES: ApifySiteConfig[] = [
-  // Classic.com — the working MVP source (aggregates 1M+ auction + dealer
-  // listings). Runs on APIFY_TOKEN alone; exact output mapper in classic-com.ts.
-  classicComSite,
   {
     id: "bring-a-trailer",
     name: "Bring a Trailer",
