@@ -11,7 +11,7 @@ import { ebayConnector } from "./connectors/ebay";
 import { mockConnector } from "./connectors/mock-connector";
 
 export const CONNECTORS: AnyConnector[] = [
-  mockConnector, // connector #0 — steps aside when LUFT_DISABLE_MOCK=1
+  mockConnector, // connector #0 — off by default; opt in with LUFT_ENABLE_MOCK=1
   ebayConnector, // configured when EBAY_APP_ID + EBAY_CERT_ID are set
   classicComConnector, // working MVP source — runs on APIFY_TOKEN alone
   ...apifyConnectors, // other Apify-actor sources (need actorId/actorEnv)

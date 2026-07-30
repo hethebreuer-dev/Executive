@@ -25,7 +25,7 @@ export interface Env {
   EBAY_ENV?: string;
   EBAY_MARKETPLACE?: string;
   APIFY_TOKEN?: string;
-  LUFT_DISABLE_MOCK?: string;
+  LUFT_ENABLE_MOCK?: string;
 }
 
 async function ingest(env: Env): Promise<{ listings: number; comps: number }> {

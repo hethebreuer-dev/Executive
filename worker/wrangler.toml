@@ -12,9 +12,10 @@ database_id = "REPLACE_WITH_D1_DATABASE_ID"
 [triggers]
 crons = ["*/30 * * * *"]
 
-# Non-secret vars. Set "1" once real sources cover the catalog to drop the mock.
+# Non-secret vars. Mock is off by default; set to "1" to opt the seed data back
+# in (e.g. bootstrapping an empty D1). Production leaves this off.
 [vars]
-LUFT_DISABLE_MOCK = "0"
+LUFT_ENABLE_MOCK = "0"
 
 # Secrets — set with `wrangler secret put <NAME>` (never commit these):
 #   EBAY_APP_ID, EBAY_CERT_ID, EBAY_ENV, EBAY_MARKETPLACE
