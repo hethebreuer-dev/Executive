@@ -26,7 +26,11 @@ const START_URLS = [
   "https://www.classic.com/m/porsche/911/g-body/", // 1974–1989 SC / Carrera 3.2
   "https://www.classic.com/m/porsche/911/964/", // 1989–1994
   "https://www.classic.com/m/porsche/911/993/", // 1994–1998
-  "https://www.classic.com/m/porsche/912/", // 912 / 912E
+  // Classic.com nests the 912 under the 911 f-body taxonomy (swb/lwb + body),
+  // not at /m/porsche/912/ (that path 404s and crashed the run).
+  "https://www.classic.com/m/porsche/911/f-body/swb/912/coupe/",
+  "https://www.classic.com/m/porsche/911/f-body/lwb/912/coupe/",
+  "https://www.classic.com/m/porsche/911/f-body/swb/912/targa/",
 ];
 
 const str = (v: unknown): string | undefined =>
