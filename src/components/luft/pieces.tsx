@@ -211,7 +211,9 @@ export function ListingCard({ c }: { c: Listing; href?: string }) {
           {c.year} {c.title}
         </h3>
         <div className="mono" style={{ fontSize: 12, color: "#8a8a85", marginTop: 7 }}>
-          {miles(c.miles)} · {c.trans} · {c.city}, {c.state}
+          {[c.miles ? miles(c.miles) : null, c.trans, [c.city, c.state].filter(Boolean).join(", ")]
+            .filter(Boolean)
+            .join(" · ")}
         </div>
         <div
           className="mono"
