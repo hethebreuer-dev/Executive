@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { repository } from "@/lib/luft/factory";
-import { toLegacyListing, usdk, GENERATIONS, type Listing } from "@/lib/luft";
-import { median } from "@/lib/luft/repository";
+import { toLegacyListing, usd, usdk, GENERATIONS, type Listing } from "@/lib/luft";
+import { marketSummary, withMarketDelta } from "@/lib/luft/market";
 import { FooterGrid } from "@/components/luft/Footer";
 import {
   CtaPrimary,
@@ -23,8 +23,8 @@ const VALUE_PROPS = [
   },
   {
     n: "02",
-    title: "Priced on real comps",
-    body: "Every car is benchmarked against verified sold results for its exact model and year — so you bid on data, not hype.",
+    title: "Priced against the market",
+    body: "Every car is benchmarked against the live market for its exact generation — median, low, and high across every comparable for sale — so you bid on data, not hype.",
   },
   {
     n: "03",
@@ -35,18 +35,28 @@ const VALUE_PROPS = [
 
 export default async function HomePage() {
   const { items, total } = await repository.listListings({ limit: 500 });
-  const legacy: Listing[] = items.map(toLegacyListing);
+  const legacy: Listing[] = withMarketDelta(items.map(toLegacyListing));
   // Prefer cars with photos for the featured strip; fall back to the first few.
   const withPhotos = legacy.filter((l) => l.photos.length > 0);
   const featured = (withPhotos.length >= 3 ? withPhotos : legacy).slice(0, 3);
 
+  const summary = marketSummary(legacy);
+  const all = summary.find((s) => s.key === "all")!;
+  // Generations with live inventory, priciest median first — for the band.
+  const gens = summary
+    .filter((s) => s.key !== "all" && s.count > 0)
+    .sort((a, b) => b.median - a.median);
+  const maxGenMedian = Math.max(1, ...gens.map((g) => g.median));
+
   const count = total;
-  const medianPrice = median(items.map((l) => l.price));
   const stats = [
     { label: "Live listings", value: count ? count.toLocaleString("en-US") : "—" },
-    { label: "Median · all air-cooled", value: medianPrice ? usdk(medianPrice) : "—" },
+    { label: "Median · all air-cooled", value: all.median ? usdk(all.median) : "—" },
     { label: "Sources tracked", value: "40+" },
-    { label: "Sold comps on file", value: "12,400" },
+    {
+      label: "Asking range",
+      value: all.count ? `${usdk(all.min)}–${usdk(all.max)}` : "—",
+    },
   ];
 
   return (
@@ -159,12 +169,12 @@ export default async function HomePage() {
                 margin: "12px 0 16px",
               }}
             >
-              Priced against what actually sold
+              Priced against the live market
             </h2>
             <p style={{ fontSize: 16, lineHeight: 1.6, color: "#5e5e5a", maxWidth: 440 }}>
-              No wishful asking prices. Every listing is benchmarked to verified
-              auction and dealer results by generation, model, and year — so you
-              know a fair number before you bid.
+              Every listing is benchmarked to the live market for its generation —
+              the median asking price across every comparable air-cooled car for
+              sale right now — so you know where a number sits before you bid.
             </p>
             <Link
               href="/market-data"
@@ -182,33 +192,23 @@ export default async function HomePage() {
           </div>
           <div style={{ border: "1px solid #e6e5e2", padding: "28px 30px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <span className="lbl">993 Carrera · median</span>
-              <span className="mono" style={{ fontSize: 13 }}>
-                ↑ 11.4% / 1Y
+              <span className="lbl">Median asking · by generation</span>
+              <span className="mono" style={{ fontSize: 13, color: "#8a8a85" }}>
+                {all.count.toLocaleString("en-US")} live
               </span>
             </div>
-            <div
-              className="mono"
-              style={{ fontSize: 40, fontWeight: 500, letterSpacing: "-0.02em", marginTop: 12 }}
-            >
-              $150,000
-            </div>
-            <svg
-              viewBox="0 0 480 120"
-              preserveAspectRatio="none"
-              style={{ width: "100%", height: 120, marginTop: 20, display: "block" }}
-            >
-              <polyline
-                points="0,104 40,98 80,100 120,88 160,84 200,76 240,72 280,60 320,54 360,42 400,34 440,24 480,14"
-                fill="none"
-                stroke="#0d0d0d"
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-              <span className="lbl">2021</span>
-              <span className="lbl">Today</span>
+            <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 15 }}>
+              {gens.map((g) => (
+                <div key={g.key}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.label}</span>
+                    <span className="mono" style={{ fontSize: 13 }}>{usd(g.median)}</span>
+                  </div>
+                  <div style={{ height: 8, background: "#f0efec" }}>
+                    <div style={{ height: 8, width: `${(g.median / maxGenMedian) * 100}%`, background: "#0d0d0d" }} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

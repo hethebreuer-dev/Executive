@@ -93,7 +93,7 @@ export const usdk = (n: number) =>
 export const miles = (n: number) => n.toLocaleString("en-US") + " mi";
 
 export function deltaText(d: number) {
-  return d > 0 ? "+" + d + "% vs comps" : d < 0 ? d + "% vs comps" : "At market";
+  return d > 0 ? "+" + d + "% vs market" : d < 0 ? d + "% vs market" : "At market";
 }
 export function deltaColor(d: number) {
   return d > 0 ? "#0d0d0d" : d < 0 ? "#7a7a76" : "#9a9a95";
