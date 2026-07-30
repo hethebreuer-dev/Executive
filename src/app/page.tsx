@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { LISTINGS, GENERATIONS } from "@/lib/luft";
+import { repository } from "@/lib/luft/factory";
+import { toLegacyListing, usdk, GENERATIONS, type Listing } from "@/lib/luft";
+import { median } from "@/lib/luft/repository";
 import { FooterGrid } from "@/components/luft/Footer";
 import {
   CtaPrimary,
@@ -10,12 +12,8 @@ import {
   SectionHead,
 } from "@/components/luft/pieces";
 
-const STATS = [
-  { label: "Live listings", value: "214" },
-  { label: "Median · all air-cooled", value: "$95k" },
-  { label: "Sources tracked", value: "40+" },
-  { label: "Sold comps on file", value: "12,400" },
-];
+// Re-read per request so newly-ingested listings show without a redeploy.
+export const revalidate = 0;
 
 const VALUE_PROPS = [
   {
@@ -35,8 +33,21 @@ const VALUE_PROPS = [
   },
 ];
 
-export default function HomePage() {
-  const featured = [1, 2, 4].map((id) => LISTINGS.find((l) => l.id === id)!);
+export default async function HomePage() {
+  const { items, total } = await repository.listListings({ limit: 500 });
+  const legacy: Listing[] = items.map(toLegacyListing);
+  // Prefer cars with photos for the featured strip; fall back to the first few.
+  const withPhotos = legacy.filter((l) => l.photos.length > 0);
+  const featured = (withPhotos.length >= 3 ? withPhotos : legacy).slice(0, 3);
+
+  const count = total;
+  const medianPrice = median(items.map((l) => l.price));
+  const stats = [
+    { label: "Live listings", value: count ? count.toLocaleString("en-US") : "—" },
+    { label: "Median · all air-cooled", value: medianPrice ? usdk(medianPrice) : "—" },
+    { label: "Sources tracked", value: "40+" },
+    { label: "Sold comps on file", value: "12,400" },
+  ];
 
   return (
     <div style={{ background: "#ffffff" }}>
@@ -47,7 +58,9 @@ export default function HomePage() {
           style={{ gridTemplateColumns: "1.08fr 1fr", gap: 56, alignItems: "end" }}
         >
           <div>
-            <LiveRow marginBottom={22}>Live · 214 air-cooled listings right now</LiveRow>
+            <LiveRow marginBottom={22}>
+              Live · {count.toLocaleString("en-US")} air-cooled listings right now
+            </LiveRow>
             <h1
               className="display luft-h1"
               style={{
@@ -95,12 +108,12 @@ export default function HomePage() {
           className="luft-grid-4"
           style={{ border: "1px solid #e6e5e2", marginTop: 48 }}
         >
-          {STATS.map((s, i) => (
+          {stats.map((s, i) => (
             <div
               key={s.label}
               style={{
                 padding: "26px 28px",
-                borderRight: i < STATS.length - 1 ? "1px solid #e6e5e2" : "none",
+                borderRight: i < stats.length - 1 ? "1px solid #e6e5e2" : "none",
               }}
             >
               <div className="lbl">{s.label}</div>
@@ -118,7 +131,7 @@ export default function HomePage() {
           title="Live on the market"
           action={
             <Link href="/marketplace" style={{ fontSize: 14, color: "#5e5e5a" }}>
-              View all 214 →
+              View all {count.toLocaleString("en-US")} →
             </Link>
           }
         />

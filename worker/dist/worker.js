@@ -275,8 +275,11 @@ var START_URLS = [
   // 1989–1994
   "https://www.classic.com/m/porsche/911/993/",
   // 1994–1998
-  "https://www.classic.com/m/porsche/912/"
-  // 912 / 912E
+  // Classic.com nests the 912 under the 911 f-body taxonomy (swb/lwb + body),
+  // not at /m/porsche/912/ (that path 404s and crashed the run).
+  "https://www.classic.com/m/porsche/911/f-body/swb/912/coupe/",
+  "https://www.classic.com/m/porsche/911/f-body/lwb/912/coupe/",
+  "https://www.classic.com/m/porsche/911/f-body/swb/912/targa/"
 ];
 var str2 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
 function parsePrice(s) {
