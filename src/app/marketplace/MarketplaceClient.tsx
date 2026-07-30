@@ -25,7 +25,7 @@ type SortKey =
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "relevance", label: "Featured" },
-  { value: "value", label: "Best value vs comps" },
+  { value: "value", label: "Best value vs market" },
   { value: "price-asc", label: "Price: low to high" },
   { value: "price-desc", label: "Price: high to low" },
   { value: "year-desc", label: "Year: newest" },
@@ -61,13 +61,19 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
     const list = sortListings(filtered, sort);
     const prices = list.map((c) => c.price).sort((a, b) => a - b);
     const median = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
+    const low = prices.length ? prices[0] : 0;
+    const high = prices.length ? prices[prices.length - 1] : 0;
 
-    const spark: string[] = [];
-    for (let i = 0; i <= 12; i++) {
-      const y =
-        46 - i * 1.6 - Math.sin(i * 0.9) * 5 - (i > 8 ? (i - 8) * 2 : 0);
-      spark.push(i * 25 + "," + Math.max(4, Math.min(52, y)).toFixed(1));
-    }
+    // Real asking-price distribution (12 bins) rendered as the hero sparkline.
+    const bins = 12;
+    const span = high - low || 1;
+    const hist = new Array(bins).fill(0) as number[];
+    for (const p of prices) hist[Math.min(bins - 1, Math.floor(((p - low) / span) * bins))]++;
+    const maxBin = Math.max(1, ...hist);
+    const spark = hist
+      .map((n, i) => (i / (bins - 1)) * 300 + "," + (52 - (n / maxBin) * 48).toFixed(1))
+      .join(" ");
+
     const md = MODEL_DEFS.find((m) => m.key === model);
     return {
       list,
@@ -75,8 +81,10 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
       rest: list.slice(1),
       count: list.length,
       median,
+      low,
+      high,
       marketLabel: md ? md.label : "All air-cooled",
-      sparkPoints: spark.join(" "),
+      sparkPoints: spark,
     };
   }, [model, sort, listings]);
 
@@ -131,8 +139,8 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
               }}
             >
               We aggregate every air-cooled 911, 912, and 930 for sale across the
-              United States — auction, dealer, and private — and price each against
-              real sold comps, updated continuously.
+              United States — auction, dealer, and private — and benchmark each
+              against the live market for its generation, updated continuously.
             </p>
 
             <div
@@ -153,13 +161,13 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
               </div>
               <div style={{ flex: 1, padding: "16px 20px", borderRight: "1px solid #e6e5e2" }}>
                 <div className="lbl" style={{ marginBottom: 7 }}>
-                  90-Day Trend
+                  Asking range
                 </div>
                 <div
                   className="mono"
                   style={{ fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em", color: "#7a7a76" }}
                 >
-                  ↑ 4.8% / 90d
+                  {view.count ? `${usdk(view.low)}–${usdk(view.high)}` : "—"}
                 </div>
               </div>
               <div style={{ flex: 1.1, padding: "16px 0 16px 20px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
