@@ -81,17 +81,6 @@ export function Auth({
     finish(next);
   }
 
-  function social(provider: string) {
-    const em = email || "you@" + provider.toLowerCase() + ".com";
-    const displayName = name.trim() || prettyName(em.split("@")[0]);
-    finish({
-      name: displayName,
-      email: em,
-      initials: initialsFor(displayName, em),
-      via: provider,
-    });
-  }
-
   function finish(next: LuftUser) {
     signIn(next);
     setPassword("");
@@ -388,21 +377,6 @@ export function Auth({
               {isCreate ? "Create account" : "Sign in"}
             </button>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "22px 0" }}>
-              <span style={{ flex: 1, height: 1, background: "#e6e5e2" }} />
-              <span
-                className="mono"
-                style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#adaca7" }}
-              >
-                or
-              </span>
-              <span style={{ flex: 1, height: 1, background: "#e6e5e2" }} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <SocialButton onClick={() => social("Google")}>Continue with Google</SocialButton>
-              <SocialButton onClick={() => social("Apple")}>Continue with Apple</SocialButton>
-            </div>
-
             <p style={{ textAlign: "center", fontSize: 13, color: "#8a8a85", marginTop: 22 }}>
               {isCreate ? "Already have an account?" : "New to LUFT?"}{" "}
               <a
@@ -512,32 +486,5 @@ function Field({
       </div>
       {children}
     </div>
-  );
-}
-
-function SocialButton({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        width: "100%",
-        background: "#fff",
-        border: "1px solid #0d0d0d",
-        fontFamily: "var(--font-libre-franklin), sans-serif",
-        fontSize: 14,
-        fontWeight: 600,
-        padding: 13,
-        cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
   );
 }
