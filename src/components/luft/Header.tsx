@@ -25,10 +25,47 @@ export function Header() {
   const [q, setQ] = useState("");
   const onMarketplace = pathname.startsWith("/marketplace");
 
+  // Search lives in the header on the home and marketplace pages (desktop),
+  // and in the mobile menu everywhere.
+  const showSearch = onMarketplace || pathname === "/";
+
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
+    setOpen(false);
     router.push(q.trim() ? `/marketplace?q=${encodeURIComponent(q.trim())}` : "/marketplace");
   }
+
+  const searchForm = (style?: React.CSSProperties) => (
+    <form
+      onSubmit={submitSearch}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        border: "1px solid #e6e5e2",
+        background: "#fafafa",
+        borderRadius: 2,
+        padding: "9px 14px",
+        ...style,
+      }}
+    >
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search year, model, spec…"
+        aria-label="Search listings"
+        style={{
+          border: "none",
+          background: "transparent",
+          outline: "none",
+          width: "100%",
+          fontSize: 13,
+          color: "#0d0d0d",
+          fontFamily: "var(--font-libre-franklin), sans-serif",
+        }}
+      />
+    </form>
+  );
 
   return (
     <header className="luft-header">
@@ -75,37 +112,7 @@ export function Header() {
           className="luft-header-right"
           style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}
         >
-          {onMarketplace ? (
-            <form
-              onSubmit={submitSearch}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                border: "1px solid #e6e5e2",
-                background: "#fafafa",
-                borderRadius: 2,
-                padding: "9px 14px",
-                width: 260,
-              }}
-            >
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search year, model, spec…"
-                aria-label="Search listings"
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  outline: "none",
-                  width: "100%",
-                  fontSize: 13,
-                  color: "#0d0d0d",
-                  fontFamily: "var(--font-libre-franklin), sans-serif",
-                }}
-              />
-            </form>
-          ) : null}
+          {showSearch ? searchForm({ width: 260 }) : null}
           <Auth />
           {!onMarketplace && (
             <Link
@@ -149,6 +156,7 @@ export function Header() {
 
       {open && (
         <div className="luft-mobile-menu">
+          {searchForm({ margin: "6px 0 14px" })}
           {NAV.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
               {link.label}
