@@ -14,6 +14,7 @@ import type {
   ListingQuery,
   MarketStats,
   ModelFamily,
+  SellerListing,
   SoldComp,
 } from "./model";
 import { dedupeListings } from "./normalize";
@@ -24,6 +25,8 @@ export interface ListingRepository {
   getListing(id: string): Promise<CanonicalListing | null>;
   listComps(family?: ModelFamily | "all"): Promise<SoldComp[]>;
   marketStats(family?: ModelFamily | "all"): Promise<MarketStats>;
+  /** A seller's own listings (all statuses), by contact email. */
+  listBySeller(email: string): Promise<SellerListing[]>;
 }
 
 // --- shared query helpers (used by both in-memory and D1 impls) --------------
@@ -100,6 +103,12 @@ export class InMemoryRepository implements ListingRepository {
 
   async getListing(id: string) {
     return (await this.allListings()).find((l) => l.id === id) ?? null;
+  }
+
+  // Seller listings only exist in D1 (worker-ingested). In the in-memory path
+  // there's nothing to return.
+  async listBySeller(): Promise<SellerListing[]> {
+    return [];
   }
 
   async listComps(family: ModelFamily | "all" = "all") {

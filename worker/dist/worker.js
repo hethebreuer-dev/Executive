@@ -1,4 +1,4 @@
-// src/lib/luft/connectors/connector.ts
+// ../src/lib/luft/connectors/connector.ts
 function providesListings(c) {
   return typeof c.fetchListings === "function" && c.meta.provides.includes("listings");
 }
@@ -16,7 +16,7 @@ var ConnectorNotImplemented = class extends Error {
   }
 };
 
-// src/lib/luft/connectors/context.ts
+// ../src/lib/luft/connectors/context.ts
 function workerContext(env) {
   return {
     env: (key) => {
@@ -27,7 +27,7 @@ function workerContext(env) {
   };
 }
 
-// src/lib/luft/normalize.ts
+// ../src/lib/luft/normalize.ts
 function classifyModelFamily(title) {
   const t = title.toLowerCase();
   const year = Number(t.match(/\b(19\d{2})\b/)?.[1]);
@@ -69,7 +69,7 @@ function dedupeListings(listings) {
   return [...byKey.values()];
 }
 
-// src/lib/luft/connectors/apify.ts
+// ../src/lib/luft/connectors/apify.ts
 function resolveActor(ctx, cfg) {
   return (cfg.actorEnv ? ctx.env(cfg.actorEnv) : void 0) || cfg.actorId || "";
 }
@@ -179,7 +179,7 @@ function guessCanonical(item, cfg) {
   };
 }
 
-// src/lib/luft/connectors/apify-sites.ts
+// ../src/lib/luft/connectors/apify-sites.ts
 var APIFY_SITES = [
   {
     id: "bring-a-trailer",
@@ -264,7 +264,7 @@ var APIFY_SITES = [
 ];
 var apifyConnectors = APIFY_SITES.map(makeApifyConnector);
 
-// src/lib/luft/connectors/autotrader.ts
+// ../src/lib/luft/connectors/autotrader.ts
 var ACTOR = "apify~cheerio-scraper";
 var START_URLS = [
   "https://classics.autotrader.com/classic-cars-for-sale/porsche-911-for-sale?year_max=1998&year_min=1963",
@@ -385,7 +385,7 @@ var autotraderConnector = {
   }
 };
 
-// src/lib/luft/connectors/classic-com.ts
+// ../src/lib/luft/connectors/classic-com.ts
 var ACTOR2 = "shahidirfan~classic-com-cars-scraper";
 var START_URLS2 = [
   "https://www.classic.com/m/porsche/911/f-body/",
@@ -513,7 +513,7 @@ var classicComConnector = {
   }
 };
 
-// src/lib/luft/connectors/ebay.ts
+// ../src/lib/luft/connectors/ebay.ts
 var CARS_CATEGORY = "6001";
 function host(ctx) {
   return ctx.env("EBAY_ENV") === "sandbox" ? "https://api.sandbox.ebay.com" : "https://api.ebay.com";
@@ -617,7 +617,7 @@ function mapItem(item) {
   };
 }
 
-// src/lib/luft/connectors/elferspot.ts
+// ../src/lib/luft/connectors/elferspot.ts
 var ACTOR3 = "apify~cheerio-scraper";
 var START_URLS3 = [
   "https://www.elferspot.com/en/search/?series%5B%5D=911-f-model&country%5B%5D=C_NA&sorting=newest",
@@ -761,7 +761,7 @@ var elferspotConnector = {
   }
 };
 
-// src/lib/luft/connectors/mock-connector.ts
+// ../src/lib/luft/connectors/mock-connector.ts
 var NOW = "2026-07-21T00:00:00.000Z";
 function seed(n, data) {
   const slug = data.source.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -822,7 +822,7 @@ var mockConnector = {
   }
 };
 
-// src/lib/luft/registry.ts
+// ../src/lib/luft/registry.ts
 var CONNECTORS = [
   mockConnector,
   // connector #0 — off by default; opt in with LUFT_ENABLE_MOCK=1
@@ -839,7 +839,87 @@ var CONNECTORS = [
 ];
 var activeConnectors = (ctx) => CONNECTORS.filter((c) => c.meta.enabled && isConfigured(c, ctx));
 
-// worker/src/index.ts
+// src/index.ts
+var CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "content-type,x-submit-secret,x-admin-secret"
+};
+var IMAGE_EXT = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/avif": "avif"
+};
+var MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+async function ensureUserColumns(db) {
+  const cols = [
+    "seller_name TEXT",
+    "seller_email TEXT",
+    "seller_phone TEXT",
+    "seller_contact TEXT",
+    "submitted_at TEXT"
+  ];
+  for (const c of cols) {
+    try {
+      await db.prepare(`ALTER TABLE listings ADD COLUMN ${c}`).run();
+    } catch {
+    }
+  }
+}
+async function insertUserListing(db, p) {
+  const id = `user:${crypto.randomUUID()}`;
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const photos = Array.isArray(p.photos) ? p.photos.slice(0, 24) : [];
+  const dedupe = (p.vin || `${p.year}-${p.modelFamily}-${p.sellerEmail}`).toLowerCase();
+  await db.prepare(
+    `INSERT INTO listings (
+         id, source, source_id, url, first_seen, last_seen, status, year,
+         model_family, trim, body, transmission, vin, matching_numbers, mileage,
+         exterior_color, interior_color, listing_type, seller_type, price, currency,
+         ends_at, city, state, comp_delta_pct, photos, title, caption, blurb, dedupe_key,
+         seller_name, seller_email, seller_phone, seller_contact, submitted_at
+       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  ).bind(
+    id,
+    "LUFT Seller",
+    id,
+    "",
+    now,
+    now,
+    "pending",
+    p.year ?? 0,
+    p.modelFamily ?? "911",
+    p.trim ?? "",
+    p.body ?? "Coupe",
+    p.transmission ?? "Manual",
+    p.vin ?? null,
+    p.matchingNumbers == null ? null : p.matchingNumbers ? 1 : 0,
+    p.mileage ?? null,
+    p.exteriorColor ?? null,
+    p.interiorColor ?? null,
+    "classified",
+    p.sellerType === "dealer" ? "dealer" : "private",
+    Math.round(p.price ?? 0),
+    p.currency ?? "USD",
+    null,
+    p.city ?? null,
+    p.state ?? null,
+    null,
+    JSON.stringify(photos),
+    p.title ?? "",
+    p.caption ?? null,
+    p.blurb ?? null,
+    dedupe,
+    p.sellerName ?? null,
+    p.sellerEmail ?? null,
+    p.sellerPhone ?? null,
+    p.sellerContact ?? null,
+    now
+  ).run();
+  return id;
+}
 async function ingest(env) {
   const ctx = workerContext(env);
   const connectors = activeConnectors(ctx);
@@ -990,9 +1070,90 @@ var handler = {
   // Manual trigger + health check.
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS });
+    }
     if (url.pathname === "/health") {
       const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM listings").first();
       return Response.json({ ok: true, listings: row?.n ?? 0 });
+    }
+    if (url.pathname === "/upload" && request.method === "POST") {
+      if (!env.PHOTOS) return Response.json({ error: "Uploads not configured" }, { status: 503, headers: CORS });
+      const ct = request.headers.get("content-type") || "";
+      const ext = IMAGE_EXT[ct];
+      if (!ext) return Response.json({ error: "Only JPEG/PNG/WebP/GIF/AVIF images" }, { status: 415, headers: CORS });
+      const buf = await request.arrayBuffer();
+      if (buf.byteLength === 0 || buf.byteLength > MAX_UPLOAD_BYTES) {
+        return Response.json({ error: "Image must be 1 byte\u201310 MB" }, { status: 413, headers: CORS });
+      }
+      const key = `${crypto.randomUUID()}.${ext}`;
+      await env.PHOTOS.put(key, buf, { httpMetadata: { contentType: ct } });
+      return Response.json({ url: `${url.origin}/photo/${key}` }, { headers: CORS });
+    }
+    if (url.pathname.startsWith("/photo/") && request.method === "GET") {
+      if (!env.PHOTOS) return new Response("Not found", { status: 404 });
+      const key = decodeURIComponent(url.pathname.slice("/photo/".length));
+      const obj = await env.PHOTOS.get(key);
+      if (!obj) return new Response("Not found", { status: 404 });
+      return new Response(obj.body, {
+        headers: {
+          "content-type": obj.httpMetadata?.contentType || "application/octet-stream",
+          "cache-control": "public, max-age=31536000, immutable"
+        }
+      });
+    }
+    if (url.pathname === "/submit" && request.method === "POST") {
+      if (!env.SUBMIT_SECRET || request.headers.get("x-submit-secret") !== env.SUBMIT_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let p;
+      try {
+        p = await request.json();
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!p.title || !p.year || !p.modelFamily || !p.price || !p.sellerEmail) {
+        return Response.json({ error: "Missing required fields" }, { status: 400, headers: CORS });
+      }
+      try {
+        await ensureUserColumns(env.DB);
+        const id = await insertUserListing(env.DB, p);
+        return Response.json({ ok: true, id }, { headers: CORS });
+      } catch (e) {
+        console.error("submit failed:", e);
+        return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500, headers: CORS });
+      }
+    }
+    if (url.pathname === "/admin/pending" && request.method === "GET") {
+      if (!env.ADMIN_SECRET || request.headers.get("x-admin-secret") !== env.ADMIN_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      await ensureUserColumns(env.DB);
+      const { results } = await env.DB.prepare(
+        `SELECT id, title, year, model_family, price, seller_name, seller_email,
+                seller_phone, seller_contact, city, state, submitted_at, photos
+           FROM listings WHERE status = 'pending' ORDER BY submitted_at DESC`
+      ).all();
+      return Response.json({ ok: true, pending: results ?? [] }, { headers: CORS });
+    }
+    if (url.pathname === "/admin/moderate" && request.method === "POST") {
+      if (!env.ADMIN_SECRET || request.headers.get("x-admin-secret") !== env.ADMIN_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!body.id || body.action !== "approve" && body.action !== "reject") {
+        return Response.json({ error: "id and action (approve|reject) required" }, { status: 400, headers: CORS });
+      }
+      const status = body.action === "approve" ? "active" : "withdrawn";
+      const res = await env.DB.prepare(
+        "UPDATE listings SET status = ? WHERE id = ? AND id LIKE 'user:%'"
+      ).bind(status, body.id).run();
+      return Response.json({ ok: true, changed: res.meta?.changes ?? 0, status }, { headers: CORS });
     }
     if (url.pathname === "/ingest" && request.method === "POST") {
       if (!env.INGEST_SECRET || request.headers.get("x-ingest-secret") !== env.INGEST_SECRET) {
@@ -1011,7 +1172,7 @@ ${e.stack ?? ""}` : String(e);
     return new Response("LUFT ingest worker", { status: 200 });
   }
 };
-var index_default = handler;
+var src_default = handler;
 export {
-  index_default as default
+  src_default as default
 };

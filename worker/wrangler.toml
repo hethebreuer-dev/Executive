@@ -8,6 +8,12 @@ binding = "DB"
 database_name = "luft"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 
+# R2 bucket for seller-uploaded photos ("List your car").
+# Create with `wrangler r2 bucket create luft-photos`.
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "luft-photos"
+
 # Ingest on a schedule (every 30 min). Tighten for auctions nearing close.
 [triggers]
 crons = ["*/30 * * * *"]
@@ -21,3 +27,5 @@ LUFT_ENABLE_MOCK = "0"
 #   EBAY_APP_ID, EBAY_CERT_ID, EBAY_ENV, EBAY_MARKETPLACE
 #   APIFY_TOKEN
 #   INGEST_SECRET   (guards POST /ingest)
+#   SUBMIT_SECRET   (guards POST /submit — must match the app's WORKER_SUBMIT_SECRET)
+#   ADMIN_SECRET    (guards /admin/* — must match the app's WORKER_ADMIN_SECRET)

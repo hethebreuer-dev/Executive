@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { FooterGrid } from "@/components/luft/Footer";
+import { useAuth } from "@/components/luft/AuthProvider";
+import type { ModelFamily } from "@/lib/luft/model";
 
 type ModelDef = {
   id: string;
@@ -14,7 +16,19 @@ type ModelDef = {
   comps: number;
 };
 
-type Photo = { id: string; url: string; name: string };
+type Photo = { id: string; url: string; name: string; file: File };
+
+// The Sell form's model ids → canonical model family.
+const FAMILY_OF: Record<string, ModelFamily> = {
+  swb: "911",
+  lwb: "911",
+  g: "911",
+  "930": "930",
+  "964": "964",
+  "993": "993",
+};
+
+const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL;
 
 const MODELS: ModelDef[] = [
   { id: "swb", name: "911 SWB", full: "911 SWB (1965–1968)", low: 130, high: 285, med: 190, comps: 38 },
@@ -38,14 +52,17 @@ const LABELS = ["The Car", "Condition", "Photos", "Contact", "Price"];
 const fmtK = (n: number) => "$" + Math.round(n) + "k";
 
 export default function SellPage() {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [refNo, setRefNo] = useState("");
+  const [publishing, setPublishing] = useState(false);
 
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [mileage, setMileage] = useState("");
   const [trans, setTrans] = useState("Manual");
+  const [body, setBody] = useState("Coupe");
   const [extColor, setExtColor] = useState("");
   const [vin, setVin] = useState("");
   const [matching, setMatching] = useState(true);
@@ -77,6 +94,7 @@ export default function SellPage() {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         url: URL.createObjectURL(f),
         name: f.name,
+        file: f,
       })),
     ]);
     setErr("");
@@ -145,6 +163,7 @@ export default function SellPage() {
     { label: "Year", value: year || "—" },
     { label: "Mileage", value: mileage || "—" },
     { label: "Transmission", value: trans },
+    { label: "Body", value: body },
     { label: "Colour", value: extColor || "—" },
     { label: "Condition", value: condition },
     { label: "Matching numbers", value: matching ? "Yes" : "No" },
@@ -187,7 +206,24 @@ export default function SellPage() {
     setErr("");
     setStep(i);
   }
-  function publish() {
+  async function uploadPhotos(): Promise<string[]> {
+    if (!WORKER_URL || !photos.length) return [];
+    const base = WORKER_URL.replace(/\/$/, "");
+    const urls: string[] = [];
+    for (const ph of photos) {
+      const res = await fetch(`${base}/upload`, {
+        method: "POST",
+        headers: { "content-type": ph.file.type },
+        body: ph.file,
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.url) throw new Error(j.error || "A photo failed to upload.");
+      urls.push(j.url as string);
+    }
+    return urls;
+  }
+
+  async function publish() {
     for (const s of [0, 3]) {
       const e = validateStep(s);
       if (e) {
@@ -197,7 +233,54 @@ export default function SellPage() {
     }
     if (pk == null || pk <= 0) return setErr("Enter an asking price to publish.");
     setErr("");
-    submit();
+    setPublishing(true);
+    try {
+      const photoUrls = await uploadPhotos();
+      const [cityPart, statePart] = (location || "").split(",").map((s) => s.trim());
+      const payload = {
+        title: md ? md.name : "Air-cooled 911",
+        year: Number(String(year).replace(/[^0-9]/g, "")) || null,
+        modelFamily: md ? FAMILY_OF[md.id] : "911",
+        trim: md ? md.name : "",
+        body,
+        transmission: trans,
+        mileage: Number(String(mileage).replace(/[^0-9]/g, "")) || null,
+        exteriorColor: extColor || null,
+        vin: vin || null,
+        matchingNumbers: matching,
+        price: Math.round((pk as number) * 1000),
+        currency: "USD",
+        city: cityPart || null,
+        state: statePart || null,
+        sellerType: sellerType.toLowerCase(),
+        sellerName: sellerName,
+        // Attribute to the signed-in account when present so it shows in "My listings".
+        sellerEmail: (user?.email || email).trim().toLowerCase(),
+        sellerPhone: phone || null,
+        sellerContact: contactMethod,
+        photos: photoUrls,
+        blurb: notes || null,
+        caption: issues || null,
+      };
+      const res = await fetch("/api/sell", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          res.status === 503
+            ? "Listing submission isn't switched on yet — check back soon."
+            : j.error || "Could not publish. Please try again."
+        );
+      }
+      submit();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not publish. Please try again.");
+    } finally {
+      setPublishing(false);
+    }
   }
 
   const toggleRow: React.CSSProperties = {
@@ -303,14 +386,15 @@ export default function SellPage() {
         {submitted ? (
           <div style={{ border: "1px solid #0d0d0d", padding: "64px 56px", maxWidth: 820 }}>
             <div className="lbl" style={{ color: "#0d0d0d" }}>
-              Listing published
+              Submitted for review
             </div>
             <h2 className="display" style={{ fontWeight: 600, fontSize: 46, lineHeight: 1, textTransform: "uppercase", margin: "14px 0 8px" }}>
-              You&apos;re on the market.
+              You&apos;re in the queue.
             </h2>
             <p style={{ fontSize: 16, lineHeight: 1.6, color: "#5e5e5a", maxWidth: 520 }}>
-              {previewTitle} is now live and priced against verified comps. Buyers
-              can watch, message, and make offers immediately.
+              {previewTitle} has been submitted and is awaiting review. Once approved
+              it goes live on the marketplace — usually within a day. You can track
+              it anytime under <strong>Listings</strong> in your account.
             </p>
             {photos[0] && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -326,8 +410,8 @@ export default function SellPage() {
               <SummaryStat label="Comp position" value={statusLabel} />
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <Link href="/listing/1" style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 15, fontWeight: 600, padding: "15px 28px" }}>
-                View your listing →
+              <Link href="/account" style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 15, fontWeight: 600, padding: "15px 28px" }}>
+                Track it in your account →
               </Link>
               <Link href="/marketplace" style={{ border: "1px solid #0d0d0d", fontSize: 15, fontWeight: 600, padding: "14px 26px" }}>
                 Go to marketplace
@@ -367,10 +451,17 @@ export default function SellPage() {
                         <option>Tiptronic</option>
                       </select>
                     </Labeled>
-                    <Labeled label="Exterior colour">
-                      <input className="luft-field" value={extColor} onChange={(e) => setExtColor(e.target.value)} placeholder="Grand Prix White" />
+                    <Labeled label="Body">
+                      <select className="luft-field" value={body} onChange={(e) => setBody(e.target.value)}>
+                        <option>Coupe</option>
+                        <option>Targa</option>
+                        <option>Cabriolet</option>
+                      </select>
                     </Labeled>
                   </TwoCol>
+                  <Labeled label="Exterior colour">
+                    <input className="luft-field" value={extColor} onChange={(e) => setExtColor(e.target.value)} placeholder="Grand Prix White" />
+                  </Labeled>
                   <Labeled label="VIN / chassis number" mb={24}>
                     <input
                       className="luft-field"
@@ -640,9 +731,10 @@ export default function SellPage() {
                   <button
                     type="button"
                     onClick={publish}
-                    style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 15, fontWeight: 600, padding: "15px 30px", cursor: "pointer", border: "none", fontFamily: "var(--font-libre-franklin), sans-serif" }}
+                    disabled={publishing}
+                    style={{ background: publishing ? "#8a8a85" : "#0d0d0d", color: "#ffffff", fontSize: 15, fontWeight: 600, padding: "15px 30px", cursor: publishing ? "default" : "pointer", border: "none", fontFamily: "var(--font-libre-franklin), sans-serif" }}
                   >
-                    Publish listing →
+                    {publishing ? "Publishing…" : "Publish listing →"}
                   </button>
                 ) : (
                   <button
