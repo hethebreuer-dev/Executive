@@ -18,7 +18,10 @@ import { activeConnectors } from "../../src/lib/luft/registry";
 
 export interface Env {
   DB: D1Database;
+  PHOTOS?: R2Bucket; // R2 bucket for seller-uploaded photos
   INGEST_SECRET?: string;
+  SUBMIT_SECRET?: string; // guards POST /submit (set on the app too)
+  ADMIN_SECRET?: string; // guards GET /admin/pending + POST /admin/moderate
   // Connector config (set via `wrangler secret put ...`):
   EBAY_APP_ID?: string;
   EBAY_CERT_ID?: string;
@@ -26,6 +29,104 @@ export interface Env {
   EBAY_MARKETPLACE?: string;
   APIFY_TOKEN?: string;
   LUFT_ENABLE_MOCK?: string;
+}
+
+// --- Seller submissions (the "List your car" backend) --------------------------
+// Seller-created listings live in the same `listings` table, distinguished by an
+// `id` prefixed `user:` and `status='pending'` until an admin approves them
+// (→ 'active'). The stale-sweep is scoped by connector-id prefix, so it never
+// touches these rows.
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "content-type,x-submit-secret,x-admin-secret",
+};
+
+const IMAGE_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/avif": "avif",
+};
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB per photo
+
+interface SubmitPayload {
+  title?: string;
+  year?: number;
+  modelFamily?: string;
+  trim?: string;
+  body?: string;
+  transmission?: string;
+  mileage?: number | null;
+  exteriorColor?: string | null;
+  interiorColor?: string | null;
+  vin?: string | null;
+  matchingNumbers?: boolean | null;
+  price?: number;
+  currency?: string;
+  city?: string | null;
+  state?: string | null;
+  sellerType?: string;
+  sellerName?: string;
+  sellerEmail?: string;
+  sellerPhone?: string | null;
+  sellerContact?: string | null;
+  photos?: string[];
+  blurb?: string | null;
+  caption?: string | null;
+}
+
+// Add the seller columns to an existing D1 (self-healing; ADD COLUMN throws if
+// the column already exists, which we ignore — SQLite has no ADD COLUMN IF NOT
+// EXISTS).
+async function ensureUserColumns(db: D1Database) {
+  const cols = [
+    "seller_name TEXT",
+    "seller_email TEXT",
+    "seller_phone TEXT",
+    "seller_contact TEXT",
+    "submitted_at TEXT",
+  ];
+  for (const c of cols) {
+    try {
+      await db.prepare(`ALTER TABLE listings ADD COLUMN ${c}`).run();
+    } catch {
+      /* column already exists */
+    }
+  }
+}
+
+async function insertUserListing(db: D1Database, p: SubmitPayload): Promise<string> {
+  const id = `user:${crypto.randomUUID()}`;
+  const now = new Date().toISOString();
+  const photos = Array.isArray(p.photos) ? p.photos.slice(0, 24) : [];
+  const dedupe = (p.vin || `${p.year}-${p.modelFamily}-${p.sellerEmail}`).toLowerCase();
+  await db
+    .prepare(
+      `INSERT INTO listings (
+         id, source, source_id, url, first_seen, last_seen, status, year,
+         model_family, trim, body, transmission, vin, matching_numbers, mileage,
+         exterior_color, interior_color, listing_type, seller_type, price, currency,
+         ends_at, city, state, comp_delta_pct, photos, title, caption, blurb, dedupe_key,
+         seller_name, seller_email, seller_phone, seller_contact, submitted_at
+       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    )
+    .bind(
+      id, "LUFT Seller", id, "", now, now, "pending", p.year ?? 0,
+      p.modelFamily ?? "911", p.trim ?? "", p.body ?? "Coupe", p.transmission ?? "Manual",
+      p.vin ?? null, p.matchingNumbers == null ? null : p.matchingNumbers ? 1 : 0,
+      p.mileage ?? null, p.exteriorColor ?? null, p.interiorColor ?? null,
+      "classified", p.sellerType === "dealer" ? "dealer" : "private",
+      Math.round(p.price ?? 0), p.currency ?? "USD", null, p.city ?? null, p.state ?? null,
+      null, JSON.stringify(photos), p.title ?? "", p.caption ?? null, p.blurb ?? null, dedupe,
+      p.sellerName ?? null, p.sellerEmail ?? null, p.sellerPhone ?? null,
+      p.sellerContact ?? null, now
+    )
+    .run();
+  return id;
 }
 
 interface SourceReport {
@@ -195,9 +296,105 @@ const handler = {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS });
+    }
+
     if (url.pathname === "/health") {
       const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM listings").first<{ n: number }>();
       return Response.json({ ok: true, listings: row?.n ?? 0 });
+    }
+
+    // --- Seller photo upload → R2 -------------------------------------------
+    // Public (called from the browser). Bounded by content-type + size; keys
+    // are random so nothing is guessable/overwritable.
+    if (url.pathname === "/upload" && request.method === "POST") {
+      if (!env.PHOTOS) return Response.json({ error: "Uploads not configured" }, { status: 503, headers: CORS });
+      const ct = request.headers.get("content-type") || "";
+      const ext = IMAGE_EXT[ct];
+      if (!ext) return Response.json({ error: "Only JPEG/PNG/WebP/GIF/AVIF images" }, { status: 415, headers: CORS });
+      const buf = await request.arrayBuffer();
+      if (buf.byteLength === 0 || buf.byteLength > MAX_UPLOAD_BYTES) {
+        return Response.json({ error: "Image must be 1 byte–10 MB" }, { status: 413, headers: CORS });
+      }
+      const key = `${crypto.randomUUID()}.${ext}`;
+      await env.PHOTOS.put(key, buf, { httpMetadata: { contentType: ct } });
+      return Response.json({ url: `${url.origin}/photo/${key}` }, { headers: CORS });
+    }
+
+    // --- Serve an uploaded photo from R2 ------------------------------------
+    if (url.pathname.startsWith("/photo/") && request.method === "GET") {
+      if (!env.PHOTOS) return new Response("Not found", { status: 404 });
+      const key = decodeURIComponent(url.pathname.slice("/photo/".length));
+      const obj = await env.PHOTOS.get(key);
+      if (!obj) return new Response("Not found", { status: 404 });
+      return new Response(obj.body, {
+        headers: {
+          "content-type": obj.httpMetadata?.contentType || "application/octet-stream",
+          "cache-control": "public, max-age=31536000, immutable",
+        },
+      });
+    }
+
+    // --- Seller listing submission (secret-guarded; the app forwards) -------
+    if (url.pathname === "/submit" && request.method === "POST") {
+      if (!env.SUBMIT_SECRET || request.headers.get("x-submit-secret") !== env.SUBMIT_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let p: SubmitPayload;
+      try {
+        p = (await request.json()) as SubmitPayload;
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!p.title || !p.year || !p.modelFamily || !p.price || !p.sellerEmail) {
+        return Response.json({ error: "Missing required fields" }, { status: 400, headers: CORS });
+      }
+      try {
+        await ensureUserColumns(env.DB);
+        const id = await insertUserListing(env.DB, p);
+        return Response.json({ ok: true, id }, { headers: CORS });
+      } catch (e) {
+        console.error("submit failed:", e);
+        return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500, headers: CORS });
+      }
+    }
+
+    // --- Admin: list pending submissions ------------------------------------
+    if (url.pathname === "/admin/pending" && request.method === "GET") {
+      if (!env.ADMIN_SECRET || request.headers.get("x-admin-secret") !== env.ADMIN_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      await ensureUserColumns(env.DB);
+      const { results } = await env.DB.prepare(
+        `SELECT id, title, year, model_family, price, seller_name, seller_email,
+                seller_phone, seller_contact, city, state, submitted_at, photos
+           FROM listings WHERE status = 'pending' ORDER BY submitted_at DESC`
+      ).all();
+      return Response.json({ ok: true, pending: results ?? [] }, { headers: CORS });
+    }
+
+    // --- Admin: approve / reject a submission -------------------------------
+    if (url.pathname === "/admin/moderate" && request.method === "POST") {
+      if (!env.ADMIN_SECRET || request.headers.get("x-admin-secret") !== env.ADMIN_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let body: { id?: string; action?: string };
+      try {
+        body = (await request.json()) as { id?: string; action?: string };
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!body.id || (body.action !== "approve" && body.action !== "reject")) {
+        return Response.json({ error: "id and action (approve|reject) required" }, { status: 400, headers: CORS });
+      }
+      const status = body.action === "approve" ? "active" : "withdrawn";
+      const res = await env.DB.prepare(
+        "UPDATE listings SET status = ? WHERE id = ? AND id LIKE 'user:%'"
+      )
+        .bind(status, body.id)
+        .run();
+      return Response.json({ ok: true, changed: res.meta?.changes ?? 0, status }, { headers: CORS });
     }
 
     if (url.pathname === "/ingest" && request.method === "POST") {

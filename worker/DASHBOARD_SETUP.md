@@ -71,3 +71,43 @@ In the app's environment (your host's settings), set:
 
 The Marketplace then serves the Worker-ingested rows. Until these are set, the app
 keeps aggregating connectors live in-memory, so nothing breaks in the meantime.
+
+## 7. Turn on "List your car" (seller submissions + photos)
+
+Sellers upload photos to the Worker (stored in **R2**) and submit a listing, which
+lands as **pending** until you approve it from `/admin`. Approved cars appear on the
+public marketplace alongside scraped ones.
+
+**a. Create an R2 bucket + bind it**
+1. Cloudflare dashboard → **R2 → Create bucket** → name it **`luft-photos`** → Create.
+2. Worker → **Settings → Bindings → Add → R2 bucket**: Variable name **`PHOTOS`**,
+   bucket **`luft-photos`** → Save.
+
+**b. Add the two secrets (Worker → Settings → Variables and Secrets)**
+- Secret **`SUBMIT_SECRET`** = any random string (guards `POST /submit`).
+- Secret **`ADMIN_SECRET`** = a different random string (guards `/admin/*`).
+
+**c. Re-paste the Worker bundle**
+The upload/submit/admin routes are in [`worker/dist/worker.js`](./dist/worker.js).
+Worker → **Edit code** → select all → paste the file → **Deploy**. (The seller
+columns are added to D1 automatically on the first submission — no manual SQL. A
+brand-new D1 created from `schema.sql` already has them.)
+
+**d. Point the app at it (host env / Vercel → Settings → Environment Variables)**
+- **`NEXT_PUBLIC_WORKER_URL`** = your Worker origin, e.g.
+  `https://luft-ingest.<your-subdomain>.workers.dev` (browser photo upload + submit).
+- **`WORKER_SUBMIT_SECRET`** = the same value as the Worker's `SUBMIT_SECRET`.
+- **`WORKER_ADMIN_SECRET`** = the same value as the Worker's `ADMIN_SECRET` (server-only; never reaches the browser).
+- **`ADMIN_KEY`** = the key you'll put in the moderation URL (keep it **different** from `WORKER_ADMIN_SECRET`).
+
+Redeploy the app so `NEXT_PUBLIC_WORKER_URL` is baked in.
+
+**e. Moderate**
+Open **`/admin?key=<ADMIN_KEY>`**. Pending submissions show with photos + seller
+contact; **Approve** publishes to the marketplace, **Reject** withdraws. Sellers see
+their car as *In review* under **Listings** in their account the moment they submit.
+
+> Notes: photo uploads are capped at 10 MB and must be images. `/submit` is
+> secret-guarded (only the app can write), so the public can't inject listings —
+> only upload image blobs, which sit unreferenced until a real submission uses them.
+> Real buyer↔seller messaging and comp-delta for user cars are follow-ups.

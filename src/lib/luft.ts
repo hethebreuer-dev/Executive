@@ -69,12 +69,14 @@ export function toLegacyListing(c: CanonicalListing, i: number): Listing {
 
 /** Where a listing card should link: out to the source when it's a real URL,
  * otherwise the internal detail page (used by the mock seed). */
-export function listingHref(l: Pick<Listing, "url" | "id">): {
+export function listingHref(l: Pick<Listing, "url" | "id" | "canonicalId">): {
   href: string;
   external: boolean;
 } {
   if (l.url && /^https?:\/\//i.test(l.url)) return { href: l.url, external: true };
-  return { href: `/listing/${l.id}`, external: false };
+  // Internal detail page keyed by the stable canonical id (e.g. "user:abc123"),
+  // not the per-render numeric id.
+  return { href: `/listing/${encodeURIComponent(l.canonicalId)}`, external: false };
 }
 
 export const LISTINGS: Listing[] = MOCK_LISTINGS.map(toLegacyListing);

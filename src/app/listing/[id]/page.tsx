@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { FooterSimple } from "@/components/luft/Footer";
 import { SaveButton } from "@/components/luft/SaveButton";
+import { repository } from "@/lib/luft/factory";
+import { usd, miles } from "@/lib/luft";
+import type { CanonicalListing } from "@/lib/luft/model";
 
 const SPECS: { k: string; v: string }[] = [
   { k: "Model", v: "Carrera RS 2.7 (M472)" },
@@ -53,8 +56,14 @@ export default async function ListingPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await params; // route is dynamic; content is the featured RS 2.7 lot
+  const { id } = await params;
+  const listing = await repository.getListing(decodeURIComponent(id)).catch(() => null);
+  if (listing) return <RealListing c={listing} />;
+  // Fallback: the static featured showcase (mock/legacy/unknown ids).
+  return <FeaturedShowcase />;
+}
 
+function FeaturedShowcase() {
   return (
     <div style={{ background: "#ffffff" }}>
       {/* SUB-BAR */}
@@ -507,6 +516,168 @@ function BlockHead({ children }: { children: React.ReactNode }) {
       >
         {children}
       </h2>
+    </div>
+  );
+}
+
+// Real data-driven detail page — used for repository-backed listings (seller
+// submissions and any internally-hosted car). Scraped cars link out to source.
+function RealListing({ c }: { c: CanonicalListing }) {
+  const photos = c.photos ?? [];
+  const hero = photos[0];
+  const rest = photos.slice(1, 5);
+  const location = [c.city, c.state].filter(Boolean).join(", ");
+  const specs: { k: string; v: string }[] = [
+    { k: "Model", v: `${c.modelFamily} ${c.trim}`.trim() },
+    { k: "Body", v: c.body },
+    { k: "Transmission", v: c.transmission },
+    { k: "Year", v: String(c.year) },
+    ...(c.mileage ? [{ k: "Mileage", v: miles(c.mileage) }] : []),
+    ...(c.exteriorColor ? [{ k: "Exterior", v: c.exteriorColor }] : []),
+    ...(c.interiorColor ? [{ k: "Interior", v: c.interiorColor }] : []),
+    ...(c.vin ? [{ k: "VIN", v: c.vin }] : []),
+    ...(c.matchingNumbers != null ? [{ k: "Matching numbers", v: c.matchingNumbers ? "Yes" : "No" }] : []),
+    ...(location ? [{ k: "Location", v: location }] : []),
+  ];
+
+  return (
+    <div style={{ background: "#ffffff" }}>
+      {/* SUB-BAR */}
+      <div className="luft-container" style={{ padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e6e5e2", gap: 16, flexWrap: "wrap" }}>
+        <Link href="/marketplace" style={{ fontSize: 13, color: "#5e5e5a" }}>
+          ← All air-cooled listings
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <span className="lbl" style={{ fontSize: 10 }}>
+            Marketplace / {c.modelFamily} / {c.year} {c.trim}
+          </span>
+          <SaveButton />
+        </div>
+      </div>
+
+      {/* GALLERY */}
+      <section className="luft-container" style={{ padding: "28px 40px 0" }}>
+        <div className="luft-grid-2" style={{ gridTemplateColumns: "2.2fr 1fr", gap: 10, height: 520 }}>
+          <div className={hero ? "" : "luft-hatch"} style={{ position: "relative", border: "1px solid #e6e5e2", background: hero ? "#0d0d0d" : undefined, overflow: "hidden" }}>
+            {hero && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={hero} alt={`${c.year} ${c.title}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            )}
+            <span className="mono" style={{ position: "absolute", top: 16, left: 16, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", background: "#0d0d0d", color: "#ffffff", padding: "5px 9px" }}>
+              {c.sellerType === "dealer" ? "Dealer" : "Private seller"}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[0, 1].map((i) => (
+              <div key={i} className={rest[i] ? "" : "luft-hatch"} style={{ position: "relative", flex: 1, border: "1px solid #e6e5e2", background: rest[i] ? "#0d0d0d" : undefined, overflow: "hidden" }}>
+                {rest[i] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={rest[i]} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* BODY */}
+      <div className="luft-container luft-grid-2" style={{ padding: "48px 40px 0", gridTemplateColumns: "1fr 372px", gap: 64, alignItems: "start" }}>
+        <main>
+          <div className="lbl" style={{ color: "#0d0d0d" }}>
+            {c.source} · Listed on LUFT
+          </div>
+          <h1 className="display luft-h1" style={{ fontWeight: 600, fontSize: 52, lineHeight: 1.02, textTransform: "uppercase", margin: "14px 0 10px" }}>
+            {c.year} {c.title}
+          </h1>
+          <p style={{ fontSize: 17, color: "#5e5e5a", lineHeight: 1.5 }}>
+            {[c.trim, c.body, c.transmission, c.exteriorColor].filter(Boolean).join(" · ")}
+          </p>
+
+          {c.blurb && (
+            <>
+              <BlockHead>Notes from the seller</BlockHead>
+              <p style={{ fontSize: 16, lineHeight: 1.65, color: "#3f3f3d", maxWidth: 640, whiteSpace: "pre-wrap" }}>{c.blurb}</p>
+            </>
+          )}
+          {c.caption && (
+            <>
+              <BlockHead>Known issues &amp; needs</BlockHead>
+              <p style={{ fontSize: 16, lineHeight: 1.65, color: "#3f3f3d", maxWidth: 640, whiteSpace: "pre-wrap" }}>{c.caption}</p>
+            </>
+          )}
+
+          <BlockHead>Specification</BlockHead>
+          <div className="luft-stack-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 56px" }}>
+            {specs.map((s) => (
+              <div key={s.k} style={{ display: "flex", justifyContent: "space-between", gap: 20, padding: "13px 0", borderBottom: "1px solid #eeeeec" }}>
+                <span className="lbl" style={{ color: "#8a8a85", paddingTop: 2 }}>{s.k}</span>
+                <span className="mono" style={{ fontSize: 13, color: "#0d0d0d", textAlign: "right" }}>{s.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* EXTRA PHOTOS */}
+          {photos.length > 1 && (
+            <>
+              <BlockHead>Photos</BlockHead>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+                {photos.map((p, i) => (
+                  <div key={i} style={{ position: "relative", aspectRatio: "4 / 3", background: "#0d0d0d", border: "1px solid #e6e5e2", overflow: "hidden" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
+
+        {/* STICKY PRICE RAIL */}
+        <aside className="luft-sticky-aside" style={{ position: "sticky", top: 96, alignSelf: "start", border: "1px solid #e6e5e2" }}>
+          <div style={{ padding: "24px 24px 22px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span className="lbl">Asking</span>
+              <span className="lbl" style={{ color: "#0d0d0d" }}>● Live</span>
+            </div>
+            <div className="mono" style={{ fontSize: 40, fontWeight: 500, letterSpacing: "-0.02em", marginTop: 12 }}>
+              {usd(c.price)}
+            </div>
+            {c.compDeltaPct != null && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, border: "1px solid #e6e5e2", padding: "7px 12px" }}>
+                <span className="mono" style={{ fontSize: 13, fontWeight: 500 }}>
+                  {c.compDeltaPct > 0 ? "+" : ""}{c.compDeltaPct}%
+                </span>
+                <span style={{ fontSize: 12, color: "#5e5e5a" }}>vs generation median</span>
+              </div>
+            )}
+          </div>
+          <div style={{ borderTop: "1px solid #e6e5e2", padding: "20px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px" }}>
+            {[
+              ["Year", String(c.year)],
+              ["Mileage", c.mileage ? miles(c.mileage) : "—"],
+              ["Gearbox", c.transmission],
+              ["Location", location || "—"],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <div className="lbl" style={{ marginBottom: 5 }}>{k}</div>
+                <div className="mono" style={{ fontSize: 14 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ borderTop: "1px solid #e6e5e2", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ textAlign: "center", background: "#0d0d0d", color: "#ffffff", fontSize: 14, fontWeight: 600, padding: 15 }}>
+              Contact {c.sellerType === "dealer" ? "dealer" : "seller"}
+            </span>
+            <div className="mono" style={{ fontSize: 11, color: "#8a8a85", textAlign: "center" }}>
+              Messaging routes through LUFT · coming soon
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div style={{ marginTop: 80 }}>
+        <FooterSimple />
+      </div>
     </div>
   );
 }

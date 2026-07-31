@@ -32,7 +32,14 @@ CREATE TABLE IF NOT EXISTS listings (
   title           TEXT NOT NULL,
   caption         TEXT,
   blurb           TEXT,
-  dedupe_key      TEXT NOT NULL               -- VIN or fuzzy identity (merge hint)
+  dedupe_key      TEXT NOT NULL,              -- VIN or fuzzy identity (merge hint)
+  -- Seller submissions ("List your car"). NULL for scraped rows. A user listing
+  -- has id LIKE 'user:%' and status 'pending' until an admin approves it.
+  seller_name     TEXT,
+  seller_email    TEXT,
+  seller_phone    TEXT,
+  seller_contact  TEXT,                       -- preferred contact method
+  submitted_at    TEXT
 );
 
 -- dedupe_key is a FUZZY merge hint, applied in-memory by dedupeListings each

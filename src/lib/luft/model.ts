@@ -91,6 +91,20 @@ export interface ListingQuery {
   offset?: number;
 }
 
+/** A seller's own listing, as shown in their account (any moderation status). */
+export interface SellerListing {
+  id: string;
+  title: string;
+  year: number;
+  modelFamily: ModelFamily;
+  price: number;
+  status: string; // active (live) | pending (in review) | withdrawn
+  photos: string[];
+  city?: string;
+  state?: string;
+  submittedAt?: string;
+}
+
 /** Aggregate market figures derived from listings + comps. */
 export interface MarketStats {
   count: number;

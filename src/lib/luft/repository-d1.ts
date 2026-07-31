@@ -8,6 +8,7 @@ import type {
   ListingQuery,
   MarketStats,
   ModelFamily,
+  SellerListing,
   SoldComp,
 } from "./model";
 import {
@@ -102,6 +103,44 @@ export class D1Repository implements ListingRepository {
   async getListing(id: string) {
     const rows = await this.query<D1Row>("SELECT * FROM listings WHERE id = ? LIMIT 1", [id]);
     return rows.length ? rowToListing(rows[0]) : null;
+  }
+
+  async listBySeller(email: string): Promise<SellerListing[]> {
+    // The seller_* columns may not exist yet on a D1 that has never taken a
+    // submission (the worker adds them on first /submit). Treat that as "no
+    // listings" rather than an error.
+    try {
+      const rows = await this.query<{
+        id: string;
+        title: string;
+        year: number;
+        model_family: string;
+        price: number;
+        status: string;
+        photos: string | null;
+        city: string | null;
+        state: string | null;
+        submitted_at: string | null;
+      }>(
+        `SELECT id, title, year, model_family, price, status, photos, city, state, submitted_at
+           FROM listings WHERE seller_email = ? ORDER BY submitted_at DESC`,
+        [email]
+      );
+      return rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        year: r.year,
+        modelFamily: r.model_family as ModelFamily,
+        price: r.price,
+        status: r.status,
+        photos: r.photos ? (JSON.parse(r.photos) as string[]) : [],
+        city: r.city ?? undefined,
+        state: r.state ?? undefined,
+        submittedAt: r.submitted_at ?? undefined,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async listComps(family: ModelFamily | "all" = "all") {
