@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import {
   initialsFor,
@@ -188,13 +189,18 @@ export function Auth({
   return (
     <>
       {trigger}
-      {modalOpen && (
-        <div
-          className="auth-scrim"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setModalOpen(false);
-          }}
-        >
+      {/* Portal to <body> so `position: fixed` escapes the header's
+          backdrop-filter containing block (otherwise the modal is trapped
+          inside the 72px header bar on desktop and renders invisibly). */}
+      {modalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="auth-scrim"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setModalOpen(false);
+            }}
+          >
           <form
             onSubmit={submit}
             style={{
@@ -412,8 +418,9 @@ export function Auth({
               </a>
             </p>
           </form>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
