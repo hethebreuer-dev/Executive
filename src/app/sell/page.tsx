@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FooterGrid } from "@/components/luft/Footer";
 
 type ModelDef = {
@@ -13,6 +13,8 @@ type ModelDef = {
   med: number;
   comps: number;
 };
+
+type Photo = { id: string; url: string; name: string };
 
 const MODELS: ModelDef[] = [
   { id: "swb", name: "911 SWB", full: "911 SWB (1965–1968)", low: 130, high: 285, med: 190, comps: 38 },
@@ -60,6 +62,42 @@ export default function SellPage() {
   const [location, setLocation] = useState("");
   const [contactMethod, setContactMethod] = useState("In-app messages");
   const [openToOffers, setOpenToOffers] = useState(true);
+
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [err, setErr] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  function addFiles(files: FileList | File[]) {
+    const imgs = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (!imgs.length) return;
+    setPhotos((prev) => [
+      ...prev,
+      ...imgs.map((f) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        url: URL.createObjectURL(f),
+        name: f.name,
+      })),
+    ]);
+    setErr("");
+  }
+  function removePhoto(id: string) {
+    setPhotos((prev) => {
+      const t = prev.find((p) => p.id === id);
+      if (t) URL.revokeObjectURL(t.url);
+      return prev.filter((p) => p.id !== id);
+    });
+  }
+  function makeHero(id: string) {
+    setPhotos((prev) => {
+      const i = prev.findIndex((p) => p.id === id);
+      if (i <= 0) return prev;
+      const copy = prev.slice();
+      const [item] = copy.splice(i, 1);
+      copy.unshift(item);
+      return copy;
+    });
+  }
 
   const md = useMemo(() => MODELS.find((m) => m.id === model) || null, [model]);
   const cond = CONDITIONS.find((c) => c.id === condition) || { mult: 1 };
@@ -114,12 +152,52 @@ export default function SellPage() {
     { label: "Seller", value: sellerType + (sellerName ? " · " + sellerName : "") },
     { label: "Location", value: location || "—" },
     { label: "Offers", value: openToOffers ? "Open to offers" : "Firm price" },
+    { label: "Photos", value: photos.length ? `${photos.length} uploaded` : "None yet" },
     { label: "Asking", value: priceDisplay },
   ];
 
   function submit() {
     setRefNo("LFT-" + Math.floor(100000 + Math.random() * 899999));
     setSubmitted(true);
+  }
+
+  function validateStep(s: number): string {
+    if (s === 0) {
+      if (!model) return "Select your model & generation to continue.";
+      if (!year.trim()) return "Enter the model year to continue.";
+    }
+    if (s === 3) {
+      if (!sellerName.trim()) return "Enter your name so buyers know who's selling.";
+      if (!/.+@.+\..+/.test(email)) return "Enter a valid email address.";
+    }
+    return "";
+  }
+  function goNext() {
+    const e = validateStep(step);
+    if (e) return setErr(e);
+    setErr("");
+    setStep((s) => Math.min(4, s + 1));
+  }
+  function goBack() {
+    setErr("");
+    setStep((s) => Math.max(0, s - 1));
+  }
+  function goToStep(i: number) {
+    if (submitted) return;
+    setErr("");
+    setStep(i);
+  }
+  function publish() {
+    for (const s of [0, 3]) {
+      const e = validateStep(s);
+      if (e) {
+        setStep(s);
+        return setErr(e);
+      }
+    }
+    if (pk == null || pk <= 0) return setErr("Enter an asking price to publish.");
+    setErr("");
+    submit();
   }
 
   const toggleRow: React.CSSProperties = {
@@ -177,7 +255,7 @@ export default function SellPage() {
                 <button
                   key={label}
                   type="button"
-                  onClick={() => !submitted && setStep(i)}
+                  onClick={() => goToStep(i)}
                   style={{ display: "flex", alignItems: "center", gap: 11, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
                 >
                   <span
@@ -234,6 +312,14 @@ export default function SellPage() {
               {previewTitle} is now live and priced against verified comps. Buyers
               can watch, message, and make offers immediately.
             </p>
+            {photos[0] && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photos[0].url}
+                alt="Published listing hero"
+                style={{ width: "100%", maxWidth: 520, height: 260, objectFit: "cover", display: "block", marginTop: 28, border: "1px solid #e6e5e2" }}
+              />
+            )}
             <div style={{ display: "flex", gap: 40, flexWrap: "wrap", margin: "32px 0 36px", borderTop: "1px solid #e6e5e2", borderBottom: "1px solid #e6e5e2", padding: "22px 0" }}>
               <SummaryStat label="Reference" value={refNo} />
               <SummaryStat label="Asking" value={priceDisplay} />
@@ -342,22 +428,111 @@ export default function SellPage() {
 
               {step === 2 && (
                 <>
-                  <StepHead title="Photos" sub="One confident 3/4 hero, then the detail. Drag images straight onto a frame." />
-                  <div className="luft-hatch" style={{ position: "relative", width: "100%", height: 380, border: "1px solid #e6e5e2", marginBottom: 16 }}>
-                    <PhotoCaption>Hero shot — 3/4 front profile, clean background</PhotoCaption>
+                  <StepHead title="Photos" sub="One confident 3/4 hero, then the detail. Click a frame to pick images, or drag them straight on." />
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) addFiles(e.target.files);
+                      e.target.value = "";
+                    }}
+                    style={{ display: "none" }}
+                  />
+
+                  {/* Hero frame */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragging(true);
+                    }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragging(false);
+                      addFiles(e.dataTransfer.files);
+                    }}
+                    className={photos[0] ? undefined : "luft-hatch"}
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      height: 380,
+                      border: dragging ? "1px solid #0d0d0d" : "1px solid #e6e5e2",
+                      background: photos[0] ? "#0d0d0d" : "#fafafa",
+                      marginBottom: 16,
+                      cursor: "pointer",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {photos[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={photos[0].url}
+                        alt="Hero"
+                        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                      />
+                    ) : (
+                      <PhotoCaption>
+                        {dragging ? "Drop to add photos" : "Click or drag to add your hero shot — 3/4 front profile"}
+                      </PhotoCaption>
+                    )}
                     <span className="mono" style={{ position: "absolute", top: 14, left: 14, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", background: "#0d0d0d", color: "#ffffff", padding: "5px 9px" }}>
                       Hero
                     </span>
+                    {photos[0] && (
+                      <RemoveBtn
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removePhoto(photos[0].id);
+                        }}
+                      />
+                    )}
                   </div>
+
+                  {/* Thumbnails + add tile */}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
-                    {["Interior", "Engine bay", "Underside / detail"].map((p) => (
-                      <div key={p} className="luft-hatch" style={{ position: "relative", height: 150, border: "1px solid #e6e5e2" }}>
-                        <PhotoCaption small>{p}</PhotoCaption>
+                    {photos.slice(1).map((p) => (
+                      <div key={p.id} style={{ position: "relative", height: 150, border: "1px solid #e6e5e2", background: "#0d0d0d", overflow: "hidden" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.url} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <RemoveBtn onClick={() => removePhoto(p.id)} />
+                        <button
+                          type="button"
+                          onClick={() => makeHero(p.id)}
+                          className="mono"
+                          style={{ position: "absolute", left: 8, bottom: 8, fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", background: "rgba(13,13,13,0.82)", color: "#fff", border: "none", padding: "5px 8px", cursor: "pointer" }}
+                        >
+                          Set as hero
+                        </button>
                       </div>
                     ))}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragging(true);
+                      }}
+                      onDragLeave={() => setDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragging(false);
+                        addFiles(e.dataTransfer.files);
+                      }}
+                      className="luft-hatch"
+                      style={{ position: "relative", height: 150, border: "1px dashed #c9c8c4", background: "#fafafa", cursor: "pointer" }}
+                    >
+                      <PhotoCaption small>+ Add photos</PhotoCaption>
+                    </button>
                   </div>
+
                   <p className="mono" style={{ fontSize: 11, color: "#8a8a85", marginTop: 16 }}>
-                    Tip · Listings with 8+ high-res photos sell 2.3× faster on LUFT.
+                    {photos.length
+                      ? `${photos.length} photo${photos.length === 1 ? "" : "s"} added — the first is your hero.`
+                      : "Tip · Listings with 8+ high-res photos sell 2.3× faster on LUFT."}
                   </p>
                 </>
               )}
@@ -444,12 +619,18 @@ export default function SellPage() {
                 </>
               )}
 
+              {err && (
+                <div style={{ marginTop: 22, fontSize: 13, color: "#0d0d0d", background: "#f2f1ef", padding: "10px 14px" }}>
+                  {err}
+                </div>
+              )}
+
               {/* NAV BUTTONS */}
-              <div style={{ display: "flex", gap: 12, marginTop: 36, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 12, marginTop: err ? 14 : 36, flexWrap: "wrap" }}>
                 {step > 0 && (
                   <button
                     type="button"
-                    onClick={() => setStep((s) => Math.max(0, s - 1))}
+                    onClick={goBack}
                     style={{ border: "1px solid #0d0d0d", background: "#ffffff", fontSize: 15, fontWeight: 600, padding: "14px 26px", cursor: "pointer", fontFamily: "var(--font-libre-franklin), sans-serif" }}
                   >
                     ← Back
@@ -458,7 +639,7 @@ export default function SellPage() {
                 {step === 4 ? (
                   <button
                     type="button"
-                    onClick={submit}
+                    onClick={publish}
                     style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 15, fontWeight: 600, padding: "15px 30px", cursor: "pointer", border: "none", fontFamily: "var(--font-libre-franklin), sans-serif" }}
                   >
                     Publish listing →
@@ -466,7 +647,7 @@ export default function SellPage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setStep((s) => Math.min(4, s + 1))}
+                    onClick={goNext}
                     style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 15, fontWeight: 600, padding: "15px 30px", cursor: "pointer", border: "none", fontFamily: "var(--font-libre-franklin), sans-serif" }}
                   >
                     Continue →
@@ -551,6 +732,14 @@ export default function SellPage() {
                 <div className="lbl" style={{ marginBottom: 12 }}>
                   Listing preview
                 </div>
+                {photos[0] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photos[0].url}
+                    alt="Listing hero preview"
+                    style={{ width: "100%", height: 150, objectFit: "cover", display: "block", marginBottom: 14, border: "1px solid #e6e5e2" }}
+                  />
+                )}
                 <div className="display" style={{ fontWeight: 600, fontSize: 22, textTransform: "uppercase", lineHeight: 1, marginBottom: 6 }}>
                   {previewTitle}
                 </div>
@@ -657,6 +846,37 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
         {value}
       </div>
     </div>
+  );
+}
+
+function RemoveBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Remove photo"
+      onClick={onClick}
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 26,
+        height: 26,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(13,13,13,0.82)",
+        color: "#fff",
+        border: "none",
+        borderRadius: "50%",
+        cursor: "pointer",
+        lineHeight: 0,
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M5 5 19 19" />
+        <path d="M19 5 5 19" />
+      </svg>
+    </button>
   );
 }
 
