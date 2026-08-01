@@ -1,113 +1,148 @@
-# Deploy the ingestion Worker from the Cloudflare dashboard (no terminal)
+# LUFT — Cloudflare setup (dashboard, no terminal)
 
-Everything you need is copy-paste. The single file to paste lives at
-[`worker/dist/worker.js`](./dist/worker.js) — a self-contained bundle of the
-Worker (mock + eBay connectors, normalize/dedupe, cron + `/ingest` + `/health`).
-If you edit `worker/src/`, regenerate it with `npm run bundle` (in `worker/`).
+This is the complete setup for the data backend, done entirely in the Cloudflare
+and Vercel dashboards (copy-paste only). It has two halves:
 
-## 1. Create the D1 database
-1. Cloudflare dashboard → **Storage & Databases → D1 SQL Database → Create**.
-2. Name it **`luft`** → Create.
-3. Open it → **Console** tab → paste the contents of
-   [`worker/schema.sql`](./schema.sql) → **Run**. (Creates the tables + indexes.)
-4. Note the **Database ID** shown on the database page — you'll need it for the app.
+- **Part A — Marketplace data** (D1 + the ingest Worker + Apify). Pulls real cars
+  from scrapers into the marketplace. **You've already done this.**
+- **Part B — "List your car"** (R2 photos + two secrets + app env). Lets sellers
+  submit their own cars, which you approve. **This is the new part to set up.**
 
-## 2. Create the Worker
-1. **Workers & Pages → Create → Workers** → start from Hello World → name it
-   **`luft-ingest`** → Deploy.
-2. **Edit code** → select all, delete, and paste the contents of
-   [`worker/dist/worker.js`](./dist/worker.js) → **Deploy**.
+The single Worker file to paste lives at
+[`worker/dist/worker.js`](./dist/worker.js) — a self-contained bundle (scrapers +
+ingest + photo upload + submissions + moderation). If you ever edit `worker/src/`,
+regenerate it with `npm run bundle` in `worker/`.
 
-## 3. Bind D1 + set variables
-On the Worker → **Settings**:
-- **Bindings → Add → D1 database**: Variable name **`DB`**, database **`luft`** → Save.
+> **You do NOT create a second database.** Seller listings live in the **same
+> `luft` D1 table** as the scraped cars — that's how an approved car shows up in
+> the marketplace next to the rest. The extra columns it needs are added
+> automatically the first time someone submits, so there's no SQL to run.
+
+---
+
+# Part A — Marketplace data (already set up)
+
+Recap of what should already be in place. Skip to Part B if the marketplace is
+already showing cars. If you're starting fresh, do these first.
+
+### A1. D1 database
+- Cloudflare → **Storage & Databases → D1** → database named **`luft`**.
+- Its **Console** tab was seeded with [`worker/schema.sql`](./schema.sql).
+- Note the **Database ID** (used by the app in Part A4).
+
+### A2. The Worker
+- **Workers & Pages** → Worker named **`luft-ingest`**, code = the contents of
+  [`worker/dist/worker.js`](./dist/worker.js).
+
+### A3. Worker bindings + secrets (Worker → Settings)
+- **Bindings → D1**: variable **`DB`** → database **`luft`**.
 - **Variables and Secrets**:
-  - Secret **`INGEST_SECRET`** = any random string (guards `POST /ingest`).
-  - Secret **`EBAY_APP_ID`**, **`EBAY_CERT_ID`** (once your eBay keyset is approved).
-  - Optional: **`EBAY_ENV`** = `sandbox` to test, **`EBAY_MARKETPLACE`**, **`APIFY_TOKEN`**.
-  - The 12 seed/mock cars are OFF by default. Only set var **`LUFT_ENABLE_MOCK`** = `1` if you want them back (e.g. bootstrapping an empty D1).
+  - `INGEST_SECRET` — random string (guards the manual `POST /ingest`).
+  - `APIFY_TOKEN` — your Apify token (the scrapers run through Apify).
+  - Cron trigger `*/30 * * * *` under **Settings → Triggers**.
 
-## 4. Schedule it
-**Settings → Triggers → Cron Triggers → Add** → `*/30 * * * *` → Save.
+### A4. Point the app at D1 (Vercel → Settings → Environment Variables)
+- `CF_ACCOUNT_ID` — your Cloudflare account id.
+- `CF_D1_DATABASE_ID` — the `luft` Database ID from A1.
+- `CF_D1_API_TOKEN` — an API token with **D1 read** access.
 
-## 5. Test it
-- Visit `https://luft-ingest.<your-subdomain>.workers.dev/health` → `{ ok: true, listings: N }`.
-- Kick a run without waiting for cron: **`POST /ingest`** with header
-  `x-ingest-secret: <your secret>`. Even before eBay, the mock connector writes
-  12 seed cars into D1 — proof the loop works end-to-end.
+> ✅ These same three are all the app needs to *read* the marketplace. Writes
+> (Part B) go through the Worker, not this token — so you don't change it.
 
-## 5b. Turn on scrape sources (Apify) — the MVP data path
+---
 
-eBay's API was denied, so real cars come from **managed Apify actors** (one per
-site; they handle the scraping, we normalize the output).
+# Part B — Turn on "List your car" (NEW)
 
-1. Create an account at [apify.com](https://apify.com) → **Settings → Integrations
-   → API token**. Add it to the Worker as secret **`APIFY_TOKEN`**.
-2. For each site, find its actor in the **Apify Store** (search the site name) and
-   add its id as a Worker secret. The Worker reads these — no code change:
-   - **`APIFY_ACTOR_BAT`** — Bring a Trailer (pre-wired in code to
-     `silentflow/bringatrailer-scraper`; the secret overrides it if you prefer another)
-   - **`APIFY_ACTOR_CARS_AND_BIDS`** — Cars & Bids
-   - **`APIFY_ACTOR_PCARMARKET`** — PCARMARKET
-   - **`APIFY_ACTOR_HEMMINGS`** — Hemmings
-   - **`APIFY_ACTOR_CLASSICCARS`** — ClassicCars.com
-   - **`APIFY_ACTOR_AUTOTRADER`** — Autotrader Classics
+Sellers upload photos and submit a car → it's saved as **Pending** → you approve
+it at `/admin` → it goes live on the public marketplace. Five steps.
 
-   Value format is `username/actor-name` (e.g. `silentflow/bringatrailer-scraper`).
-3. Redeploy, then trigger `POST /ingest` (or wait for cron). Each configured
-   source runs; a source with no actor id / no token is silently skipped, so a
-   broken one never blocks the others. The 12 seed cars are off by default; set
-   **`LUFT_ENABLE_MOCK`** = `1` only if you want to seed an empty D1.
+### B1. Create an R2 bucket for photos
+D1 stores data, not files, so photos need R2 (Cloudflare's file storage).
+1. Cloudflare → **R2** → **Create bucket**.
+2. Name it exactly **`luft-photos`** → **Create**. (Nothing else to configure.)
 
-> Field mapping is intentionally tolerant (it probes common field names), so most
-> actors map without custom code. Once real data lands we may tighten one or two
-> mappings per actor — send me a sample item from a run and I'll pin it.
+### B2. Bind R2 to the Worker
+1. Open the **`luft-ingest`** Worker → **Settings → Bindings → Add**.
+2. Choose **R2 bucket**. Variable name **`PHOTOS`**, bucket **`luft-photos`** → **Save**.
 
-## 6. Point the app at D1
-In the app's environment (your host's settings), set:
-- **`CF_ACCOUNT_ID`** — your Cloudflare account id.
-- **`CF_D1_DATABASE_ID`** — the D1 database id from step 1.
-- **`CF_D1_API_TOKEN`** — an API token with **D1 read** (My Profile → API Tokens → Create).
+### B3. Add two Worker secrets
+Worker → **Settings → Variables and Secrets → Add**, twice:
 
-The Marketplace then serves the Worker-ingested rows. Until these are set, the app
-keeps aggregating connectors live in-memory, so nothing breaks in the meantime.
+| Type | Name | Value |
+|---|---|---|
+| Secret | **`SUBMIT_SECRET`** | any random string (guards listing submissions) |
+| Secret | **`ADMIN_SECRET`** | a **different** random string (guards moderation) |
 
-## 7. Turn on "List your car" (seller submissions + photos)
+Keep both values somewhere — you'll reuse them in B5.
 
-Sellers upload photos to the Worker (stored in **R2**) and submit a listing, which
-lands as **pending** until you approve it from `/admin`. Approved cars appear on the
-public marketplace alongside scraped ones.
+### B4. Re-paste the Worker code
+The upload/submit/admin features live in the bundle, so the Worker needs the
+current file:
+1. Worker → **Edit code**.
+2. Select all → delete → paste the contents of [`worker/dist/worker.js`](./dist/worker.js).
+3. **Deploy**.
 
-**a. Create an R2 bucket + bind it**
-1. Cloudflare dashboard → **R2 → Create bucket** → name it **`luft-photos`** → Create.
-2. Worker → **Settings → Bindings → Add → R2 bucket**: Variable name **`PHOTOS`**,
-   bucket **`luft-photos`** → Save.
+> No database migration needed — the seller columns are added automatically on the
+> first submission.
 
-**b. Add the two secrets (Worker → Settings → Variables and Secrets)**
-- Secret **`SUBMIT_SECRET`** = any random string (guards `POST /submit`).
-- Secret **`ADMIN_SECRET`** = a different random string (guards `/admin/*`).
+### B5. Set four app env vars (Vercel → Settings → Environment Variables)
 
-**c. Re-paste the Worker bundle**
-The upload/submit/admin routes are in [`worker/dist/worker.js`](./dist/worker.js).
-Worker → **Edit code** → select all → paste the file → **Deploy**. (The seller
-columns are added to D1 automatically on the first submission — no manual SQL. A
-brand-new D1 created from `schema.sql` already has them.)
+| Name | Value |
+|---|---|
+| **`NEXT_PUBLIC_WORKER_URL`** | your Worker URL, e.g. `https://luft-ingest.<your-subdomain>.workers.dev` |
+| **`WORKER_SUBMIT_SECRET`** | the **same** value as the Worker's `SUBMIT_SECRET` (B3) |
+| **`WORKER_ADMIN_SECRET`** | the **same** value as the Worker's `ADMIN_SECRET` (B3) |
+| **`ADMIN_KEY`** | a **new** password you pick — this is what you'll put in the admin URL. Make it **different** from `WORKER_ADMIN_SECRET`. |
 
-**d. Point the app at it (host env / Vercel → Settings → Environment Variables)**
-- **`NEXT_PUBLIC_WORKER_URL`** = your Worker origin, e.g.
-  `https://luft-ingest.<your-subdomain>.workers.dev` (browser photo upload + submit).
-- **`WORKER_SUBMIT_SECRET`** = the same value as the Worker's `SUBMIT_SECRET`.
-- **`WORKER_ADMIN_SECRET`** = the same value as the Worker's `ADMIN_SECRET` (server-only; never reaches the browser).
-- **`ADMIN_KEY`** = the key you'll put in the moderation URL (keep it **different** from `WORKER_ADMIN_SECRET`).
+Then **Redeploy** the app (Vercel → Deployments → Redeploy) so
+`NEXT_PUBLIC_WORKER_URL` gets baked into the site.
 
-Redeploy the app so `NEXT_PUBLIC_WORKER_URL` is baked in.
+> **Why the two admin values?** `WORKER_ADMIN_SECRET` stays on the server and is
+> never exposed. `ADMIN_KEY` is the one you type into the browser URL. Keeping
+> them separate means the real worker secret never travels to the browser.
 
-**e. Moderate**
-Open **`/admin?key=<ADMIN_KEY>`**. Pending submissions show with photos + seller
-contact; **Approve** publishes to the marketplace, **Reject** withdraws. Sellers see
-their car as *In review* under **Listings** in their account the moment they submit.
+---
 
-> Notes: photo uploads are capped at 10 MB and must be images. `/submit` is
-> secret-guarded (only the app can write), so the public can't inject listings —
-> only upload image blobs, which sit unreferenced until a real submission uses them.
-> Real buyer↔seller messaging and comp-delta for user cars are follow-ups.
+## How to use it once B is done
+
+- **Sellers**: go to **Sell**, fill out the car, upload photos, Publish. They see
+  it as **In review** under **Listings** in their account immediately.
+- **You (approve/reject)**: open **`https://<your-site>/admin?key=<ADMIN_KEY>`**
+  (using the `ADMIN_KEY` you set in B5). Each pending car shows with its photos and
+  the seller's contact. **Approve** publishes it to the marketplace; **Reject**
+  withdraws it.
+
+## Quick checks
+
+- Worker is alive: visit `https://luft-ingest.<your-subdomain>.workers.dev/health`
+  → `{ ok: true, listings: N }`.
+- Photos configured: after B1–B4, a submitted car's photos should load on the
+  `/admin` page. If they don't, re-check the `PHOTOS` binding (B2).
+- Admin shows nothing / "Invalid admin key": the `?key=` in the URL must match the
+  app's `ADMIN_KEY` (B5), and the app must have been redeployed after setting it.
+
+## Good to know
+
+- Photo uploads are capped at **10 MB** and must be images.
+- Submissions are **secret-guarded** (only the site can write to D1), so the public
+  can't inject listings — they can only upload image files, which sit unused until a
+  real submission references them.
+- Not built yet (future): buyer↔seller messaging, comp-price positioning for
+  seller cars, and rate-limiting on submissions.
+
+---
+
+## Appendix — turning scrape sources on/off (Apify)
+
+Real marketplace cars come from **managed Apify actors** (one per site). Add each
+site's actor id as a Worker secret — no code change:
+
+- `APIFY_ACTOR_BAT` — Bring a Trailer (pre-wired to `silentflow/bringatrailer-scraper`)
+- `APIFY_ACTOR_CARS_AND_BIDS`, `APIFY_ACTOR_PCARMARKET`, `APIFY_ACTOR_HEMMINGS`,
+  `APIFY_ACTOR_CLASSICCARS`, `APIFY_ACTOR_AUTOTRADER`
+
+Value format is `username/actor-name`. After changing these, redeploy the Worker
+and trigger `POST /ingest` with header `x-ingest-secret: <INGEST_SECRET>` (or wait
+for the cron). A source with no actor id / token is skipped, so a broken one never
+blocks the others. The 12 seed/mock cars are off by default; set var
+`LUFT_ENABLE_MOCK = 1` only to bootstrap an empty D1.
