@@ -24,6 +24,13 @@ export async function GET(req: Request) {
     return Response.json(json, { status: res.status });
   } catch (e) {
     console.error("admin pending failed:", e);
-    return Response.json({ error: "Could not reach the listing service." }, { status: 502 });
+    return Response.json(
+      {
+        error: "Could not reach the listing service.",
+        detail: e instanceof Error ? e.message : String(e),
+        workerUrl: WORKER_URL,
+      },
+      { status: 502 }
+    );
   }
 }

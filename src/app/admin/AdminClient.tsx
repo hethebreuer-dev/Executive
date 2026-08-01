@@ -38,7 +38,9 @@ export function AdminClient({ adminKey }: { adminKey: string }) {
         const j = await r.json().catch(() => ({}));
         if (!alive) return;
         if (!r.ok) {
-          setError(r.status === 401 ? "Invalid admin key." : j.error || "Failed to load.");
+          const base = r.status === 401 ? "Invalid admin key." : j.error || "Failed to load.";
+          const extra = [j.detail, j.workerUrl ? `worker: ${j.workerUrl}` : ""].filter(Boolean).join(" · ");
+          setError(extra ? `${base} (${extra})` : base);
           setState("error");
           return;
         }
