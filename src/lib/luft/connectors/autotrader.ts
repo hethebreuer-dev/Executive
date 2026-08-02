@@ -1,11 +1,13 @@
 // Autotrader Classics via the managed apify/cheerio-scraper actor.
 //
-// Autotrader's search cards carry everything (price, mileage, title, image,
-// detail URL), so this is a SINGLE-STAGE scrape — read the cards straight off
-// each search page, no detail-page hop. We follow the numbered pagination links
-// to walk all ~300 results, so the crawl spans many pages and runs async
-// (run+poll) to dodge run-sync's ~100s limit. Air-cooled range is pinned via
-// the year filter in the URLs.
+// TWO-STAGE crawl (like Elferspot): the search cards render their PRICE via
+// JavaScript, so a no-JS scrape of the search page gets title/mileage but no
+// price. Instead we follow (a) the numbered pagination links to walk all ~300
+// results and (b) each car's /classic-cars/ detail link, and read authoritative
+// fields from the detail page's JSON-LD (structured vehicle data, server-
+// rendered for SEO) — price, mileage, image, name. Runs async (run+poll) since
+// crawling every detail page is well past run-sync's ~100s limit. Air-cooled
+// range is pinned via the year filter in the search URLs.
 
 import type { BodyStyle, CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
@@ -20,78 +22,56 @@ type Raw = Record<string, unknown>;
 const ACTOR = "apify~cheerio-scraper";
 
 // Air-cooled only (1963–1998). 964/993/930 fold under the 911 line here; 912 is
-// its own model.
-const START_URLS = [
-  "https://classics.autotrader.com/classic-cars-for-sale/porsche-911-for-sale?year_max=1998&year_min=1963",
-  "https://classics.autotrader.com/classic-cars-for-sale/porsche-912-for-sale?year_max=1998&year_min=1963",
-];
+// its own model. Pagination is a plain ?page=N query param (30 results/page).
+// Enumerate the pages directly rather than following pagination links — the
+// light HTML variant omits those links, so link-following is unreliable. ~300
+// 911s ≈ 10 pages; 912 is far smaller. Over-provisioned pages just return
+// duplicate/empty results (deduped downstream), so a few extra is harmless.
+function pagedSearchUrls(model: "911" | "912", pages: number): string[] {
+  const urls: string[] = [];
+  for (let p = 1; p <= pages; p++) {
+    urls.push(
+      `https://classics.autotrader.com/classic-cars-for-sale/porsche-${model}-for-sale?page=${p}&year_max=1998&year_min=1963`
+    );
+  }
+  return urls;
+}
+const START_URLS = [...pagedSearchUrls("911", 11), ...pagedSearchUrls("912", 4)];
 
-// Runs inside the actor. Class names on Autotrader's cards drift, so instead of
-// matching fixed classes we key off the stable detail-page links
-// (a[href^="/classic-cars/"]) and pull title/price/mileage/image from the
-// nearest ancestor that contains a price. JSON-LD is a fallback. If nothing
-// matches, we emit one diagnostic object describing the page so the selectors
-// can be pinned from a real run (mapper drops anything without a year).
+// Runs inside the actor. Search pages are only link sources (the actor enqueues
+// each /classic-cars/…/porsche/… card link via linkSelector+globs), so we return
+// null there. On a detail page we read the price/mileage/image/name from JSON-LD
+// (server-rendered structured vehicle data), falling back to og:image / <h1> /
+// a body-text price match. A detail page with no price maps to null downstream.
 const PAGE_FUNCTION = `async function pageFunction(context) {
   var $ = context.$;
-  var out = [];
-  var seen = {};
-  $('a[href^="/classic-cars/"]').each(function () {
-    var a = $(this);
-    var href = a.attr('href') || '';
-    if (!href || seen[href]) return;
-    // Climb to the largest ancestor that still wraps only THIS card's detail
-    // link — stop before an ancestor that holds another listing's link, so a
-    // no-price ("Make An Offer") card can't inherit a neighbour's data.
-    var box = a;
-    for (var k = 0; k < 8; k++) {
-      var parent = box.parent();
-      if (!parent.length) break;
-      if (parent.find('a[href^="/classic-cars/"]').length > 1) break;
-      box = parent;
-    }
-    var text = box.text().replace(/\\s+/g, ' ').trim();
-    var title = (box.find('h1,h2,h3,h4').first().text() || a.text()).replace(/\\s+/g, ' ').trim();
-    var priceM = text.match(/\\$\\s*[\\d,]{3,}/);
-    var mileM = text.match(/[\\d,]+\\s*mi\\b/i);
-    var img = box.find('img').first().attr('src') || box.find('img').first().attr('data-src') || '';
-    if (title) { seen[href] = 1; out.push({ link: href, title: title, price: priceM ? priceM[0] : '', mileage: mileM ? mileM[0] : '', image: img }); }
-  });
-  if (out.length) return out;
+  var url = context.request.url;
+  if (!/\\/classic-cars\\/\\d{4}\\/porsche\\//i.test(url)) return null; // search page → just a link source
 
-  try {
-    $('script[type="application/ld+json"]').each(function () {
+  var rec = { url: url, title: '', price: '', mileage: '', image: '', body: '' };
+  $('script[type="application/ld+json"]').each(function () {
+    try {
       var node = JSON.parse($(this).contents().text() || '{}');
-      var list = node.itemListElement || node['@graph'] || [];
-      (Array.isArray(list) ? list : []).forEach(function (el) {
-        var it = el.item || el;
-        if (it && it.name && (it['@type'] === 'Car' || it['@type'] === 'Product' || it['@type'] === 'Vehicle' || it.offers)) {
-          var off = it.offers || {};
-          var im = typeof it.image === 'string' ? it.image : (it.image && it.image[0]) || '';
-          out.push({ link: it.url || '', title: String(it.name), price: off.price ? ('$' + off.price) : '', mileage: '', image: im });
-        }
+      var nodes = node['@graph'] || (Array.isArray(node) ? node : [node]);
+      nodes.forEach(function (it) {
+        if (!it || typeof it !== 'object') return;
+        var t = it['@type'];
+        if (!(t === 'Car' || t === 'Vehicle' || t === 'Product' || t === 'Motorcycle' || it.offers)) return;
+        if (it.name && !rec.title) rec.title = String(it.name);
+        var off = it.offers || {};
+        var price = off && (off.price || (off.priceSpecification && off.priceSpecification.price));
+        if (price && !rec.price) rec.price = '$' + price;
+        if (it.image && !rec.image) rec.image = typeof it.image === 'string' ? it.image : (it.image.url || it.image[0] || '');
+        var od = it.mileageFromOdometer;
+        if (od && !rec.mileage) rec.mileage = (typeof od === 'object' ? (od.value || '') : od) + ' mi';
+        if (it.bodyType && !rec.body) rec.body = String(it.bodyType);
       });
-    });
-  } catch (e) {}
-  if (out.length) return out;
-
-  var cc = {};
-  $('[class]').slice(0, 500).each(function () {
-    ($(this).attr('class') || '').split(/\\s+/).forEach(function (c) {
-      if (/list|vehicle|result|card|inventory|srp|tile/i.test(c)) cc[c] = (cc[c] || 0) + 1;
-    });
+    } catch (e) {}
   });
-  return [{
-    __diagnostic: true,
-    url: context.request.url,
-    pageTitle: ($('title').first().text() || '').slice(0, 140),
-    htmlLength: ($.html() || '').length,
-    anchorsClassicCars: $('a[href^="/classic-cars/"]').length,
-    anchorsAll: $('a').length,
-    jsonLd: $('script[type="application/ld+json"]').length,
-    hasNextData: $('#__NEXT_DATA__').length,
-    candidateClasses: cc
-  }];
+  if (!rec.title) rec.title = ($('h1').first().text() || $('title').first().text() || '').replace(/\\s+/g, ' ').trim();
+  if (!rec.image) rec.image = $('meta[property="og:image"]').attr('content') || '';
+  if (!rec.price) { var pm = ($('body').text() || '').match(/\\$\\s*[\\d,]{4,}/); if (pm) rec.price = pm[0]; }
+  return rec;
 }`;
 
 const str = (v: unknown): string | undefined =>
@@ -125,14 +105,15 @@ export function autotraderMap(item: Raw): CanonicalListing | null {
   const rawTitle = (str(item.title) ?? "").trim();
   const year = Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
   if (!rawTitle || !year) return null;
+  if (year < 1963 || year > 1998) return null; // air-cooled range only (guards water-cooled)
 
   const family = classifyModelFamily(rawTitle);
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
   const price = parsePrice(str(item.price));
-  if (price == null) return null; // drop "Make An Offer" / no price
+  if (price == null) return null; // drop no-price listings
 
-  const link = str(item.link) ?? "";
+  const link = str(item.url) ?? "";
   const url = link.startsWith("http")
     ? link
     : `https://classics.autotrader.com${link}`;
@@ -142,7 +123,7 @@ export function autotraderMap(item: Raw): CanonicalListing | null {
 
   return {
     id: `autotrader:${url}`,
-    source: str(item.seller) || "Autotrader Classics",
+    source: "Autotrader Classics",
     sourceId: url,
     url,
     firstSeen: now,
@@ -151,7 +132,7 @@ export function autotraderMap(item: Raw): CanonicalListing | null {
     year,
     modelFamily: family,
     trim: title,
-    body: bodyFrom(rawTitle),
+    body: bodyFrom(str(item.body) || rawTitle),
     transmission: "Unknown",
     mileage: parseMileage(str(item.mileage)),
     listingType: "dealer",
@@ -171,7 +152,7 @@ export const autotraderConnector: ListingConnector = {
     provides: ["listings"],
     enabled: true,
     ref: "apify:apify/cheerio-scraper",
-    notes: "Cheerio crawl of the porsche-911/912 search pages, following pagination (async run+poll). Runs on APIFY_TOKEN.",
+    notes: "Two-stage: enumerated ?page=N search pages → detail-page JSON-LD for price (async run+poll). Runs on APIFY_TOKEN.",
   } satisfies ConnectorMeta,
 
   isConfigured(ctx) {
@@ -183,24 +164,19 @@ export const autotraderConnector: ListingConnector = {
     if (!token) throw new ConnectorNotImplemented("autotrader");
 
     const input = {
+      // Enumerated search pages (all ?page=N) are the entry points; the actor
+      // enqueues each Porsche detail link it finds on them (glob below), and the
+      // page function scrapes price/specs from those detail pages.
       startUrls: START_URLS.map((url) => ({ url })),
-      // Follow the numbered pagination (and in-search facet) links so we walk
-      // past page 1 through all ~300 results. globs keep enqueuing scoped to the
-      // 911/912 search paths; detail links (/classic-cars/…) are NOT enqueued —
-      // the page function reads each search page's cards directly. So every
-      // crawled page contributes its listings.
       linkSelector: "a",
-      globs: [
-        { glob: "https://classics.autotrader.com/classic-cars-for-sale/porsche-911-for-sale**" },
-        { glob: "https://classics.autotrader.com/classic-cars-for-sale/porsche-912-for-sale**" },
-      ],
+      globs: [{ glob: "https://classics.autotrader.com/classic-cars/*/porsche/**" }],
       pageFunction: PAGE_FUNCTION,
       proxyConfiguration: { useApifyProxy: true },
       useSessionPool: true,
       persistCookiesPerSession: true,
       maxRequestRetries: 3,
-      maxRequestsPerCrawl: 60,
-      maxConcurrency: 10,
+      maxRequestsPerCrawl: 400, // ~300 detail pages + the enumerated search pages
+      maxConcurrency: 12,
     };
 
     // Walking the pagination loads dozens of pages (~5s each) — past run-sync's
