@@ -1,9 +1,11 @@
 // Autotrader Classics via the managed apify/cheerio-scraper actor.
 //
-// Unlike Elferspot, Autotrader's search cards carry everything (price, mileage,
-// title, image, dealer, detail URL), so this is a SINGLE-STAGE scrape — read the
-// result cards straight off the search pages, no detail-page hop. Fast enough to
-// use run-sync. Air-cooled range is pinned via the year filter in the URLs.
+// Autotrader's search cards carry everything (price, mileage, title, image,
+// detail URL), so this is a SINGLE-STAGE scrape — read the cards straight off
+// each search page, no detail-page hop. We follow the numbered pagination links
+// to walk all ~300 results, so the crawl spans many pages and runs async
+// (run+poll) to dodge run-sync's ~100s limit. Air-cooled range is pinned via
+// the year filter in the URLs.
 
 import type { BodyStyle, CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
@@ -169,7 +171,7 @@ export const autotraderConnector: ListingConnector = {
     provides: ["listings"],
     enabled: true,
     ref: "apify:apify/cheerio-scraper",
-    notes: "Single-stage cheerio crawl of the porsche-911/912 search pages. Runs on APIFY_TOKEN.",
+    notes: "Cheerio crawl of the porsche-911/912 search pages, following pagination (async run+poll). Runs on APIFY_TOKEN.",
   } satisfies ConnectorMeta,
 
   isConfigured(ctx) {
@@ -180,28 +182,57 @@ export const autotraderConnector: ListingConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("autotrader");
 
-    const res = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR}/run-sync-get-dataset-items?token=${token}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          startUrls: START_URLS.map((url) => ({ url })),
-          pageFunction: PAGE_FUNCTION,
-          // Datacenter proxy reaches the search pages fine (they return 200);
-          // the earlier miss was the extractor, not a block. Keep the session
-          // pool for cookie continuity.
-          proxyConfiguration: { useApifyProxy: true },
-          useSessionPool: true,
-          persistCookiesPerSession: true,
-          maxRequestRetries: 3,
-          maxRequestsPerCrawl: 12,
-        }),
-      }
-    );
-    if (!res.ok) throw new Error(`Autotrader actor failed: ${res.status}`);
+    const input = {
+      startUrls: START_URLS.map((url) => ({ url })),
+      // Follow the numbered pagination (and in-search facet) links so we walk
+      // past page 1 through all ~300 results. globs keep enqueuing scoped to the
+      // 911/912 search paths; detail links (/classic-cars/…) are NOT enqueued —
+      // the page function reads each search page's cards directly. So every
+      // crawled page contributes its listings.
+      linkSelector: "a",
+      globs: [
+        { glob: "https://classics.autotrader.com/classic-cars-for-sale/porsche-911-for-sale**" },
+        { glob: "https://classics.autotrader.com/classic-cars-for-sale/porsche-912-for-sale**" },
+      ],
+      pageFunction: PAGE_FUNCTION,
+      proxyConfiguration: { useApifyProxy: true },
+      useSessionPool: true,
+      persistCookiesPerSession: true,
+      maxRequestRetries: 3,
+      maxRequestsPerCrawl: 60,
+      maxConcurrency: 10,
+    };
 
-    const data = (await res.json()) as unknown;
+    // Walking the pagination loads dozens of pages (~5s each) — past run-sync's
+    // ~100s gateway limit (a 524). Start the run async, poll it, then read the
+    // dataset; each request here stays short. (Mirrors the Elferspot connector.)
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (!start.ok) throw new Error(`Autotrader start failed: ${start.status}`);
+    const run = ((await start.json()) as {
+      data: { id: string; defaultDatasetId: string; status: string };
+    }).data;
+
+    const deadline = Date.now() + 280_000; // ~4.7 min ceiling
+    let status = run.status;
+    while (status === "READY" || status === "RUNNING") {
+      if (Date.now() > deadline) throw new Error("Autotrader run timed out (still running)");
+      await new Promise((r) => setTimeout(r, 5000));
+      const poll = await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${token}`);
+      if (!poll.ok) throw new Error(`Autotrader poll failed: ${poll.status}`);
+      status = ((await poll.json()) as { data: { status: string } }).data.status;
+    }
+    if (status !== "SUCCEEDED") throw new Error(`Autotrader run ${status}`);
+
+    const ds = await fetch(
+      `https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${token}&clean=true`
+    );
+    if (!ds.ok) throw new Error(`Autotrader dataset failed: ${ds.status}`);
+
+    const data = (await ds.json()) as unknown;
     const items: Raw[] = Array.isArray(data) ? (data as Raw[]) : [];
     const out: CanonicalListing[] = [];
     for (const it of items) {
