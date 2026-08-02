@@ -24,26 +24,72 @@ const START_URLS = [
   "https://classics.autotrader.com/classic-cars-for-sale/porsche-912-for-sale?year_max=1998&year_min=1963",
 ];
 
-// Runs inside the actor. Returns one object per result card on a search page;
-// cheerio-scraper saves each array element as its own dataset item.
+// Runs inside the actor. Class names on Autotrader's cards drift, so instead of
+// matching fixed classes we key off the stable detail-page links
+// (a[href^="/classic-cars/"]) and pull title/price/mileage/image from the
+// nearest ancestor that contains a price. JSON-LD is a fallback. If nothing
+// matches, we emit one diagnostic object describing the page so the selectors
+// can be pinned from a real run (mapper drops anything without a year).
 const PAGE_FUNCTION = `async function pageFunction(context) {
   var $ = context.$;
   var out = [];
-  $('.listing-box-v2').each(function () {
-    var card = $(this);
-    var link = card.find('a[href^="/classic-cars/"]').first().attr('href') || '';
-    var title = card.find('.listing-name').first().text().replace(/\\s+/g, ' ').trim();
-    var price = card.find('.listing-price--standard').first().text().replace(/\\s+/g, ' ').trim();
-    var mileage = '';
-    card.find('.listing-spec').each(function () {
-      var t = $(this).text().replace(/\\s+/g, ' ').trim();
-      if (!mileage && /mi\\b/i.test(t)) mileage = t;
-    });
-    var seller = card.find('.listing-seller-info-item.font-bold').first().text().replace(/\\s+/g, ' ').trim();
-    var image = card.find('img').first().attr('src') || '';
-    if (link && title) out.push({ link: link, title: title, price: price, mileage: mileage, seller: seller, image: image });
+  var seen = {};
+  $('a[href^="/classic-cars/"]').each(function () {
+    var a = $(this);
+    var href = a.attr('href') || '';
+    if (!href || seen[href]) return;
+    // Climb to the largest ancestor that still wraps only THIS card's detail
+    // link — stop before an ancestor that holds another listing's link, so a
+    // no-price ("Make An Offer") card can't inherit a neighbour's data.
+    var box = a;
+    for (var k = 0; k < 8; k++) {
+      var parent = box.parent();
+      if (!parent.length) break;
+      if (parent.find('a[href^="/classic-cars/"]').length > 1) break;
+      box = parent;
+    }
+    var text = box.text().replace(/\\s+/g, ' ').trim();
+    var title = (box.find('h1,h2,h3,h4').first().text() || a.text()).replace(/\\s+/g, ' ').trim();
+    var priceM = text.match(/\\$\\s*[\\d,]{3,}/);
+    var mileM = text.match(/[\\d,]+\\s*mi\\b/i);
+    var img = box.find('img').first().attr('src') || box.find('img').first().attr('data-src') || '';
+    if (title) { seen[href] = 1; out.push({ link: href, title: title, price: priceM ? priceM[0] : '', mileage: mileM ? mileM[0] : '', image: img }); }
   });
-  return out;
+  if (out.length) return out;
+
+  try {
+    $('script[type="application/ld+json"]').each(function () {
+      var node = JSON.parse($(this).contents().text() || '{}');
+      var list = node.itemListElement || node['@graph'] || [];
+      (Array.isArray(list) ? list : []).forEach(function (el) {
+        var it = el.item || el;
+        if (it && it.name && (it['@type'] === 'Car' || it['@type'] === 'Product' || it['@type'] === 'Vehicle' || it.offers)) {
+          var off = it.offers || {};
+          var im = typeof it.image === 'string' ? it.image : (it.image && it.image[0]) || '';
+          out.push({ link: it.url || '', title: String(it.name), price: off.price ? ('$' + off.price) : '', mileage: '', image: im });
+        }
+      });
+    });
+  } catch (e) {}
+  if (out.length) return out;
+
+  var cc = {};
+  $('[class]').slice(0, 500).each(function () {
+    ($(this).attr('class') || '').split(/\\s+/).forEach(function (c) {
+      if (/list|vehicle|result|card|inventory|srp|tile/i.test(c)) cc[c] = (cc[c] || 0) + 1;
+    });
+  });
+  return [{
+    __diagnostic: true,
+    url: context.request.url,
+    pageTitle: ($('title').first().text() || '').slice(0, 140),
+    htmlLength: ($.html() || '').length,
+    anchorsClassicCars: $('a[href^="/classic-cars/"]').length,
+    anchorsAll: $('a').length,
+    jsonLd: $('script[type="application/ld+json"]').length,
+    hasNextData: $('#__NEXT_DATA__').length,
+    candidateClasses: cc
+  }];
 }`;
 
 const str = (v: unknown): string | undefined =>
@@ -142,17 +188,13 @@ export const autotraderConnector: ListingConnector = {
         body: JSON.stringify({
           startUrls: START_URLS.map((url) => ({ url })),
           pageFunction: PAGE_FUNCTION,
-          // Autotrader (Cox Automotive) hard-blocks datacenter IPs with a 403.
-          // US residential proxies + a persistent session get a real-looking
-          // client through. Requires residential proxy access on the Apify plan.
-          proxyConfiguration: {
-            useApifyProxy: true,
-            apifyProxyGroups: ["RESIDENTIAL"],
-            apifyProxyCountry: "US",
-          },
+          // Datacenter proxy reaches the search pages fine (they return 200);
+          // the earlier miss was the extractor, not a block. Keep the session
+          // pool for cookie continuity.
+          proxyConfiguration: { useApifyProxy: true },
           useSessionPool: true,
           persistCookiesPerSession: true,
-          maxRequestRetries: 4,
+          maxRequestRetries: 3,
           maxRequestsPerCrawl: 12,
         }),
       }
