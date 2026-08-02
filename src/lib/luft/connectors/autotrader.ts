@@ -142,7 +142,17 @@ export const autotraderConnector: ListingConnector = {
         body: JSON.stringify({
           startUrls: START_URLS.map((url) => ({ url })),
           pageFunction: PAGE_FUNCTION,
-          proxyConfiguration: { useApifyProxy: true },
+          // Autotrader (Cox Automotive) hard-blocks datacenter IPs with a 403.
+          // US residential proxies + a persistent session get a real-looking
+          // client through. Requires residential proxy access on the Apify plan.
+          proxyConfiguration: {
+            useApifyProxy: true,
+            apifyProxyGroups: ["RESIDENTIAL"],
+            apifyProxyCountry: "US",
+          },
+          useSessionPool: true,
+          persistCookiesPerSession: true,
+          maxRequestRetries: 4,
           maxRequestsPerCrawl: 12,
         }),
       }
