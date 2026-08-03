@@ -14,9 +14,12 @@ database_id = "REPLACE_WITH_D1_DATABASE_ID"
 binding = "PHOTOS"
 bucket_name = "luft-photos"
 
-# Ingest on a schedule (every 30 min). Tighten for auctions nearing close.
+# Ingest once a day (08:00 UTC) to stay within Apify's run budget — each ingest
+# fires both Apify actors (Autotrader + Elferspot), so cadence == Apify spend.
+# NOTE: the live schedule is set in the Cloudflare dashboard (Worker → Settings →
+# Triggers → Cron Triggers), not by the pasted bundle. Keep the two in sync.
 [triggers]
-crons = ["*/30 * * * *"]
+crons = ["0 8 * * *"]
 
 # Non-secret vars. Mock is off by default; set to "1" to opt the seed data back
 # in (e.g. bootstrapping an empty D1). Production leaves this off.
