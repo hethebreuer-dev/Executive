@@ -278,49 +278,75 @@ function pagedSearchUrls(model, pages) {
 var START_URLS = [...pagedSearchUrls("911", 11), ...pagedSearchUrls("912", 4)];
 var PAGE_FUNCTION = `async function pageFunction(context) {
   var $ = context.$;
-  var url = context.request.url;
-  if (!/\\/classic-cars\\/\\d{4}\\/porsche\\//i.test(url)) return null; // search page \u2192 just a link source
 
-  var rec = { url: url, title: '', price: '', mileage: '', image: '', body: '' };
-  $('script[type="application/ld+json"]').each(function () {
-    try {
-      var node = JSON.parse($(this).contents().text() || '{}');
-      var nodes = node['@graph'] || (Array.isArray(node) ? node : [node]);
-      nodes.forEach(function (it) {
-        if (!it || typeof it !== 'object') return;
-        var t = it['@type'];
-        if (!(t === 'Car' || t === 'Vehicle' || t === 'Product' || t === 'Motorcycle' || it.offers)) return;
-        if (it.name && !rec.title) rec.title = String(it.name);
-        var off = it.offers || {};
-        var price = off && (off.price || (off.priceSpecification && off.priceSpecification.price));
-        if (price && !rec.price) rec.price = '$' + price;
-        if (it.image && !rec.image) rec.image = typeof it.image === 'string' ? it.image : (it.image.url || it.image[0] || '');
-        var od = it.mileageFromOdometer;
-        if (od && !rec.mileage) rec.mileage = (typeof od === 'object' ? (od.value || '') : od) + ' mi';
-        if (it.bodyType && !rec.body) rec.body = String(it.bodyType);
-      });
-    } catch (e) {}
+  // The state lives in a plain inline <script>. Scan script contents for the
+  // assignment; context.body is the raw HTML as a fallback source.
+  var blob = '';
+  $('script').each(function () { var t = $(this).html() || ''; if (t.indexOf('__PRELOADED_STATE__') !== -1) blob = t; });
+  if (!blob && typeof context.body === 'string') blob = context.body;
+
+  var marker = blob.indexOf('__PRELOADED_STATE__');
+  if (marker === -1) return null;
+  var start = blob.indexOf('{', marker);
+  if (start === -1) return null;
+
+  // Brace-match from the first { to its partner, respecting strings/escapes.
+  var depth = 0, inStr = false, esc = false, end = -1;
+  for (var i = start; i < blob.length; i++) {
+    var ch = blob[i];
+    if (inStr) {
+      if (esc) { esc = false; }
+      else if (ch === '\\\\') { esc = true; }
+      else if (ch === '"') { inStr = false; }
+      continue;
+    }
+    if (ch === '"') { inStr = true; continue; }
+    if (ch === '{') { depth++; }
+    else if (ch === '}') { depth--; if (depth === 0) { end = i + 1; break; } }
+  }
+  if (end === -1) return null;
+
+  var state;
+  try { state = JSON.parse(blob.slice(start, end)); } catch (e) { return null; }
+
+  var L = (state && state.listings) || {};
+  var bag = [];
+  var vehicles = L.vehicles;
+  if (vehicles && typeof vehicles === 'object') {
+    Object.keys(vehicles).forEach(function (k) { bag.push(vehicles[k]); });
+  }
+  ['featured', 'prime'].forEach(function (key) {
+    if (Array.isArray(L[key])) L[key].forEach(function (v) { if (v) bag.push(v); });
   });
-  if (!rec.title) rec.title = ($('h1').first().text() || $('title').first().text() || '').replace(/\\s+/g, ' ').trim();
-  if (!rec.image) rec.image = $('meta[property="og:image"]').attr('content') || '';
-  if (!rec.price) { var pm = ($('body').text() || '').match(/\\$\\s*[\\d,]{4,}/); if (pm) rec.price = pm[0]; }
-  return rec;
+
+  var out = [];
+  bag.forEach(function (v) {
+    if (!v || typeof v !== 'object') return;
+    var photos = Array.isArray(v.photos) ? v.photos : [];
+    out.push({
+      url: v.vdp_url || '',
+      title: v.title || '',
+      price: typeof v.price === 'number' ? v.price : (v.price || null),
+      year: typeof v.year === 'number' ? v.year : (v.year || null),
+      mileage: typeof v.mileage === 'number' ? v.mileage : (v.mileage || null),
+      image: photos[0] || '',
+      trim: v.trim || '',
+      color: v.exterior_color || '',
+    });
+  });
+  return out;
 }`;
 var str2 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
-function parsePrice(s) {
-  if (!s) return void 0;
-  const digits = s.replace(/[^0-9]/g, "");
-  if (!digits) return void 0;
-  const n = parseInt(digits, 10);
-  return Number.isNaN(n) ? void 0 : n;
-}
-function parseMileage(s) {
-  if (!s) return void 0;
-  const digits = s.replace(/[^0-9]/g, "");
-  if (!digits) return void 0;
-  const n = parseInt(digits, 10);
-  return Number.isNaN(n) ? void 0 : n;
-}
+var num2 = (v) => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : void 0;
+  if (typeof v === "string") {
+    const digits = v.replace(/[^0-9]/g, "");
+    if (!digits) return void 0;
+    const n = parseInt(digits, 10);
+    return Number.isNaN(n) ? void 0 : n;
+  }
+  return void 0;
+};
 function bodyFrom2(title) {
   if (/targa/i.test(title)) return "Targa";
   if (/cabriolet|convertible|cabrio|speedster/i.test(title)) return "Cabriolet";
@@ -328,17 +354,21 @@ function bodyFrom2(title) {
 }
 function autotraderMap(item) {
   const rawTitle = (str2(item.title) ?? "").trim();
-  const year = Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
+  const year = num2(item.year) ?? Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
   if (!rawTitle || !year) return null;
   if (year < 1963 || year > 1998) return null;
   const family = classifyModelFamily(rawTitle);
   if (!family) return null;
-  const price = parsePrice(str2(item.price));
+  const price = num2(item.price);
   if (price == null) return null;
   const link = str2(item.url) ?? "";
+  if (!link) return null;
   const url = link.startsWith("http") ? link : `https://classics.autotrader.com${link}`;
-  const title = rawTitle.replace(/^\d{4}\s+porsche\s+/i, "").trim();
+  const trim = (str2(item.trim) ?? "").trim();
+  const base = rawTitle.replace(/^\d{4}\s+porsche\s+/i, "").trim();
+  const title = trim && !new RegExp(`\\b${trim}\\b`, "i").test(base) ? `${base} ${trim}` : base;
   const image = str2(item.image);
+  const color = (str2(item.color) ?? "").trim() || void 0;
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
     id: `autotrader:${url}`,
@@ -351,9 +381,10 @@ function autotraderMap(item) {
     year,
     modelFamily: family,
     trim: title,
-    body: bodyFrom2(str2(item.body) || rawTitle),
+    body: bodyFrom2(`${title} ${rawTitle}`),
     transmission: "Unknown",
-    mileage: parseMileage(str2(item.mileage)),
+    mileage: num2(item.mileage),
+    exteriorColor: color,
     listingType: "dealer",
     sellerType: "dealer",
     price,
@@ -370,7 +401,7 @@ var autotraderConnector = {
     provides: ["listings"],
     enabled: true,
     ref: "apify:apify/cheerio-scraper",
-    notes: "Two-stage: enumerated ?page=N search pages \u2192 detail-page JSON-LD for price (async run+poll). Runs on APIFY_TOKEN."
+    notes: "Single-stage: parse window.__PRELOADED_STATE__ (listings.vehicles) off each enumerated ?page=N search page. Runs on APIFY_TOKEN."
   },
   isConfigured(ctx) {
     return Boolean(ctx.env("APIFY_TOKEN"));
@@ -379,20 +410,18 @@ var autotraderConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("autotrader");
     const input = {
-      // Enumerated search pages (all ?page=N) are the entry points; the actor
-      // enqueues each Porsche detail link it finds on them (glob below), and the
-      // page function scrapes price/specs from those detail pages.
+      // Single-stage: each enumerated search page carries the full listings
+      // state inline, so we scrape it directly — no link-following, no detail
+      // hop (hence no linkSelector/globs).
       startUrls: START_URLS.map((url) => ({ url })),
-      linkSelector: "a",
-      globs: [{ glob: "https://classics.autotrader.com/classic-cars/*/porsche/**" }],
       pageFunction: PAGE_FUNCTION,
       proxyConfiguration: { useApifyProxy: true },
       useSessionPool: true,
       persistCookiesPerSession: true,
       maxRequestRetries: 3,
-      maxRequestsPerCrawl: 400,
-      // ~300 detail pages + the enumerated search pages
-      maxConcurrency: 12
+      maxRequestsPerCrawl: 40,
+      // ~15 enumerated search pages + headroom
+      maxConcurrency: 8
     };
     const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}`, {
       method: "POST",
@@ -444,14 +473,14 @@ var START_URLS2 = [
   "https://www.classic.com/m/porsche/911/f-body/swb/912/targa/"
 ];
 var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
-function parsePrice2(s) {
+function parsePrice(s) {
   if (!s) return void 0;
   const digits = s.replace(/[^0-9.]/g, "");
   if (!digits) return void 0;
   const n = parseFloat(digits);
   return Number.isNaN(n) ? void 0 : Math.round(n);
 }
-function parseMileage2(s) {
+function parseMileage(s) {
   if (!s) return void 0;
   const m = s.replace(/,/g, "").match(/([\d.]+)\s*(k)?/i);
   if (!m) return void 0;
@@ -468,7 +497,7 @@ function classicComMap(item) {
   if (!title) return null;
   const location = str3(item.location) ?? "";
   if (location && !/usa|united states/i.test(location)) return null;
-  const price = parsePrice2(str3(item.price));
+  const price = parsePrice(str3(item.price));
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!year || price == null) return null;
   const family = classifyModelFamily(title);
@@ -492,7 +521,7 @@ function classicComMap(item) {
     trim: title.replace(/^\d{4}\s+porsche\s+/i, ""),
     body: bodyFrom3(title),
     transmission: str3(item.transmission) ?? "Unknown",
-    mileage: parseMileage2(str3(item.mileage)),
+    mileage: parseMileage(str3(item.mileage)),
     listingType: "dealer",
     sellerType: "dealer",
     price,
@@ -683,13 +712,13 @@ var PAGE_FUNCTION2 = `async function pageFunction(context) {
   return { url: url, price: price, image: image, specs: specs };
 }`;
 var str4 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
-function parsePrice3(s) {
+function parsePrice2(s) {
   const currency = /eur|€/i.test(s) ? "EUR" : "USD";
   const first = s.replace(/,/g, "").match(/\d+/);
   const n = first ? parseInt(first[0], 10) : NaN;
   return { price: Number.isNaN(n) ? void 0 : n, currency };
 }
-function parseMileage3(s) {
+function parseMileage2(s) {
   if (!s) return void 0;
   const m = s.replace(/[,.](?=\d{3}\b)/g, "").match(/([\d]+)/);
   if (!m) return void 0;
@@ -711,7 +740,7 @@ function elferspotMap(item) {
   if (!title || !year) return null;
   const family = classifyModelFamily(`${year} Porsche ${title}`);
   if (!family) return null;
-  const { price, currency } = parsePrice3(str4(item.price) ?? "");
+  const { price, currency } = parsePrice2(str4(item.price) ?? "");
   if (price == null || currency !== "USD") return null;
   const url = str4(item.url) ?? "#";
   const vin = (specs["VIN"] ?? "").match(/\b[A-HJ-NPR-Z0-9]{11,17}\b/i)?.[0];
@@ -731,7 +760,7 @@ function elferspotMap(item) {
     body: bodyFrom4(specs["Body"]),
     transmission: specs["Transmission"] || "Unknown",
     vin,
-    mileage: parseMileage3(specs["Mileage"]),
+    mileage: parseMileage2(specs["Mileage"]),
     exteriorColor: specs["Exterior color"] || void 0,
     interiorColor: specs["Interior color"] || void 0,
     listingType: "dealer",
