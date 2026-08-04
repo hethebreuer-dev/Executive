@@ -9,7 +9,7 @@
 // off each enumerated ?page=N search page and emit one record per car. Air-
 // cooled range is pinned via the year filter in the search URLs.
 
-import type { BodyStyle, CanonicalListing } from "../model";
+import { MIN_PLAUSIBLE_PRICE, type BodyStyle, type CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
 import {
   ConnectorNotImplemented,
@@ -133,7 +133,9 @@ export function autotraderMap(item: Raw): CanonicalListing | null {
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
   const price = num(item.price);
-  if (price == null) return null; // drop no-price listings
+  // `== null` alone wouldn't catch a 0 (num(0) → 0); the floor drops $0
+  // auction placeholders and any other implausibly low price.
+  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
 
   const link = str(item.url) ?? "";
   if (!link) return null;

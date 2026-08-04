@@ -11,7 +11,7 @@
 // returns ACTIVE listings only (auction + Buy-It-Now); sold results for the
 // comps pipeline come from a separate source (Classic.com / Hagerty / BaT sold).
 
-import type { CanonicalListing, ListingType } from "../model";
+import { MIN_PLAUSIBLE_PRICE, type CanonicalListing, type ListingType } from "../model";
 import { classifyModelFamily } from "../normalize";
 import type { ConnectorContext } from "./context";
 import { type ConnectorMeta, type ListingConnector } from "./connector";
@@ -113,7 +113,8 @@ function mapItem(item: EbayItemSummary): CanonicalListing | null {
   const title = (item.title ?? "").trim();
   const price = item.price?.value ? parseFloat(item.price.value) : NaN;
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
-  if (!title || !year || Number.isNaN(price)) return null;
+  // Floor drops parts/wheel/model-car listings priced far below any real car.
+  if (!title || !year || Number.isNaN(price) || price < MIN_PLAUSIBLE_PRICE) return null;
 
   const family = classifyModelFamily(title);
   if (!family) return null; // filter out non-air-cooled results

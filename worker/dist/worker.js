@@ -264,6 +264,9 @@ var APIFY_SITES = [
 ];
 var apifyConnectors = APIFY_SITES.map(makeApifyConnector);
 
+// ../src/lib/luft/model.ts
+var MIN_PLAUSIBLE_PRICE = 1e3;
+
 // ../src/lib/luft/connectors/autotrader.ts
 var ACTOR = "apify~cheerio-scraper";
 function pagedSearchUrls(model, pages) {
@@ -360,7 +363,7 @@ function autotraderMap(item) {
   const family = classifyModelFamily(rawTitle);
   if (!family) return null;
   const price = num2(item.price);
-  if (price == null) return null;
+  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
   const link = str2(item.url) ?? "";
   if (!link) return null;
   const url = link.startsWith("http") ? link : `https://classics.autotrader.com${link}`;
@@ -497,9 +500,11 @@ function classicComMap(item) {
   if (!title) return null;
   const location = str3(item.location) ?? "";
   if (location && !/usa|united states/i.test(location)) return null;
-  const price = parsePrice(str3(item.price));
+  const rawPrice = str3(item.price) ?? "";
+  if (/€|eur|£|gbp/i.test(rawPrice)) return null;
+  const price = parsePrice(rawPrice);
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
-  if (!year || price == null) return null;
+  if (!year || price == null || price < MIN_PLAUSIBLE_PRICE) return null;
   const family = classifyModelFamily(title);
   if (!family) return null;
   const url = str3(item.url) ?? "#";
@@ -651,7 +656,7 @@ function mapItem(item) {
   const title = (item.title ?? "").trim();
   const price = item.price?.value ? parseFloat(item.price.value) : NaN;
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
-  if (!title || !year || Number.isNaN(price)) return null;
+  if (!title || !year || Number.isNaN(price) || price < MIN_PLAUSIBLE_PRICE) return null;
   const family = classifyModelFamily(title);
   if (!family) return null;
   const buyingOptions = item.buyingOptions ?? [];
