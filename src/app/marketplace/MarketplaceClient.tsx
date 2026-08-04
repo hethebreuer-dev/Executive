@@ -226,7 +226,7 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
                 borderBottom: "1px solid #e6e5e2",
               }}
             >
-              <div style={{ flex: 1, padding: "16px 20px 16px 0", borderRight: "1px solid #e6e5e2" }}>
+              <div style={{ flex: 1, minWidth: 0, padding: "16px 20px 16px 0", borderRight: "1px solid #e6e5e2" }}>
                 <div className="lbl" style={{ marginBottom: 7 }}>
                   Median · {view.marketLabel}
                 </div>
@@ -234,7 +234,7 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
                   {usdk(view.median)}
                 </div>
               </div>
-              <div style={{ flex: 1, padding: "16px 20px", borderRight: "1px solid #e6e5e2" }}>
+              <div style={{ flex: 1, minWidth: 0, padding: "16px 20px", borderRight: "1px solid #e6e5e2" }}>
                 <div className="lbl" style={{ marginBottom: 7 }}>
                   Asking range
                 </div>
@@ -245,7 +245,7 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
                   {view.count ? `${usdk(view.low)}–${usdk(view.high)}` : "—"}
                 </div>
               </div>
-              <div style={{ flex: 1.1, padding: "16px 0 16px 20px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div style={{ flex: 1.1, minWidth: 0, padding: "16px 0 16px 20px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div className="lbl" style={{ marginBottom: 6 }}>
                   Live listings · {view.count}
                 </div>
@@ -453,7 +453,9 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))",
+                // min(100%,300px): 300-wide cards on desktop, but never wider
+                // than the viewport on a narrow phone (which would overflow).
+                gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))",
                 gap: "34px 30px",
               }}
             >
@@ -670,6 +672,10 @@ function PriceInput({
       placeholder={placeholder}
       style={{
         flex: 1,
+        // min-width:0 lets the input shrink inside the flex row; without it the
+        // default min-width:auto keeps two inputs + gap wider than a narrow
+        // phone, which the body's overflow-x:hidden then clips ("cut off").
+        minWidth: 0,
         width: "100%",
         border: "1px solid #e6e5e2",
         background: "#fafafa",
