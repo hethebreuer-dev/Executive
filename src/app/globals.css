@@ -140,15 +140,20 @@ a:hover {
   .luft-grid-3,
   .luft-grid-4,
   .luft-grid-5 {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   }
 }
+/* minmax(0,1fr) — not 1fr — so a collapsed column can shrink below its
+   content's min-content. Plain 1fr is minmax(auto,1fr): a wide, hard-to-shrink
+   child (e.g. the featured card's fixed padding + non-wrapping price) would
+   force the track wider than a narrow phone, and the body's overflow-x:hidden
+   would then clip it off the right edge. */
 @media (max-width: 860px) {
   .luft-grid-2,
   .luft-grid-3,
   .luft-grid-4,
   .luft-grid-5 {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 
