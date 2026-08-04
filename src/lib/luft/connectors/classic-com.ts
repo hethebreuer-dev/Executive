@@ -9,7 +9,7 @@
 // is isolated so an off slug never breaks the others. The `/f-body/` URL is
 // proven; the rest follow Classic.com's confirmed `/m/porsche/911/<gen>/` shape.
 
-import type { CanonicalListing } from "../model";
+import { MIN_PLAUSIBLE_PRICE, type CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
 import {
   ConnectorNotImplemented,
@@ -68,9 +68,16 @@ export function classicComMap(item: Raw): CanonicalListing | null {
   const location = str(item.location) ?? "";
   if (location && !/usa|united states/i.test(location)) return null;
 
-  const price = parsePrice(str(item.price));
+  // Drop non-USD (EUR) rows outright: their prices use European "78.500"
+  // grouping that parsePrice mangles into ~78, which would poison the USD
+  // median. (Empty-location EUR listings otherwise slip past the filter above.)
+  const rawPrice = str(item.price) ?? "";
+  if (/€|eur|£|gbp/i.test(rawPrice)) return null;
+
+  const price = parsePrice(rawPrice);
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
-  if (!year || price == null) return null; // drop "Ask For Price" / undated
+  // Drop "Ask For Price" / undated / implausibly low (parse-artifact) prices.
+  if (!year || price == null || price < MIN_PLAUSIBLE_PRICE) return null;
 
   const family = classifyModelFamily(title);
   if (!family) return null; // air-cooled 911/912/930/964/993 only

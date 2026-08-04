@@ -2,6 +2,14 @@
 // only shape the app/repository speak. Source-specific quirks stay inside
 // connectors; everything downstream reads these types.
 
+// The cheapest realistic air-cooled 911/912/930/964/993 asking price is well
+// above this. Anything below is a data artifact — a parse error (e.g. a
+// European "€78.500" read as 78), a $0 auction placeholder, or a monthly
+// payment — and must never count as a car's price (it wrecks the median that
+// the "vs market" delta divides by). Connectors drop sub-floor listings; the
+// market math ignores them too, belt-and-suspenders.
+export const MIN_PLAUSIBLE_PRICE = 1000;
+
 export type ModelFamily = "912" | "911" | "930" | "964" | "993";
 export type BodyStyle = "Coupe" | "Targa" | "Cabriolet";
 export type ListingType = "auction" | "bin" | "classified" | "dealer";

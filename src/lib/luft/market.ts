@@ -7,6 +7,7 @@
 // trailing-sold stats without touching the pages that consume them.
 
 import { MODEL_DEFS, type Listing, type ModelKey } from "@/lib/luft";
+import { MIN_PLAUSIBLE_PRICE } from "./model";
 
 export function medianOf(nums: number[]): number {
   if (!nums.length) return 0;
@@ -20,6 +21,7 @@ export function medianOf(nums: number[]): number {
 export function withMarketDelta(listings: Listing[]): Listing[] {
   const pricesByKey = new Map<string, number[]>();
   for (const l of listings) {
+    if (l.price < MIN_PLAUSIBLE_PRICE) continue; // junk price can't set the median
     const arr = pricesByKey.get(l.key) ?? [];
     arr.push(l.price);
     pricesByKey.set(l.key, arr);
@@ -28,7 +30,12 @@ export function withMarketDelta(listings: Listing[]): Listing[] {
   for (const [k, arr] of pricesByKey) medianByKey.set(k, medianOf(arr));
   return listings.map((l) => {
     const med = medianByKey.get(l.key) ?? 0;
-    const delta = med ? Math.round(((l.price - med) / med) * 100) : 0;
+    // Only a plausible price against a plausible median yields a meaningful
+    // delta; otherwise show 0 rather than a nonsense percentage.
+    const delta =
+      med >= MIN_PLAUSIBLE_PRICE && l.price >= MIN_PLAUSIBLE_PRICE
+        ? Math.round(((l.price - med) / med) * 100)
+        : 0;
     return { ...l, delta };
   });
 }
@@ -48,7 +55,9 @@ export function marketSummary(listings: Listing[]): GenSummary[] {
   return MODEL_DEFS.map(({ key, label }) => {
     const subset =
       key === "all" ? listings : listings.filter((l) => l.key === key);
-    const prices = subset.map((l) => l.price);
+    const prices = subset
+      .map((l) => l.price)
+      .filter((p) => p >= MIN_PLAUSIBLE_PRICE);
     return {
       key,
       label,
