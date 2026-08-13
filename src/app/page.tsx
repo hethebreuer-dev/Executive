@@ -228,7 +228,7 @@ export default async function HomePage() {
           {GENERATIONS.map((g) => (
             <Link
               key={g.label}
-              href="/marketplace"
+              href={`/marketplace?model=${g.key}`}
               style={{ border: "1px solid #e6e5e2", display: "flex", flexDirection: "column" }}
             >
               <div style={{ aspectRatio: "1 / 1", position: "relative", overflow: "hidden", background: "#e5e4e0" }}>

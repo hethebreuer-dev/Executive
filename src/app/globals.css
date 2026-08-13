@@ -179,6 +179,39 @@ a:hover {
   }
 }
 
+/* Breakpoint show/hide + collapsible marketplace filters + landscape hero.
+   Desktop: filters always visible, mobile-only pieces hidden. Mobile (≤860):
+   the refine panel collapses behind a "Filters" toggle so listings are
+   reachable sooner, the featured card swaps to the compact result-card layout,
+   and the editorial hero image goes landscape instead of a tall portrait. */
+.luft-show-mobile {
+  display: none;
+}
+.luft-filters-toggle {
+  display: none;
+}
+@media (max-width: 860px) {
+  .luft-hide-mobile {
+    display: none !important;
+  }
+  .luft-show-mobile {
+    display: block;
+  }
+  .luft-filters-toggle {
+    display: flex;
+  }
+  .luft-filters-body {
+    display: none;
+  }
+  .luft-filters-body.open {
+    display: block;
+  }
+  .luft-hero-media {
+    height: auto !important;
+    aspect-ratio: 16 / 10;
+  }
+}
+
 /* Horizontal-scroll wide rows ----------------------------------------- */
 .luft-scroll {
   overflow-x: auto;

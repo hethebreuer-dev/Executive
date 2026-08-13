@@ -83,8 +83,12 @@ function sortListings(list: Listing[], sort: SortKey) {
 }
 
 export function MarketplaceClient({ listings }: { listings: Listing[] }) {
-  const qParam = useSearchParams().get("q") ?? "";
-  const [model, setModel] = useState<ModelKey>("all");
+  const sp = useSearchParams();
+  const qParam = sp.get("q") ?? "";
+  const modelParam = sp.get("model") ?? "";
+  const isModelKey = (m: string): m is ModelKey => MODEL_DEFS.some((d) => d.key === m);
+
+  const [model, setModel] = useState<ModelKey>(isModelKey(modelParam) ? modelParam : "all");
   const [sort, setSort] = useState<SortKey>("newest");
   const [saved, setSaved] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState(qParam);
@@ -92,13 +96,20 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
   const [transmissions, setTransmissions] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false); // mobile refine panel
 
-  // Re-sync the search box when the header submits ?q=… on this page — done
-  // during render (React's "adjust state on prop change" pattern), not an effect.
+  // Re-sync from the URL when the header submits ?q=… or a "browse by
+  // generation" link lands with ?model=… — done during render (React's "adjust
+  // state on prop change" pattern), not an effect.
   const [prevQ, setPrevQ] = useState(qParam);
   if (qParam !== prevQ) {
     setPrevQ(qParam);
     setQuery(qParam);
+  }
+  const [prevModel, setPrevModel] = useState(modelParam);
+  if (modelParam !== prevModel) {
+    setPrevModel(modelParam);
+    setModel(isModelKey(modelParam) ? modelParam : "all");
   }
 
   const toggle = (list: string[], setList: (v: string[]) => void, val: string) =>
@@ -111,6 +122,15 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
     transmissions.length > 0 ||
     minPrice !== "" ||
     maxPrice !== "";
+
+  // Count of active refine filters (excludes the free-text search), shown on
+  // the mobile "Filters" toggle so applied filters are visible while collapsed.
+  const activeFilterCount =
+    (model !== "all" ? 1 : 0) +
+    bodies.length +
+    transmissions.length +
+    (minPrice ? 1 : 0) +
+    (maxPrice ? 1 : 0);
 
   function resetFilters() {
     setModel("all");
@@ -266,6 +286,7 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
           </div>
 
           <ImageSlot
+            className="luft-hero-media"
             src="/luft/hero-marketplace.png"
             alt="Air-cooled Porsche 911 side profile"
             tag="Editorial Feature"
@@ -281,19 +302,45 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
       >
         {/* REFINE SIDEBAR */}
         <aside className="luft-sticky-aside" style={{ position: "sticky", top: 96, alignSelf: "start", height: "fit-content" }}>
-          <div
-            className="mono"
+          <button
+            type="button"
+            className="luft-filters-toggle"
+            onClick={() => setFiltersOpen((o) => !o)}
+            aria-expanded={filtersOpen}
             style={{
-              fontSize: 10,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#8a8a85",
-              paddingBottom: 14,
-              borderBottom: "1px solid #e6e5e2",
+              width: "100%",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: "1px solid #0d0d0d",
+              background: "#ffffff",
+              color: "#0d0d0d",
+              padding: "12px 16px",
+              marginBottom: 16,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "var(--font-libre-franklin), sans-serif",
             }}
           >
-            Refine
-          </div>
+            <span>Filters{activeFilterCount ? ` · ${activeFilterCount}` : ""}</span>
+            <span aria-hidden style={{ fontSize: 11 }}>
+              {filtersOpen ? "▲ Hide" : "▼ Show"}
+            </span>
+          </button>
+          <div className={"luft-filters-body" + (filtersOpen ? " open" : "")}>
+            <div
+              className="mono"
+              style={{
+                fontSize: 10,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "#8a8a85",
+                paddingBottom: 14,
+                borderBottom: "1px solid #e6e5e2",
+              }}
+            >
+              Refine
+            </div>
 
           <div style={{ padding: "22px 0", borderBottom: "1px solid #e6e5e2" }}>
             <FilterLabel>Generation</FilterLabel>
@@ -347,13 +394,14 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
             </div>
           </div>
 
-          <CheckGroup
-            title="Transmission"
-            items={TRANS_OPTIONS}
-            selected={transmissions}
-            onToggle={(v) => toggle(transmissions, setTransmissions, v)}
-            last
-          />
+            <CheckGroup
+              title="Transmission"
+              items={TRANS_OPTIONS}
+              selected={transmissions}
+              onToggle={(v) => toggle(transmissions, setTransmissions, v)}
+              last
+            />
+          </div>
         </aside>
 
         {/* RESULTS */}
@@ -456,7 +504,22 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
             </div>
           </div>
 
-          {view.featured && <FeaturedCard c={view.featured} />}
+          {view.featured && (
+            <>
+              {/* Desktop: the large editorial featured card. Mobile: the same
+                  compact card as the rest, so the image and CTA look uniform. */}
+              <div className="luft-hide-mobile">
+                <FeaturedCard c={view.featured} />
+              </div>
+              <div className="luft-show-mobile" style={{ marginBottom: 24 }}>
+                <ResultCard
+                  c={view.featured}
+                  saved={!!saved[view.featured.id]}
+                  onSave={() => toggleSave(view.featured.id)}
+                />
+              </div>
+            </>
+          )}
 
           {view.rest.length > 0 ? (
             <div
