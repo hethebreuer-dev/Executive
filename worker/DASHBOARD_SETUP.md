@@ -170,8 +170,7 @@ Add these (as encrypted secrets where noted):
   marketing email can't hurt your main domain's reputation)
 - `SUBSCRIBE_SECRET` — any long random string *(secret)*; must match the app's
   `WORKER_SUBSCRIBE_SECRET`
-- `APP_BASE_URL` — `https://driveluft.com` once the domain points at Vercel
-  (until then, `https://executive-pearl.vercel.app`). Used for the
+- `APP_BASE_URL` — `https://driveluft.com` (the live site). Used for the
   "View listing" / unsubscribe links in the email.
 
 Then **re-paste `worker/dist/worker.js`** and Deploy.
