@@ -165,11 +165,14 @@ self-healing `subscribers` table in the existing `luft` D1.
 ### 2. Worker secrets (Cloudflare → Worker → Settings → Variables)
 Add these (as encrypted secrets where noted):
 - `RESEND_API_KEY` — the Resend API key *(secret)*
-- `EMAIL_FROM` — verified sender, e.g. `LUFT <listings@mail.yourdomain.com>`
+- `EMAIL_FROM` — verified sender: `LUFT <listings@mail.driveluft.com>`
+  (verify the **`mail.driveluft.com`** subdomain in Resend, not the apex, so
+  marketing email can't hurt your main domain's reputation)
 - `SUBSCRIBE_SECRET` — any long random string *(secret)*; must match the app's
   `WORKER_SUBSCRIBE_SECRET`
-- `APP_BASE_URL` — your site origin, e.g. `https://executive-pearl.vercel.app`
-  (used for the "View listing" / unsubscribe links in the email)
+- `APP_BASE_URL` — `https://driveluft.com` once the domain points at Vercel
+  (until then, `https://executive-pearl.vercel.app`). Used for the
+  "View listing" / unsubscribe links in the email.
 
 Then **re-paste `worker/dist/worker.js`** and Deploy.
 
