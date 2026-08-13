@@ -42,6 +42,7 @@ export type Listing = {
   blurb: string;
   url: string; // source listing URL ("#" for mock)
   photos: string[];
+  listedAt: string; // ISO — when the car first appeared in our inventory (firstSeen)
 };
 
 /** Map a canonical listing down to the legacy UI shape. */
@@ -64,6 +65,7 @@ export function toLegacyListing(c: CanonicalListing, i: number): Listing {
     blurb: c.blurb ?? "",
     url: c.url,
     photos: c.photos ?? [],
+    listedAt: c.firstSeen,
   };
 }
 
