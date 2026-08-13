@@ -38,7 +38,11 @@
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+  /* clip (not hidden) still prevents horizontal scroll but does NOT establish a
+     scroll container, which `overflow-x: hidden` does — and that container was
+     breaking `position: sticky` on the header (it scrolled away instead of
+     pinning). */
+  overflow-x: clip;
 }
 
 /* iOS Safari auto-zooms into any input/textarea/select whose font-size is
@@ -293,6 +297,14 @@ textarea.luft-field {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--hairline);
+  transition: transform 0.28s ease;
+  will-change: transform;
+}
+/* Reveal-on-scroll-up (applied on mobile via JS): slide the header out of view
+   while scrolling down, back in when scrolling up, so the menu is reachable
+   without scrolling to the top. */
+.luft-header--hidden {
+  transform: translateY(-100%);
 }
 .luft-bar {
   max-width: 1440px;
