@@ -29,6 +29,11 @@ export interface Env {
   EBAY_MARKETPLACE?: string;
   APIFY_TOKEN?: string;
   LUFT_ENABLE_MOCK?: string;
+  // Daily "new listings" email digest (Resend):
+  RESEND_API_KEY?: string; // Resend API key
+  EMAIL_FROM?: string; // verified sender, e.g. "LUFT <listings@mail.yourdomain.com>"
+  SUBSCRIBE_SECRET?: string; // guards POST /subscribe + /unsubscribe (set on the app too)
+  APP_BASE_URL?: string; // site origin for links in the email, e.g. https://executive-pearl.vercel.app
 }
 
 // --- Seller submissions (the "List your car" backend) --------------------------
@@ -40,7 +45,7 @@ export interface Env {
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "content-type,x-submit-secret,x-admin-secret",
+  "Access-Control-Allow-Headers": "content-type,x-submit-secret,x-admin-secret,x-subscribe-secret",
 };
 
 const IMAGE_EXT: Record<string, string> = {
@@ -284,11 +289,166 @@ async function upsertComps(db: D1Database, comps: SoldComp[]) {
   );
 }
 
+// --- Daily "new listings" email digest ---------------------------------------
+// Subscribers live in their own tiny table (self-healing, like the seller
+// columns). After each ingest the cron emails everyone the cars that first
+// appeared in the last 24h — first_seen is preserved across runs, so it's a
+// true "new arrival" signal. Delivery is Resend; each email carries a
+// per-recipient unsubscribe link keyed by an unguessable token.
+
+async function ensureSubscribers(db: D1Database) {
+  try {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS subscribers (
+           email TEXT PRIMARY KEY,
+           status TEXT NOT NULL DEFAULT 'active',
+           token TEXT NOT NULL,
+           created_at TEXT NOT NULL,
+           last_sent TEXT
+         )`
+      )
+      .run();
+  } catch (e) {
+    console.error("ensureSubscribers failed:", e);
+  }
+}
+
+const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+const esc = (s: string) =>
+  s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+interface DigestRow {
+  id: string;
+  title: string;
+  year: number;
+  price: number;
+  currency: string;
+  photos: string | null;
+  url: string;
+  source: string;
+  city: string | null;
+  state: string | null;
+  model_family: string;
+  mileage: number | null;
+}
+
+function renderDigestHtml(cars: DigestRow[], env: Env): string {
+  const money = (n: number, cur: string) =>
+    (cur === "EUR" ? "€" : "$") + Math.round(n).toLocaleString("en-US");
+  const cards = cars
+    .map((c) => {
+      const photo = (() => {
+        try {
+          const arr = JSON.parse(c.photos || "[]");
+          return Array.isArray(arr) && arr[0] ? String(arr[0]) : "";
+        } catch {
+          return "";
+        }
+      })();
+      const loc = [c.city, c.state].filter(Boolean).join(", ");
+      const meta = [c.source, loc, c.mileage ? `${c.mileage.toLocaleString("en-US")} mi` : ""]
+        .filter(Boolean)
+        .join(" · ");
+      const img = photo
+        ? `<img src="${esc(photo)}" width="160" height="120" alt="" style="width:160px;height:120px;object-fit:cover;display:block;border:1px solid #e6e5e2;background:#e5e4e0" />`
+        : `<div style="width:160px;height:120px;background:#f1f0ed;border:1px solid #e6e5e2"></div>`;
+      return `<tr>
+        <td width="160" style="padding:0 16px 20px 0;vertical-align:top">${img}</td>
+        <td style="padding:0 0 20px 0;vertical-align:top;font-family:Arial,Helvetica,sans-serif">
+          <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#8a8a85">${esc(c.model_family)}</div>
+          <div style="font-size:18px;font-weight:700;color:#0d0d0d;margin:4px 0 2px">${esc(String(c.year))} ${esc(c.title)}</div>
+          <div style="font-size:14px;color:#5e5e5a;margin-bottom:6px">${esc(meta)}</div>
+          <div style="font-size:18px;font-weight:700;color:#0d0d0d;margin-bottom:8px">${money(c.price, c.currency)}</div>
+          <a href="${esc(c.url)}" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">View listing →</a>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  const browse = env.APP_BASE_URL ? `${env.APP_BASE_URL.replace(/\/$/, "")}/marketplace` : "#";
+  return `<!doctype html><html><body style="margin:0;background:#f2f1ef;padding:24px 0">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e6e5e2">
+        <tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif">
+          <div style="font-size:26px;font-weight:800;letter-spacing:1px;color:#0d0d0d">LUFT</div>
+          <div style="font-size:13px;color:#8a8a85;letter-spacing:2px;text-transform:uppercase">Air-cooled · new today</div>
+        </td></tr>
+        <tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards}</table></td></tr>
+        <tr><td style="padding:8px 28px 28px;font-family:Arial,Helvetica,sans-serif">
+          <a href="${esc(browse)}" style="display:inline-block;border:1px solid #0d0d0d;color:#0d0d0d;text-decoration:none;font-size:13px;font-weight:700;padding:10px 18px">Browse the full marketplace →</a>
+        </td></tr>
+      </table>
+    </td></tr></table>
+    __UNSUB__
+  </body></html>`;
+}
+
+function unsubFooter(env: Env, token: string): string {
+  const base = (env.APP_BASE_URL || "").replace(/\/$/, "");
+  const link = base ? `${base}/unsubscribe?token=${encodeURIComponent(token)}` : "#";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8a8a85">
+    You're getting this because you subscribed to LUFT new-listing alerts.<br/>
+    <a href="${link}" style="color:#8a8a85">Unsubscribe</a>
+  </td></tr></table>`;
+}
+
+async function resendBatch(env: Env, emails: unknown[]): Promise<void> {
+  const res = await fetch("https://api.resend.com/emails/batch", {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify(emails),
+  });
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+}
+
+async function sendDailyDigest(env: Env): Promise<{ sent: number; newListings: number; reason?: string }> {
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { sent: 0, newListings: 0, reason: "email not configured" };
+  await ensureSubscribers(env.DB);
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { results: cars } = await env.DB.prepare(
+    `SELECT id, title, year, price, currency, photos, url, source, city, state, model_family, mileage
+       FROM listings WHERE status = 'active' AND first_seen >= ? ORDER BY first_seen DESC LIMIT 60`
+  )
+    .bind(cutoff)
+    .all<DigestRow>();
+  if (!cars?.length) return { sent: 0, newListings: 0, reason: "no new listings" };
+
+  const { results: subs } = await env.DB.prepare(
+    "SELECT email, token FROM subscribers WHERE status = 'active'"
+  ).all<{ email: string; token: string }>();
+  if (!subs?.length) return { sent: 0, newListings: cars.length, reason: "no subscribers" };
+
+  const body = renderDigestHtml(cars, env);
+  const subject = `${cars.length} new air-cooled listing${cars.length === 1 ? "" : "s"} on LUFT`;
+  let sent = 0;
+  for (let i = 0; i < subs.length; i += 100) {
+    const chunk = subs.slice(i, i + 100);
+    const emails = chunk.map((s) => ({
+      from: env.EMAIL_FROM,
+      to: [s.email],
+      subject,
+      html: body.replace("__UNSUB__", unsubFooter(env, s.token)),
+    }));
+    await resendBatch(env, emails);
+    sent += chunk.length;
+  }
+  await env.DB.prepare("UPDATE subscribers SET last_sent = ? WHERE status = 'active'")
+    .bind(new Date().toISOString())
+    .run();
+  return { sent, newListings: cars.length };
+}
+
 const handler = {
-  // Scheduled ingestion (cron in wrangler.toml).
+  // Scheduled ingestion (cron in wrangler.toml). The digest runs AFTER the
+  // ingest so today's new arrivals (their first_seen) are already in D1.
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
-      ingest(env).then((r) => console.log("ingest ok:", r)).catch((e) => console.error("ingest failed:", e))
+      ingest(env)
+        .then((r) => console.log("ingest ok:", r))
+        .then(() => sendDailyDigest(env))
+        .then((d) => console.log("digest:", d))
+        .catch((e) => console.error("scheduled run failed:", e))
     );
   },
 
@@ -395,6 +555,68 @@ const handler = {
         .bind(status, body.id)
         .run();
       return Response.json({ ok: true, changed: res.meta?.changes ?? 0, status }, { headers: CORS });
+    }
+
+    // --- Email digest: subscribe (secret-guarded; the app forwards) ---------
+    if (url.pathname === "/subscribe" && request.method === "POST") {
+      if (!env.SUBSCRIBE_SECRET || request.headers.get("x-subscribe-secret") !== env.SUBSCRIBE_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let b: { email?: string };
+      try {
+        b = (await request.json()) as { email?: string };
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      const email = (b.email || "").trim().toLowerCase();
+      if (!isEmail(email)) return Response.json({ error: "Enter a valid email." }, { status: 400, headers: CORS });
+      try {
+        await ensureSubscribers(env.DB);
+        // Reactivate on re-subscribe; keep the original token so old unsubscribe
+        // links stay valid.
+        await env.DB.prepare(
+          `INSERT INTO subscribers (email, status, token, created_at) VALUES (?, 'active', ?, ?)
+           ON CONFLICT(email) DO UPDATE SET status = 'active'`
+        )
+          .bind(email, crypto.randomUUID(), new Date().toISOString())
+          .run();
+        return Response.json({ ok: true }, { headers: CORS });
+      } catch (e) {
+        console.error("subscribe failed:", e);
+        return Response.json({ error: "Could not subscribe." }, { status: 500, headers: CORS });
+      }
+    }
+
+    // --- Email digest: unsubscribe (token = capability; app forwards) -------
+    if (url.pathname === "/unsubscribe" && request.method === "POST") {
+      if (!env.SUBSCRIBE_SECRET || request.headers.get("x-subscribe-secret") !== env.SUBSCRIBE_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let b: { token?: string };
+      try {
+        b = (await request.json()) as { token?: string };
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!b.token) return Response.json({ error: "Missing token" }, { status: 400, headers: CORS });
+      await ensureSubscribers(env.DB);
+      const res = await env.DB.prepare("UPDATE subscribers SET status = 'unsubscribed' WHERE token = ?")
+        .bind(b.token)
+        .run();
+      return Response.json({ ok: true, changed: res.meta?.changes ?? 0 }, { headers: CORS });
+    }
+
+    // --- Email digest: manual send (guarded) — test without waiting for cron -
+    if (url.pathname === "/digest" && request.method === "POST") {
+      if (!env.INGEST_SECRET || request.headers.get("x-ingest-secret") !== env.INGEST_SECRET) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      try {
+        const d = await sendDailyDigest(env);
+        return Response.json({ ok: true, ...d });
+      } catch (e) {
+        return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+      }
     }
 
     if (url.pathname === "/ingest" && request.method === "POST") {

@@ -64,3 +64,13 @@ CREATE TABLE IF NOT EXISTS sold_comps (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comps_family ON sold_comps(model_family);
+
+-- Email-digest subscribers. Created/healed at runtime by ensureSubscribers();
+-- listed here for documentation. token = per-subscriber unsubscribe capability.
+CREATE TABLE IF NOT EXISTS subscribers (
+  email      TEXT PRIMARY KEY,
+  status     TEXT NOT NULL DEFAULT 'active',  -- active | unsubscribed
+  token      TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  last_sent  TEXT
+);

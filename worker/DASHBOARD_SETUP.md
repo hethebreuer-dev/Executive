@@ -146,3 +146,43 @@ and trigger `POST /ingest` with header `x-ingest-secret: <INGEST_SECRET>` (or wa
 for the cron). A source with no actor id / token is skipped, so a broken one never
 blocks the others. The 12 seed/mock cars are off by default; set var
 `LUFT_ENABLE_MOCK = 1` only to bootstrap an empty D1.
+
+---
+
+## Part C — Daily "new listings" email digest (Resend)
+
+Captures emails on the site and sends subscribers one email each morning with the
+cars that first appeared in the last 24h. The digest runs automatically right
+after the daily ingest (same cron). No new database — subscribers live in a
+self-healing `subscribers` table in the existing `luft` D1.
+
+### 1. Resend account + domain
+1. Create a **[Resend](https://resend.com)** account and **verify your sending
+   domain** (add the DKIM/SPF DNS records Resend shows you). This is required for
+   deliverability — emails from an unverified domain land in spam.
+2. Create an **API key** (Resend → API Keys).
+
+### 2. Worker secrets (Cloudflare → Worker → Settings → Variables)
+Add these (as encrypted secrets where noted):
+- `RESEND_API_KEY` — the Resend API key *(secret)*
+- `EMAIL_FROM` — verified sender, e.g. `LUFT <listings@mail.yourdomain.com>`
+- `SUBSCRIBE_SECRET` — any long random string *(secret)*; must match the app's
+  `WORKER_SUBSCRIBE_SECRET`
+- `APP_BASE_URL` — your site origin, e.g. `https://executive-pearl.vercel.app`
+  (used for the "View listing" / unsubscribe links in the email)
+
+Then **re-paste `worker/dist/worker.js`** and Deploy.
+
+### 3. App env vars (Vercel → Project → Settings → Environment Variables)
+- `WORKER_SUBSCRIBE_SECRET` — the **same** value as the Worker's `SUBSCRIBE_SECRET`
+
+(`NEXT_PUBLIC_WORKER_URL` is already set from Part B.) Redeploy the app.
+
+### 4. Test without waiting for the cron
+- Subscribe yourself via the form in the site footer.
+- Fire the digest manually:
+  `POST https://<your-worker>/digest` with header `x-ingest-secret: <INGEST_SECRET>`.
+  It returns `{ ok, sent, newListings }` and emails active subscribers the cars
+  from the last 24h (nothing sent if there are no new listings or no subscribers).
+
+Unsubscribe links in every email route to `/<APP_BASE_URL>/unsubscribe?token=…`.

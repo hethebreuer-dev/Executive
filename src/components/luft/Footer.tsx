@@ -1,34 +1,59 @@
 import Link from "next/link";
 import { DISCLAIMER, SOURCES_LINE, TAGLINE } from "@/lib/luft";
+import { SubscribeForm } from "@/components/luft/SubscribeForm";
 
 // Simple flex footer — Marketplace, Listing, Analytics, Workshop.
 export function FooterSimple() {
   return (
-    <footer
-      className="luft-container"
-      style={{
-        padding: "64px 40px 44px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 20,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <span className="display" style={{ fontWeight: 700, fontSize: 20, letterSpacing: "0.02em" }}>
-          LUFT
-        </span>
-        <span
-          className="mono"
-          style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#0d0d0d" }}
-        >
-          {TAGLINE}
+    <footer className="luft-container" style={{ padding: "56px 40px 44px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: 28,
+          borderTop: "1px solid #e6e5e2",
+          paddingTop: 36,
+          paddingBottom: 36,
+          borderBottom: "1px solid #e6e5e2",
+          marginBottom: 28,
+        }}
+      >
+        <div style={{ maxWidth: 360 }}>
+          <div className="display" style={{ fontWeight: 600, fontSize: 22, textTransform: "uppercase", lineHeight: 1.1 }}>
+            New air-cooled listings, every morning
+          </div>
+          <p style={{ fontSize: 14, color: "#5e5e5a", marginTop: 8, lineHeight: 1.55 }}>
+            One email a day with every 911, 912, and 930 that just came to market.
+          </p>
+        </div>
+        <SubscribeForm />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 20,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+          <span className="display" style={{ fontWeight: 700, fontSize: 20, letterSpacing: "0.02em" }}>
+            LUFT
+          </span>
+          <span
+            className="mono"
+            style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#0d0d0d" }}
+          >
+            {TAGLINE}
+          </span>
+        </div>
+        <span className="mono" style={{ fontSize: 12, color: "#8a8a85" }}>
+          {SOURCES_LINE} · {DISCLAIMER}
         </span>
       </div>
-      <span className="mono" style={{ fontSize: 12, color: "#8a8a85" }}>
-        {SOURCES_LINE} · {DISCLAIMER}
-      </span>
     </footer>
   );
 }
@@ -92,6 +117,8 @@ export function FooterGrid() {
           <p style={{ fontSize: 13, color: "#8a8a85", marginTop: 12, maxWidth: 280, lineHeight: 1.55 }}>
             The marketplace and workshop for air-cooled Porsche 911s. Built by enthusiasts, for owners.
           </p>
+          <div className="lbl" style={{ margin: "22px 0 10px" }}>Daily new-listing alerts</div>
+          <SubscribeForm />
         </div>
         {COLUMNS.map((col) => (
           <div key={col.title}>
