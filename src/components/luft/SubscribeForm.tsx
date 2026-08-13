@@ -4,7 +4,13 @@ import { useState } from "react";
 
 // Email capture for the daily "new listings" digest. Posts to /api/subscribe.
 // `tone` flips the palette for use on the dark footer vs a light section.
-export function SubscribeForm({ tone = "light" }: { tone?: "light" | "dark" }) {
+export function SubscribeForm({
+  tone = "light",
+  onSuccess,
+}: {
+  tone?: "light" | "dark";
+  onSuccess?: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
@@ -37,6 +43,7 @@ export function SubscribeForm({ tone = "light" }: { tone?: "light" | "dark" }) {
         setState("done");
         setMsg(j.status === "active" ? "active" : "pending");
         setEmail("");
+        onSuccess?.();
       } else {
         setState("error");
         setMsg(j.error || "Something went wrong.");
