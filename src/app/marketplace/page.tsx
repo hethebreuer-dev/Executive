@@ -12,7 +12,10 @@ import { MarketplaceClient } from "./MarketplaceClient";
 export const revalidate = 0;
 
 export default async function MarketplacePage() {
-  const { items } = await repository.listListings({ limit: 500 });
+  // High cap so the grid shows the full active inventory (and the "N cars
+  // listed" count stays honest) instead of silently topping out at 500. The
+  // repository already loads all active rows, so this doesn't add a DB read.
+  const { items } = await repository.listListings({ limit: 5000 });
   // Real "vs market" delta = price vs the median asking of the same generation.
   const listings: Listing[] = withMarketDelta(items.map(toLegacyListing));
   return <MarketplaceClient listings={listings} />;
