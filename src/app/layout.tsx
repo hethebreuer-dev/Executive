@@ -1,25 +1,32 @@
 import type { Metadata } from "next";
-import { Oswald, Libre_Franklin, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/components/luft/AuthProvider";
 import { Header } from "@/components/luft/Header";
 
-const oswald = Oswald({
+// Self-hosted (variable) fonts. Previously next/font/google fetched these from
+// Google's CDN at build time, which intermittently 404'd on Vercel (stale font
+// URLs in the restored build cache) and failed the whole build. Bundling the
+// woff2s removes that build-time network dependency entirely.
+const oswald = localFont({
+  src: "./fonts/oswald.woff2",
   variable: "--font-oswald",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "200 700",
+  display: "swap",
 });
 
-const libreFranklin = Libre_Franklin({
+const libreFranklin = localFont({
+  src: "./fonts/libre-franklin.woff2",
   variable: "--font-libre-franklin",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: "./fonts/jetbrains-mono.woff2",
   variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: "100 800",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
