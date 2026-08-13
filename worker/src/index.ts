@@ -456,6 +456,7 @@ async function sendDailyDigest(env: Env): Promise<{ sent: number; newListings: n
 
   const body = renderDigestHtml(cars, env);
   const subject = `${cars.length} new air-cooled listing${cars.length === 1 ? "" : "s"} on LUFT`;
+  const base = (env.APP_BASE_URL || "").replace(/\/$/, "");
   let sent = 0;
   for (let i = 0; i < subs.length; i += 100) {
     const chunk = subs.slice(i, i + 100);
@@ -464,6 +465,12 @@ async function sendDailyDigest(env: Env): Promise<{ sent: number; newListings: n
       to: [s.email],
       subject,
       html: body.replace("__UNSUB__", unsubFooter(env, s.token)),
+      // List-Unsubscribe header — mail clients (esp. Gmail/Yahoo/AOL) surface a
+      // native "Unsubscribe" control and reward its presence with better inbox
+      // placement. Points at the same token-based unsubscribe page.
+      ...(base
+        ? { headers: { "List-Unsubscribe": `<${base}/unsubscribe?token=${encodeURIComponent(s.token)}>` } }
+        : {}),
     }));
     await resendBatch(env, emails);
     sent += chunk.length;
