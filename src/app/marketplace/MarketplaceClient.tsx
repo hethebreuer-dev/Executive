@@ -17,6 +17,7 @@ import { FooterSimple } from "@/components/luft/Footer";
 import { CardLink, CardPhoto, ImageSlot, LiveRow } from "@/components/luft/pieces";
 
 type SortKey =
+  | "newest"
   | "relevance"
   | "value"
   | "price-asc"
@@ -25,6 +26,7 @@ type SortKey =
   | "year-asc";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "newest", label: "Newest listed" },
   { value: "relevance", label: "Featured" },
   { value: "value", label: "Best value vs market" },
   { value: "price-asc", label: "Price: low to high" },
@@ -68,15 +70,22 @@ function sortListings(list: Listing[], sort: SortKey) {
       return out.sort((a, b) => a.year - b.year);
     case "value":
       return out.sort((a, b) => a.delta - b.delta);
-    default:
+    case "relevance":
       return out.sort((a, b) => b.delta - a.delta);
+    default:
+      // Newest first: most recently listed on top so returning shoppers see
+      // fresh inventory. firstSeen is ISO, so a string compare orders it;
+      // ties (e.g. cars from the same ingest) fall back to newer model year.
+      return out.sort(
+        (a, b) => b.listedAt.localeCompare(a.listedAt) || b.year - a.year
+      );
   }
 }
 
 export function MarketplaceClient({ listings }: { listings: Listing[] }) {
   const qParam = useSearchParams().get("q") ?? "";
   const [model, setModel] = useState<ModelKey>("all");
-  const [sort, setSort] = useState<SortKey>("relevance");
+  const [sort, setSort] = useState<SortKey>("newest");
   const [saved, setSaved] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState(qParam);
   const [bodies, setBodies] = useState<string[]>([]);
