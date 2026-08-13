@@ -33,7 +33,7 @@ export interface Env {
   RESEND_API_KEY?: string; // Resend API key
   EMAIL_FROM?: string; // verified sender, e.g. "LUFT <listings@mail.yourdomain.com>"
   SUBSCRIBE_SECRET?: string; // guards POST /subscribe + /unsubscribe (set on the app too)
-  APP_BASE_URL?: string; // site origin for links in the email, e.g. https://executive-pearl.vercel.app
+  APP_BASE_URL?: string; // site origin for links in the email, e.g. https://driveluft.com
 }
 
 // --- Seller submissions (the "List your car" backend) --------------------------
