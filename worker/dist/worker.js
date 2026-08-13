@@ -505,6 +505,7 @@ function classicComMap(item) {
   const price = parsePrice(rawPrice);
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!year || price == null || price < MIN_PLAUSIBLE_PRICE) return null;
+  const cleanTitle = title.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || title;
   const family = classifyModelFamily(title);
   if (!family) return null;
   const url = str3(item.url) ?? "#";
@@ -523,7 +524,7 @@ function classicComMap(item) {
     status,
     year,
     modelFamily: family,
-    trim: title.replace(/^\d{4}\s+porsche\s+/i, ""),
+    trim: cleanTitle,
     body: bodyFrom3(title),
     transmission: str3(item.transmission) ?? "Unknown",
     mileage: parseMileage(str3(item.mileage)),
@@ -534,7 +535,7 @@ function classicComMap(item) {
     city: city || void 0,
     state: state || void 0,
     photos,
-    title
+    title: cleanTitle
   };
 }
 var classicComConnector = {
