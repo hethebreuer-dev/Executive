@@ -32,3 +32,6 @@ LUFT_ENABLE_MOCK = "0"
 #   INGEST_SECRET   (guards POST /ingest)
 #   SUBMIT_SECRET   (guards POST /submit — must match the app's WORKER_SUBMIT_SECRET)
 #   ADMIN_SECRET    (guards /admin/* — must match the app's WORKER_ADMIN_SECRET)
+#   RESEND_API_KEY  (daily email digest via Resend)
+#   SUBSCRIBE_SECRET(guards /subscribe + /unsubscribe — must match app's WORKER_SUBSCRIBE_SECRET)
+# Non-secret vars for the digest: EMAIL_FROM (verified sender), APP_BASE_URL (site origin)

@@ -918,7 +918,7 @@ var activeConnectors = (ctx) => CONNECTORS.filter((c) => c.meta.enabled && isCon
 var CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "content-type,x-submit-secret,x-admin-secret"
+  "Access-Control-Allow-Headers": "content-type,x-submit-secret,x-admin-secret,x-subscribe-secret"
 };
 var IMAGE_EXT = {
   "image/jpeg": "jpg",
@@ -1135,11 +1135,117 @@ async function upsertComps(db, comps) {
     )
   );
 }
+async function ensureSubscribers(db) {
+  try {
+    await db.prepare(
+      `CREATE TABLE IF NOT EXISTS subscribers (
+           email TEXT PRIMARY KEY,
+           status TEXT NOT NULL DEFAULT 'active',
+           token TEXT NOT NULL,
+           created_at TEXT NOT NULL,
+           last_sent TEXT
+         )`
+    ).run();
+  } catch (e) {
+    console.error("ensureSubscribers failed:", e);
+  }
+}
+var isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+var esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function renderDigestHtml(cars, env) {
+  const money = (n, cur) => (cur === "EUR" ? "\u20AC" : "$") + Math.round(n).toLocaleString("en-US");
+  const cards = cars.map((c) => {
+    const photo = (() => {
+      try {
+        const arr = JSON.parse(c.photos || "[]");
+        return Array.isArray(arr) && arr[0] ? String(arr[0]) : "";
+      } catch {
+        return "";
+      }
+    })();
+    const loc = [c.city, c.state].filter(Boolean).join(", ");
+    const meta = [c.source, loc, c.mileage ? `${c.mileage.toLocaleString("en-US")} mi` : ""].filter(Boolean).join(" \xB7 ");
+    const img = photo ? `<img src="${esc(photo)}" width="160" height="120" alt="" style="width:160px;height:120px;object-fit:cover;display:block;border:1px solid #e6e5e2;background:#e5e4e0" />` : `<div style="width:160px;height:120px;background:#f1f0ed;border:1px solid #e6e5e2"></div>`;
+    return `<tr>
+        <td width="160" style="padding:0 16px 20px 0;vertical-align:top">${img}</td>
+        <td style="padding:0 0 20px 0;vertical-align:top;font-family:Arial,Helvetica,sans-serif">
+          <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#8a8a85">${esc(c.model_family)}</div>
+          <div style="font-size:18px;font-weight:700;color:#0d0d0d;margin:4px 0 2px">${esc(String(c.year))} ${esc(c.title)}</div>
+          <div style="font-size:14px;color:#5e5e5a;margin-bottom:6px">${esc(meta)}</div>
+          <div style="font-size:18px;font-weight:700;color:#0d0d0d;margin-bottom:8px">${money(c.price, c.currency)}</div>
+          <a href="${esc(c.url)}" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">View listing \u2192</a>
+        </td>
+      </tr>`;
+  }).join("");
+  const browse = env.APP_BASE_URL ? `${env.APP_BASE_URL.replace(/\/$/, "")}/marketplace` : "#";
+  return `<!doctype html><html><body style="margin:0;background:#f2f1ef;padding:24px 0">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e6e5e2">
+        <tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif">
+          <div style="font-size:26px;font-weight:800;letter-spacing:1px;color:#0d0d0d">LUFT</div>
+          <div style="font-size:13px;color:#8a8a85;letter-spacing:2px;text-transform:uppercase">Air-cooled \xB7 new today</div>
+        </td></tr>
+        <tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards}</table></td></tr>
+        <tr><td style="padding:8px 28px 28px;font-family:Arial,Helvetica,sans-serif">
+          <a href="${esc(browse)}" style="display:inline-block;border:1px solid #0d0d0d;color:#0d0d0d;text-decoration:none;font-size:13px;font-weight:700;padding:10px 18px">Browse the full marketplace \u2192</a>
+        </td></tr>
+      </table>
+    </td></tr></table>
+    __UNSUB__
+  </body></html>`;
+}
+function unsubFooter(env, token) {
+  const base = (env.APP_BASE_URL || "").replace(/\/$/, "");
+  const link = base ? `${base}/unsubscribe?token=${encodeURIComponent(token)}` : "#";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8a8a85">
+    You're getting this because you subscribed to LUFT new-listing alerts.<br/>
+    <a href="${link}" style="color:#8a8a85">Unsubscribe</a>
+  </td></tr></table>`;
+}
+async function resendBatch(env, emails) {
+  const res = await fetch("https://api.resend.com/emails/batch", {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify(emails)
+  });
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+}
+async function sendDailyDigest(env) {
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { sent: 0, newListings: 0, reason: "email not configured" };
+  await ensureSubscribers(env.DB);
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1e3).toISOString();
+  const { results: cars } = await env.DB.prepare(
+    `SELECT id, title, year, price, currency, photos, url, source, city, state, model_family, mileage
+       FROM listings WHERE status = 'active' AND first_seen >= ? ORDER BY first_seen DESC LIMIT 60`
+  ).bind(cutoff).all();
+  if (!cars?.length) return { sent: 0, newListings: 0, reason: "no new listings" };
+  const { results: subs } = await env.DB.prepare(
+    "SELECT email, token FROM subscribers WHERE status = 'active'"
+  ).all();
+  if (!subs?.length) return { sent: 0, newListings: cars.length, reason: "no subscribers" };
+  const body = renderDigestHtml(cars, env);
+  const subject = `${cars.length} new air-cooled listing${cars.length === 1 ? "" : "s"} on LUFT`;
+  let sent = 0;
+  for (let i = 0; i < subs.length; i += 100) {
+    const chunk = subs.slice(i, i + 100);
+    const emails = chunk.map((s) => ({
+      from: env.EMAIL_FROM,
+      to: [s.email],
+      subject,
+      html: body.replace("__UNSUB__", unsubFooter(env, s.token))
+    }));
+    await resendBatch(env, emails);
+    sent += chunk.length;
+  }
+  await env.DB.prepare("UPDATE subscribers SET last_sent = ? WHERE status = 'active'").bind((/* @__PURE__ */ new Date()).toISOString()).run();
+  return { sent, newListings: cars.length };
+}
 var handler = {
-  // Scheduled ingestion (cron in wrangler.toml).
+  // Scheduled ingestion (cron in wrangler.toml). The digest runs AFTER the
+  // ingest so today's new arrivals (their first_seen) are already in D1.
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(
-      ingest(env).then((r) => console.log("ingest ok:", r)).catch((e) => console.error("ingest failed:", e))
+      ingest(env).then((r) => console.log("ingest ok:", r)).then(() => sendDailyDigest(env)).then((d) => console.log("digest:", d)).catch((e) => console.error("scheduled run failed:", e))
     );
   },
   // Manual trigger + health check.
@@ -1229,6 +1335,56 @@ var handler = {
         "UPDATE listings SET status = ? WHERE id = ? AND id LIKE 'user:%'"
       ).bind(status, body.id).run();
       return Response.json({ ok: true, changed: res.meta?.changes ?? 0, status }, { headers: CORS });
+    }
+    if (url.pathname === "/subscribe" && request.method === "POST") {
+      if (!env.SUBSCRIBE_SECRET || request.headers.get("x-subscribe-secret") !== env.SUBSCRIBE_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let b;
+      try {
+        b = await request.json();
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      const email = (b.email || "").trim().toLowerCase();
+      if (!isEmail(email)) return Response.json({ error: "Enter a valid email." }, { status: 400, headers: CORS });
+      try {
+        await ensureSubscribers(env.DB);
+        await env.DB.prepare(
+          `INSERT INTO subscribers (email, status, token, created_at) VALUES (?, 'active', ?, ?)
+           ON CONFLICT(email) DO UPDATE SET status = 'active'`
+        ).bind(email, crypto.randomUUID(), (/* @__PURE__ */ new Date()).toISOString()).run();
+        return Response.json({ ok: true }, { headers: CORS });
+      } catch (e) {
+        console.error("subscribe failed:", e);
+        return Response.json({ error: "Could not subscribe." }, { status: 500, headers: CORS });
+      }
+    }
+    if (url.pathname === "/unsubscribe" && request.method === "POST") {
+      if (!env.SUBSCRIBE_SECRET || request.headers.get("x-subscribe-secret") !== env.SUBSCRIBE_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let b;
+      try {
+        b = await request.json();
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!b.token) return Response.json({ error: "Missing token" }, { status: 400, headers: CORS });
+      await ensureSubscribers(env.DB);
+      const res = await env.DB.prepare("UPDATE subscribers SET status = 'unsubscribed' WHERE token = ?").bind(b.token).run();
+      return Response.json({ ok: true, changed: res.meta?.changes ?? 0 }, { headers: CORS });
+    }
+    if (url.pathname === "/digest" && request.method === "POST") {
+      if (!env.INGEST_SECRET || request.headers.get("x-ingest-secret") !== env.INGEST_SECRET) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      try {
+        const d = await sendDailyDigest(env);
+        return Response.json({ ok: true, ...d });
+      } catch (e) {
+        return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+      }
     }
     if (url.pathname === "/ingest" && request.method === "POST") {
       if (!env.INGEST_SECRET || request.headers.get("x-ingest-secret") !== env.INGEST_SECRET) {
