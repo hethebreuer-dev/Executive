@@ -84,11 +84,11 @@ export function listingHref(l: Pick<Listing, "url" | "id" | "canonicalId">): {
 export const LISTINGS: Listing[] = MOCK_LISTINGS.map(toLegacyListing);
 
 export const GENERATIONS = [
-  { key: "912", label: "912", years: "1965–1976", from: "from $38k" },
-  { key: "911", label: "911 · SC · Carrera", years: "1965–1989", from: "from $48k" },
-  { key: "930", label: "930 Turbo", years: "1975–1989", from: "from $120k" },
-  { key: "964", label: "964", years: "1989–1994", from: "from $70k" },
-  { key: "993", label: "993", years: "1994–1998", from: "from $95k" },
+  { key: "912", label: "912", years: "1965–1976", from: "from $38k", img: "/luft/gen-912.jpg" },
+  { key: "911", label: "911 · SC · Carrera", years: "1965–1989", from: "from $48k", img: "/luft/gen-911.jpg" },
+  { key: "930", label: "930 Turbo", years: "1975–1989", from: "from $120k", img: "/luft/gen-930.jpg" },
+  { key: "964", label: "964", years: "1989–1994", from: "from $70k", img: "/luft/gen-964.jpg" },
+  { key: "993", label: "993", years: "1994–1998", from: "from $95k", img: "/luft/gen-993.jpg" },
 ];
 
 export const usd = (n: number) => "$" + n.toLocaleString("en-US");
