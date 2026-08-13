@@ -746,7 +746,7 @@ function elferspotMap(item) {
   const family = classifyModelFamily(`${year} Porsche ${title}`);
   if (!family) return null;
   const { price, currency } = parsePrice2(str4(item.price) ?? "");
-  if (price == null || currency !== "USD") return null;
+  if (price == null || currency !== "USD" || price < MIN_PLAUSIBLE_PRICE) return null;
   const url = str4(item.url) ?? "#";
   const vin = (specs["VIN"] ?? "").match(/\b[A-HJ-NPR-Z0-9]{11,17}\b/i)?.[0];
   const image = str4(item.image);

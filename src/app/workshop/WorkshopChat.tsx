@@ -207,6 +207,7 @@ export function WorkshopChat({
           aria-label="Ask the Workshop AI"
           style={{
             flex: 1,
+            minWidth: 0, // shrink inside the flex row instead of pushing the send button off-screen
             border: "none",
             background: "transparent",
             outline: "none",

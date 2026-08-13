@@ -6,7 +6,7 @@
 // table from the detail page (the search cards carry no price). One actor run
 // per ingest; output mapped to the canonical model like every other source.
 
-import type { BodyStyle, CanonicalListing } from "../model";
+import { MIN_PLAUSIBLE_PRICE, type BodyStyle, type CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
 import {
   ConnectorNotImplemented,
@@ -89,7 +89,8 @@ export function elferspotMap(item: Raw): CanonicalListing | null {
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
   const { price, currency } = parsePrice(str(item.price) ?? "");
-  if (price == null || currency !== "USD") return null; // drop POA + non-USD (protect USD medians)
+  // drop POA + non-USD + implausibly low (parse-artifact) prices — protect USD medians
+  if (price == null || currency !== "USD" || price < MIN_PLAUSIBLE_PRICE) return null;
 
   const url = str(item.url) ?? "#";
   const vin = (specs["VIN"] ?? "").match(/\b[A-HJ-NPR-Z0-9]{11,17}\b/i)?.[0];
