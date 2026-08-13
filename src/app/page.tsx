@@ -231,16 +231,14 @@ export default async function HomePage() {
               href="/marketplace"
               style={{ border: "1px solid #e6e5e2", display: "flex", flexDirection: "column" }}
             >
-              <div
-                className="luft-hatch--fine"
-                style={{ aspectRatio: "1 / 1", position: "relative" }}
-              >
-                <span
-                  className="mono"
-                  style={{ position: "absolute", bottom: 10, left: 10, fontSize: 9, color: "#a3a29d" }}
-                >
-                  [ {g.label} ]
-                </span>
+              <div style={{ aspectRatio: "1 / 1", position: "relative", overflow: "hidden", background: "#e5e4e0" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={g.img}
+                  alt={`Air-cooled Porsche ${g.label}`}
+                  loading="lazy"
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+                />
               </div>
               <div style={{ padding: 16 }}>
                 <h3
