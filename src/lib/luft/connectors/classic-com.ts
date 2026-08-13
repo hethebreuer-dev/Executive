@@ -79,6 +79,13 @@ export function classicComMap(item: Raw): CanonicalListing | null {
   // Drop "Ask For Price" / undated / implausibly low (parse-artifact) prices.
   if (!year || price == null || price < MIN_PLAUSIBLE_PRICE) return null;
 
+  // Classic.com titles are "1969 Porsche 912" — strip the leading year and the
+  // "Porsche" marque so the UI (which prefixes the year itself) doesn't render
+  // "1969 1969 Porsche 912", and we don't carry the trademark. Fall back to the
+  // raw title if stripping empties it.
+  const cleanTitle =
+    title.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || title;
+
   const family = classifyModelFamily(title);
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
@@ -103,7 +110,7 @@ export function classicComMap(item: Raw): CanonicalListing | null {
     status,
     year,
     modelFamily: family,
-    trim: title.replace(/^\d{4}\s+porsche\s+/i, ""),
+    trim: cleanTitle,
     body: bodyFrom(title),
     transmission: str(item.transmission) ?? "Unknown",
     mileage: parseMileage(str(item.mileage)),
@@ -114,7 +121,7 @@ export function classicComMap(item: Raw): CanonicalListing | null {
     city: city || undefined,
     state: state || undefined,
     photos,
-    title,
+    title: cleanTitle,
   };
 }
 
