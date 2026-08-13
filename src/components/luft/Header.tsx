@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Auth } from "./Auth";
 
 const NAV = [
@@ -23,7 +23,31 @@ export function Header() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [hidden, setHidden] = useState(false);
   const onMarketplace = pathname.startsWith("/marketplace");
+
+  // Reveal-on-scroll-up (mobile): hide the header while scrolling down, show it
+  // again the moment the user scrolls up, so the menu is always one gesture
+  // away. Desktop keeps the always-pinned header. rAF-throttled.
+  useEffect(() => {
+    let last = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const mobile = window.matchMedia("(max-width: 860px)").matches;
+        if (!mobile || y < 80) setHidden(false);
+        else if (y > last + 6) setHidden(true); // scrolling down
+        else if (y < last - 6) setHidden(false); // scrolling up
+        last = y;
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Search lives in the header on the home and marketplace pages (desktop),
   // and in the mobile menu everywhere.
@@ -67,8 +91,11 @@ export function Header() {
     </form>
   );
 
+  // Never hide while the mobile menu is open (the menu lives inside the header).
+  const headerHidden = hidden && !open;
+
   return (
-    <header className="luft-header">
+    <header className={"luft-header" + (headerHidden ? " luft-header--hidden" : "")}>
       <div className="luft-bar">
         <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
           <Link
