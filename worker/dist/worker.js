@@ -1211,6 +1211,37 @@ async function resendBatch(env, emails) {
   });
   if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
 }
+async function resendSend(env, to, subject, html) {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, html })
+  });
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+}
+function renderConfirmHtml(env, token) {
+  const base = (env.APP_BASE_URL || "").replace(/\/$/, "");
+  const link = base ? `${base}/confirm?token=${encodeURIComponent(token)}` : "#";
+  return `<!doctype html><html><body style="margin:0;background:#f2f1ef;padding:24px 0">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e6e5e2">
+        <tr><td style="padding:32px 32px 8px;font-family:Arial,Helvetica,sans-serif">
+          <div style="font-size:26px;font-weight:800;letter-spacing:1px;color:#0d0d0d">LUFT</div>
+          <div style="font-size:13px;color:#8a8a85;letter-spacing:2px;text-transform:uppercase">Confirm your subscription</div>
+        </td></tr>
+        <tr><td style="padding:16px 32px 8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#3f3f3d;line-height:1.6">
+          One click and you'll get a daily email of every air-cooled 911, 912, and 930 that just came to market.
+        </td></tr>
+        <tr><td style="padding:16px 32px 8px">
+          <a href="${esc(link)}" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:13px 24px">Confirm subscription \u2192</a>
+        </td></tr>
+        <tr><td style="padding:12px 32px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8a8a85">
+          If you didn't request this, just ignore this email \u2014 you won't be subscribed.
+        </td></tr>
+      </table>
+    </td></tr></table>
+  </body></html>`;
+}
 async function sendDailyDigest(env) {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { sent: 0, newListings: 0, reason: "email not configured" };
   await ensureSubscribers(env.DB);
@@ -1352,14 +1383,42 @@ var handler = {
       try {
         await ensureSubscribers(env.DB);
         await env.DB.prepare(
-          `INSERT INTO subscribers (email, status, token, created_at) VALUES (?, 'active', ?, ?)
-           ON CONFLICT(email) DO UPDATE SET status = 'active'`
+          `INSERT INTO subscribers (email, status, token, created_at) VALUES (?, 'pending', ?, ?)
+           ON CONFLICT(email) DO UPDATE SET
+             status = CASE WHEN subscribers.status = 'active' THEN 'active' ELSE 'pending' END`
         ).bind(email, crypto.randomUUID(), (/* @__PURE__ */ new Date()).toISOString()).run();
-        return Response.json({ ok: true }, { headers: CORS });
+        const row = await env.DB.prepare("SELECT status, token FROM subscribers WHERE email = ?").bind(email).first();
+        if (row?.status === "active") {
+          return Response.json({ ok: true, status: "active" }, { headers: CORS });
+        }
+        if (row?.token && env.RESEND_API_KEY && env.EMAIL_FROM) {
+          try {
+            await resendSend(env, email, "Confirm your LUFT subscription", renderConfirmHtml(env, row.token));
+          } catch (e) {
+            console.error("confirm email failed:", e);
+          }
+        }
+        return Response.json({ ok: true, status: "pending" }, { headers: CORS });
       } catch (e) {
         console.error("subscribe failed:", e);
         return Response.json({ error: "Could not subscribe." }, { status: 500, headers: CORS });
       }
+    }
+    if (url.pathname === "/confirm" && request.method === "POST") {
+      if (!env.SUBSCRIBE_SECRET || request.headers.get("x-subscribe-secret") !== env.SUBSCRIBE_SECRET) {
+        return Response.json({ error: "Unauthorized" }, { status: 401, headers: CORS });
+      }
+      let b;
+      try {
+        b = await request.json();
+      } catch {
+        return Response.json({ error: "Bad JSON" }, { status: 400, headers: CORS });
+      }
+      if (!b.token) return Response.json({ error: "Missing token" }, { status: 400, headers: CORS });
+      await ensureSubscribers(env.DB);
+      await env.DB.prepare("UPDATE subscribers SET status = 'active' WHERE token = ? AND status = 'pending'").bind(b.token).run();
+      const row = await env.DB.prepare("SELECT status FROM subscribers WHERE token = ?").bind(b.token).first();
+      return Response.json({ ok: true, status: row?.status ?? "unknown" }, { headers: CORS });
     }
     if (url.pathname === "/unsubscribe" && request.method === "POST") {
       if (!env.SUBSCRIBE_SECRET || request.headers.get("x-subscribe-secret") !== env.SUBSCRIBE_SECRET) {
