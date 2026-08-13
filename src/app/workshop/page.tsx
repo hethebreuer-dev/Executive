@@ -201,6 +201,21 @@ const CHASSIS_OPTIONS = [
 export default function WorkshopPage() {
   const [active, setActive] = useState("valve");
   const [chassis, setChassis] = useState(CHASSIS_OPTIONS[0]);
+  const [search, setSearch] = useState("");
+  const [proSoon, setProSoon] = useState(false);
+
+  // Filter the job browser by the search box — match title, summary, category,
+  // era, and tool names; drop categories with no remaining jobs.
+  const filteredCatalog = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return CATALOG;
+    return CATALOG.map((grp) => ({
+      ...grp,
+      jobs: grp.jobs.filter((j) =>
+        `${j.title} ${j.sub} ${grp.cat} ${j.era} ${j.tools.join(" ")}`.toLowerCase().includes(q)
+      ),
+    })).filter((grp) => grp.jobs.length > 0);
+  }, [search]);
 
   const { job, cat } = useMemo(() => {
     let found: Job = CATALOG[0].jobs[0];
@@ -310,9 +325,28 @@ export default function WorkshopPage() {
             <span className="mono" style={{ color: "#8a8a85" }}>
               ⌕
             </span>
-            <span style={{ fontSize: 13, color: "#adaca7" }}>Search a job — e.g. valve adjustment…</span>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search a job — e.g. valve adjustment…"
+              aria-label="Search jobs"
+              style={{
+                border: "none",
+                background: "transparent",
+                outline: "none",
+                width: "100%",
+                fontSize: 13,
+                color: "#0d0d0d",
+                fontFamily: "var(--font-libre-franklin), sans-serif",
+              }}
+            />
           </div>
-          {CATALOG.map((grp) => (
+          {filteredCatalog.length === 0 && (
+            <div style={{ fontSize: 13, color: "#8a8a85", lineHeight: 1.5, padding: "4px 2px 20px" }}>
+              No jobs match &ldquo;{search.trim()}&rdquo;. Try &ldquo;valve&rdquo;, &ldquo;CIS&rdquo;, or &ldquo;Targa&rdquo;.
+            </div>
+          )}
+          {filteredCatalog.map((grp) => (
             <div key={grp.cat} style={{ marginBottom: 24 }}>
               <div className="lbl" style={{ color: "#0d0d0d", paddingBottom: 12, borderBottom: "1px solid #0d0d0d" }}>
                 {grp.cat}
@@ -428,15 +462,25 @@ export default function WorkshopPage() {
                   LUFT Pro · $19 / month
                 </div>
                 <h3 className="display" style={{ fontWeight: 600, fontSize: 28, textTransform: "uppercase", margin: "12px 0 8px" }}>
-                  Unlock the full {totalSteps}-step guide
+                  Unlock the full multi-step guide
                 </h3>
                 <p style={{ fontSize: 14, color: "#b0afaa", maxWidth: 440, margin: "0 auto 22px", lineHeight: 1.55 }}>
                   Every remaining step, torque figure, factory diagram reference,
                   and unlimited AI diagnostics for your chassis.
                 </p>
-                <a href="#" style={{ display: "inline-block", background: "#ffffff", color: "#0d0d0d", fontWeight: 600, fontSize: 14, padding: "14px 28px" }}>
-                  Start 7-day free trial →
-                </a>
+                {proSoon ? (
+                  <div className="mono" style={{ display: "inline-block", color: "#ffffff", fontWeight: 600, fontSize: 14, padding: "14px 28px", border: "1px solid #ffffff" }}>
+                    Coming soon
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setProSoon(true)}
+                    style={{ display: "inline-block", background: "#ffffff", color: "#0d0d0d", fontWeight: 600, fontSize: 14, padding: "14px 28px", border: "none", cursor: "pointer", fontFamily: "var(--font-libre-franklin), sans-serif" }}
+                  >
+                    Start 7-day free trial →
+                  </button>
+                )}
               </div>
             )}
           </div>
