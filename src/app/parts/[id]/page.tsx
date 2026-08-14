@@ -50,7 +50,7 @@ export default async function PartDetailPage({
 function PartDetail({ p }: { p: Part }) {
   const photos = p.photos ?? [];
   const hero = photos[0];
-  const rest = photos.slice(1, 3);
+  const thumbs = photos.slice(1);
   const fitment = p.model === "all" ? "Fits multiple / universal" : partModelLabel(p.model);
   const listed = prettyDate(p.createdAt);
 
@@ -81,33 +81,37 @@ function PartDetail({ p }: { p: Part }) {
         </span>
       </div>
 
-      {/* GALLERY */}
+      {/* GALLERY — landscape hero + square thumbnails. Parts are user photos of
+          any orientation, so we frame the hero at a fixed landscape height
+          (object-fit: cover) and show the rest as consistent 1:1 tiles rather
+          than the fixed car-style split, which left awkward gaps. */}
       <section className="luft-container" style={{ padding: "28px 40px 0" }}>
-        <div className="luft-grid-2" style={{ gridTemplateColumns: "2.2fr 1fr", gap: 10, height: 460 }}>
-          <div className={hero ? "" : "luft-hatch"} style={{ position: "relative", border: "1px solid #e6e5e2", background: hero ? "#0d0d0d" : undefined, overflow: "hidden" }}>
-            {hero ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={hero} alt={p.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span className="mono" style={{ fontSize: 12, color: "#a3a29d" }}>[ no photo provided ]</span>
-              </div>
-            )}
-            <span className="mono" style={{ position: "absolute", top: 16, left: 16, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", background: "#0d0d0d", color: "#ffffff", padding: "5px 9px" }}>
-              {p.model === "all" ? "Fits multiple" : partModelLabel(p.model)}
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[0, 1].map((i) => (
-              <div key={i} className={rest[i] ? "" : "luft-hatch"} style={{ position: "relative", flex: 1, border: "1px solid #e6e5e2", background: rest[i] ? "#0d0d0d" : undefined, overflow: "hidden" }}>
-                {rest[i] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={rest[i]} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                )}
+        <div
+          className={hero ? "" : "luft-hatch"}
+          style={{ position: "relative", border: "1px solid #e6e5e2", background: hero ? "#0d0d0d" : undefined, height: "min(58vw, 540px)", overflow: "hidden" }}
+        >
+          {hero ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hero} alt={p.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span className="mono" style={{ fontSize: 12, color: "#a3a29d" }}>[ no photo provided ]</span>
+            </div>
+          )}
+          <span className="mono" style={{ position: "absolute", top: 16, left: 16, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", background: "#0d0d0d", color: "#ffffff", padding: "5px 9px" }}>
+            {p.model === "all" ? "Fits multiple" : partModelLabel(p.model)}
+          </span>
+        </div>
+        {thumbs.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 10, marginTop: 10 }}>
+            {thumbs.map((ph, i) => (
+              <div key={i} style={{ position: "relative", aspectRatio: "1 / 1", background: "#0d0d0d", border: "1px solid #e6e5e2", overflow: "hidden" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ph} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             ))}
           </div>
-        </div>
+        )}
       </section>
 
       {/* BODY */}
@@ -138,20 +142,6 @@ function PartDetail({ p }: { p: Part }) {
             ))}
           </div>
 
-          {/* EXTRA PHOTOS */}
-          {photos.length > 1 && (
-            <>
-              <BlockHead>Photos</BlockHead>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-                {photos.map((ph, i) => (
-                  <div key={i} style={{ position: "relative", aspectRatio: "4 / 3", background: "#0d0d0d", border: "1px solid #e6e5e2", overflow: "hidden" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ph} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </main>
 
         {/* STICKY PRICE RAIL */}
