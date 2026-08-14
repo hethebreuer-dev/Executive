@@ -129,9 +129,9 @@ export function PartsClient({ parts }: { parts: Part[] }) {
 
 function PartCard({ p }: { p: Part }) {
   const photo = p.photos[0];
-  const contactHref = `mailto:${p.sellerEmail}?subject=${encodeURIComponent("LUFT parts — " + p.title)}`;
+  const href = `/parts/${encodeURIComponent(p.id)}`;
   return (
-    <div style={{ border: "1px solid #e6e5e2", background: "#ffffff", borderRadius: 3, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <Link href={href} style={{ border: "1px solid #e6e5e2", background: "#ffffff", borderRadius: 3, display: "flex", flexDirection: "column", overflow: "hidden", color: "inherit" }}>
       <div className={photo ? "" : "luft-hatch"} style={{ position: "relative", aspectRatio: "4 / 3", background: photo ? "#e5e4e0" : undefined, overflow: "hidden" }}>
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -155,11 +155,11 @@ function PartCard({ p }: { p: Part }) {
           <span className="mono" style={{ fontSize: p.price ? 19 : 14, fontWeight: 500 }}>
             {p.price ? usd(p.price) : "Make an offer"}
           </span>
-          <a href={contactHref} style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 13, fontWeight: 600, padding: "9px 14px", whiteSpace: "nowrap" }}>
-            Contact seller →
-          </a>
+          <span style={{ background: "#0d0d0d", color: "#ffffff", fontSize: 13, fontWeight: 600, padding: "9px 14px", whiteSpace: "nowrap" }}>
+            View part →
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
