@@ -17,9 +17,13 @@ const INTENTS = ["Buy a car", "Sell a car", "Both"] as const;
 export function Auth({
   variant = "inline",
   onDark = false,
+  triggerStyle,
 }: {
   variant?: Variant;
   onDark?: boolean;
+  // Override the signed-out "Sign in" trigger's style (e.g. to render it as a
+  // full button inside another surface, like the Workshop gate).
+  triggerStyle?: React.CSSProperties;
 }) {
   const { user, ready, signIn, signOut } = useAuth();
 
@@ -168,6 +172,7 @@ export function Auth({
           fontSize: 14,
           fontWeight: onDark ? 600 : 500,
           color: onDark ? "#ffffff" : "#0d0d0d",
+          ...triggerStyle,
         }}
       >
         Sign in
