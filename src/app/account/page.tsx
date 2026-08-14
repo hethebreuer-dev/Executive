@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/components/luft/AuthProvider";
+import { useAuth, initialsFor } from "@/components/luft/AuthProvider";
 import { Auth, Avatar } from "@/components/luft/Auth";
 import { FooterGrid } from "@/components/luft/Footer";
 import { usd } from "@/lib/luft";
@@ -17,10 +17,14 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function AccountPage() {
-  const { user, ready } = useAuth();
+  const { user, ready, signIn } = useAuth();
   const [tab, setTab] = useState<TabId>("listings");
   const [listings, setListings] = useState<SellerListing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [busyId, setBusyId] = useState(""); // listing being removed
+  const [removeErr, setRemoveErr] = useState("");
 
   useEffect(() => {
     if (!user?.email) {
@@ -92,6 +96,38 @@ export default function AccountPage() {
     { id: "messages", label: "Messages", badge: "" },
   ];
 
+  function saveName() {
+    const name = nameDraft.trim();
+    setEditingName(false);
+    if (!name || !user || name === user.name) return;
+    // Persist through auth so the header avatar and greeting update everywhere.
+    signIn({ ...user, name, initials: initialsFor(name, user.email) });
+  }
+
+  async function removeListing(id: string) {
+    if (!user?.email) return;
+    if (!window.confirm("Remove this listing? It will be taken off the marketplace. This can't be undone.")) return;
+    setBusyId(id);
+    setRemoveErr("");
+    try {
+      const r = await fetch("/api/account/delete-listing", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: user.email, id }),
+      });
+      if (r.ok) {
+        setListings((prev) => prev.filter((l) => l.id !== id));
+      } else {
+        const j = await r.json().catch(() => ({}));
+        setRemoveErr(j.error || "Could not remove the listing.");
+      }
+    } catch {
+      setRemoveErr("Could not remove the listing.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   return (
     <div style={{ background: "#ffffff" }}>
       {/* GREETING */}
@@ -105,7 +141,39 @@ export default function AccountPage() {
               </h1>
               <div className="mono" style={{ fontSize: 12, color: "#8a8a85", marginTop: 6 }}>
                 {user.email}
+                {!editingName && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNameDraft(user.name);
+                      setEditingName(true);
+                    }}
+                    style={{ marginLeft: 10, border: "none", background: "none", color: "#0d0d0d", textDecoration: "underline", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Edit display name
+                  </button>
+                )}
               </div>
+              {editingName && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+                  <input
+                    className="luft-field"
+                    autoFocus
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveName()}
+                    placeholder="Username or display name"
+                    aria-label="Display name"
+                    style={{ maxWidth: 240, padding: "9px 12px" }}
+                  />
+                  <button type="button" onClick={saveName} style={{ background: "#0d0d0d", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, padding: "10px 18px", cursor: "pointer", fontFamily: "var(--font-libre-franklin), sans-serif" }}>
+                    Save
+                  </button>
+                  <button type="button" onClick={() => setEditingName(false)} style={{ background: "#fff", color: "#0d0d0d", border: "1px solid #d9d8d4", fontSize: 13, fontWeight: 600, padding: "9px 16px", cursor: "pointer", fontFamily: "var(--font-libre-franklin), sans-serif" }}>
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <Link href="/sell" style={{ background: "#0d0d0d", color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px 24px" }}>
@@ -173,11 +241,15 @@ export default function AccountPage() {
           (loading ? (
             <p style={{ color: "#8a8a85" }}>Loading your listings…</p>
           ) : listings.length ? (
-            <div className="luft-grid-3" style={{ gap: 24 }}>
-              {listings.map((c) => {
-                const badge = STATUS_LABEL[c.status] ?? c.status;
-                const card = (
-                  <>
+            <>
+              {removeErr && (
+                <div style={{ fontSize: 13, color: "#0d0d0d", background: "#f2f1ef", padding: "10px 14px", marginBottom: 16 }}>{removeErr}</div>
+              )}
+              <div className="luft-grid-3" style={{ gap: 24 }}>
+                {listings.map((c) => {
+                  const badge = STATUS_LABEL[c.status] ?? c.status;
+                  const removing = busyId === c.id;
+                  const image = (
                     <div style={{ position: "relative", height: 180, borderBottom: "1px solid #e6e5e2", background: c.photos[0] ? "#0d0d0d" : undefined }} className={c.photos[0] ? "" : "luft-hatch"}>
                       {c.photos[0] && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -187,33 +259,49 @@ export default function AccountPage() {
                         {badge}
                       </span>
                     </div>
-                    <div style={{ padding: "18px 18px 20px" }}>
-                      <div className="display" style={{ fontWeight: 600, fontSize: 19, textTransform: "uppercase", lineHeight: 1.05 }}>
-                        {c.year} {c.title}
-                      </div>
-                      <div style={{ fontSize: 13, color: "#8a8a85", margin: "4px 0 12px" }}>
-                        {[c.city, c.state].filter(Boolean).join(", ") || "—"}
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #eceae6", paddingTop: 12 }}>
-                        <span className="mono" style={{ fontSize: 17, fontWeight: 500 }}>{usd(c.price)}</span>
-                        <span style={{ fontSize: 13, color: "#8a8a85" }}>
-                          {c.status === "active" ? "View →" : c.status === "pending" ? "Awaiting review" : "Withdrawn"}
-                        </span>
+                  );
+                  return (
+                    <div key={c.id} style={{ border: "1px solid #e6e5e2", display: "flex", flexDirection: "column" }}>
+                      {c.status === "active" ? (
+                        <Link href={`/listing/${encodeURIComponent(c.id)}`} style={{ display: "block", color: "inherit" }}>
+                          {image}
+                        </Link>
+                      ) : (
+                        image
+                      )}
+                      <div style={{ padding: "18px 18px 18px", display: "flex", flexDirection: "column", flex: 1 }}>
+                        <div className="display" style={{ fontWeight: 600, fontSize: 19, textTransform: "uppercase", lineHeight: 1.05 }}>
+                          {c.year} {c.title}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#8a8a85", margin: "4px 0 12px" }}>
+                          {[c.city, c.state].filter(Boolean).join(", ") || "—"}
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #eceae6", paddingTop: 12 }}>
+                          <span className="mono" style={{ fontSize: 17, fontWeight: 500 }}>{usd(c.price)}</span>
+                          {c.status === "active" ? (
+                            <Link href={`/listing/${encodeURIComponent(c.id)}`} style={{ fontSize: 13, color: "#0d0d0d", fontWeight: 500 }}>
+                              View →
+                            </Link>
+                          ) : (
+                            <span style={{ fontSize: 13, color: "#8a8a85" }}>
+                              {c.status === "pending" ? "Awaiting review" : "Withdrawn"}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeListing(c.id)}
+                          disabled={removing}
+                          style={{ marginTop: 14, width: "100%", border: "1px solid #d9d8d4", background: "#ffffff", color: "#0d0d0d", fontSize: 13, fontWeight: 600, padding: "10px 0", cursor: removing ? "default" : "pointer", fontFamily: "var(--font-libre-franklin), sans-serif" }}
+                        >
+                          {removing ? "Removing…" : "Remove listing"}
+                        </button>
                       </div>
                     </div>
-                  </>
-                );
-                return c.status === "active" ? (
-                  <Link key={c.id} href={`/listing/${encodeURIComponent(c.id)}`} style={{ border: "1px solid #e6e5e2", display: "block", color: "inherit" }}>
-                    {card}
-                  </Link>
-                ) : (
-                  <div key={c.id} style={{ border: "1px solid #e6e5e2" }}>
-                    {card}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <EmptyState
               text="You haven't listed a car yet."
