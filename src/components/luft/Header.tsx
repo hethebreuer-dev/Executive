@@ -7,6 +7,7 @@ import { Auth } from "./Auth";
 
 const NAV = [
   { label: "Marketplace", href: "/marketplace" },
+  { label: "Parts", href: "/parts" },
   { label: "Market Data", href: "/market-data" },
   { label: "Workshop", href: "/workshop" },
   { label: "Sell", href: "/sell" },
