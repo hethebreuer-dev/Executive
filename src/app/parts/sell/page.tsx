@@ -77,7 +77,13 @@ export default function SellPartPage() {
         }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j.error || "Could not post your part. Please try again.");
+      if (!res.ok) {
+        // Surface the server's real reason (e.g. a Cloudflare D1 auth error) to
+        // the console so failures are diagnosable, while keeping the on-screen
+        // message friendly.
+        console.error("POST /api/parts failed", res.status, j);
+        throw new Error(j.error || "Could not post your part. Please try again.");
+      }
       setDone(true);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not post your part.");
