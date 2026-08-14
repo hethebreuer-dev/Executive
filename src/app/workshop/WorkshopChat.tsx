@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/luft/AuthProvider";
+import { Auth } from "@/components/luft/Auth";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -102,8 +103,19 @@ export function WorkshopChat({
           </div>
           <p style={{ marginTop: 10, fontSize: 14, color: "#b0afaa", lineHeight: 1.55, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
             The AI service — chassis-specific diagnostics, torque specs, and
-            procedures — is free for LUFT members. Use <strong style={{ color: "#fff" }}>Sign in</strong> at the top right to start a conversation.
+            procedures — is free for LUFT members.
           </p>
+          <div style={{ marginTop: 18 }}>
+            <Auth
+              onDark
+              triggerStyle={{
+                background: "#ffffff",
+                color: "#0d0d0d",
+                fontWeight: 600,
+                padding: "13px 28px",
+              }}
+            />
+          </div>
         </div>
       </div>
     );
