@@ -127,6 +127,22 @@ export async function listParts(): Promise<Part[]> {
   }
 }
 
+export async function getPart(id: string): Promise<Part | null> {
+  const c = cfg();
+  if (!c) return mem.find((p) => p.id === id) ?? null;
+  try {
+    const rows = await d1<Row>(
+      c,
+      "SELECT * FROM parts WHERE id = ? AND status = 'active' LIMIT 1",
+      [id]
+    );
+    return rows.length ? toPart(rows[0]) : null;
+  } catch {
+    // Table may not exist until the first part is posted — treat as not found.
+    return null;
+  }
+}
+
 export async function createPart(input: Omit<Part, "id" | "createdAt">): Promise<Part> {
   const created = now();
   const id = `part:${created}-${Math.random().toString(36).slice(2, 10)}`;
