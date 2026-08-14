@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FooterSimple } from "@/components/luft/Footer";
 import { getPart } from "@/lib/luft/parts";
 import { partModelLabel, type Part } from "@/lib/luft/parts-model";
+import { PartsGallery } from "./PartsGallery";
 
 // Re-read per request so a newly-posted part is reachable without a redeploy.
 export const revalidate = 0;
@@ -49,8 +50,6 @@ export default async function PartDetailPage({
 
 function PartDetail({ p }: { p: Part }) {
   const photos = p.photos ?? [];
-  const hero = photos[0];
-  const thumbs = photos.slice(1);
   const fitment = p.model === "all" ? "Fits multiple / universal" : partModelLabel(p.model);
   const listed = prettyDate(p.createdAt);
 
@@ -81,37 +80,10 @@ function PartDetail({ p }: { p: Part }) {
         </span>
       </div>
 
-      {/* GALLERY — landscape hero + square thumbnails. Parts are user photos of
-          any orientation, so we frame the hero at a fixed landscape height
-          (object-fit: cover) and show the rest as consistent 1:1 tiles rather
-          than the fixed car-style split, which left awkward gaps. */}
+      {/* GALLERY — capped landscape hero + square thumbnails, with a
+          click-to-enlarge lightbox (client component). */}
       <section className="luft-container" style={{ padding: "28px 40px 0" }}>
-        <div
-          className={hero ? "" : "luft-hatch"}
-          style={{ position: "relative", border: "1px solid #e6e5e2", background: hero ? "#0d0d0d" : undefined, height: "min(58vw, 540px)", overflow: "hidden" }}
-        >
-          {hero ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={hero} alt={p.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span className="mono" style={{ fontSize: 12, color: "#a3a29d" }}>[ no photo provided ]</span>
-            </div>
-          )}
-          <span className="mono" style={{ position: "absolute", top: 16, left: 16, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", background: "#0d0d0d", color: "#ffffff", padding: "5px 9px" }}>
-            {p.model === "all" ? "Fits multiple" : partModelLabel(p.model)}
-          </span>
-        </div>
-        {thumbs.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 10, marginTop: 10 }}>
-            {thumbs.map((ph, i) => (
-              <div key={i} style={{ position: "relative", aspectRatio: "1 / 1", background: "#0d0d0d", border: "1px solid #e6e5e2", overflow: "hidden" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={ph} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            ))}
-          </div>
-        )}
+        <PartsGallery photos={photos} badge={p.model === "all" ? "Fits multiple" : partModelLabel(p.model)} />
       </section>
 
       {/* BODY */}
