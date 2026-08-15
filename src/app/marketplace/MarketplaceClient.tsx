@@ -90,6 +90,8 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
 
   const [model, setModel] = useState<ModelKey>(isModelKey(modelParam) ? modelParam : "all");
   const [sort, setSort] = useState<SortKey>("newest");
+  // Mobile-only grid density: one listing per row (default) or two side by side.
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
   const [saved, setSaved] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState(qParam);
   const [bodies, setBodies] = useState<string[]>([]);
@@ -479,7 +481,40 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
                 </button>
               )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                className="luft-density-toggle"
+                role="group"
+                aria-label="Listings per row"
+                style={{ border: "1px solid #e6e5e2", borderRadius: 2, overflow: "hidden" }}
+              >
+                <button
+                  type="button"
+                  aria-label="One per row"
+                  aria-pressed={density === "comfortable"}
+                  onClick={() => setDensity("comfortable")}
+                  style={densityBtn(density === "comfortable")}
+                >
+                  <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+                    <rect x="1.5" y="2.2" width="12" height="4.3" rx="1" fill="currentColor" />
+                    <rect x="1.5" y="8.5" width="12" height="4.3" rx="1" fill="currentColor" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Two per row"
+                  aria-pressed={density === "compact"}
+                  onClick={() => setDensity("compact")}
+                  style={densityBtn(density === "compact")}
+                >
+                  <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+                    <rect x="1.5" y="1.5" width="5" height="5" rx="1" fill="currentColor" />
+                    <rect x="8.5" y="1.5" width="5" height="5" rx="1" fill="currentColor" />
+                    <rect x="1.5" y="8.5" width="5" height="5" rx="1" fill="currentColor" />
+                    <rect x="8.5" y="8.5" width="5" height="5" rx="1" fill="currentColor" />
+                  </svg>
+                </button>
+              </div>
               <span style={{ fontSize: 13, color: "#8a8a85" }}>Sort</span>
               <select
                 value={sort}
@@ -523,13 +558,10 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
 
           {view.rest.length > 0 ? (
             <div
-              style={{
-                display: "grid",
-                // min(100%,300px): 300-wide cards on desktop, but never wider
-                // than the viewport on a narrow phone (which would overflow).
-                gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,300px),1fr))",
-                gap: "34px 30px",
-              }}
+              className={
+                "luft-results-grid" +
+                (density === "compact" ? " luft-results-grid--compact" : "")
+              }
             >
               {view.rest.map((c) => (
                 <ResultCard
@@ -643,6 +675,21 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
       <FooterSimple />
     </div>
   );
+}
+
+function densityBtn(active: boolean): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 36,
+    height: 32,
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    background: active ? "#0d0d0d" : "#ffffff",
+    color: active ? "#ffffff" : "#8a8a85",
+  };
 }
 
 function FilterLabel({ children }: { children: React.ReactNode }) {
@@ -950,15 +997,15 @@ function ResultCard({
           {deltaText(c.delta)}
         </span>
       </CardPhoto>
-      <div style={{ padding: "18px 18px 20px", display: "flex", flexDirection: "column", flex: 1 }}>
-        <h3 className="display" style={{ fontWeight: 500, fontSize: 25, lineHeight: 1.05, letterSpacing: "-0.005em" }}>
+      <div className="luft-card-body" style={{ padding: "18px 18px 20px", display: "flex", flexDirection: "column", flex: 1 }}>
+        <h3 className="display luft-card-title" style={{ fontWeight: 500, fontSize: 25, lineHeight: 1.05, letterSpacing: "-0.005em" }}>
           {c.year} {c.title}
         </h3>
-        <div className="mono" style={{ fontSize: 12, color: "#8a8a85", marginTop: 7 }}>
+        <div className="mono luft-card-meta" style={{ fontSize: 12, color: "#8a8a85", marginTop: 7 }}>
           {meta}
         </div>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto", paddingTop: 18 }}>
-          <span className="mono" style={{ fontSize: 21, fontWeight: 500, letterSpacing: "-0.01em" }}>
+          <span className="mono luft-card-price" style={{ fontSize: 21, fontWeight: 500, letterSpacing: "-0.01em" }}>
             {usd(c.price)}
           </span>
           <span style={{ fontSize: 12, color: "#0d0d0d", fontWeight: 500 }}>View →</span>

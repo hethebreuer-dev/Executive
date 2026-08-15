@@ -174,6 +174,40 @@ a:hover {
   }
 }
 
+/* Marketplace results grid + mobile 1-up/2-up density toggle ----------
+   On desktop the auto-fill grid is already multi-column, so the toggle is
+   hidden there; on phones it flips the results between one and two per row. */
+.luft-results-grid {
+  display: grid;
+  gap: 34px 30px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+.luft-density-toggle {
+  display: none;
+}
+@media (max-width: 860px) {
+  .luft-density-toggle {
+    display: inline-flex;
+  }
+  .luft-results-grid--compact {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px 12px;
+  }
+  /* Tighten the card when two sit side by side on a narrow screen. */
+  .luft-results-grid--compact .luft-card-body {
+    padding: 13px 13px 15px;
+  }
+  .luft-results-grid--compact .luft-card-title {
+    font-size: 18px;
+  }
+  .luft-results-grid--compact .luft-card-meta {
+    font-size: 11px;
+  }
+  .luft-results-grid--compact .luft-card-price {
+    font-size: 16px;
+  }
+}
+
 /* Raw two-column blocks (form field pairs, spec tables, the account listing
    card) collapse to one column on phones. Opt-in per block; !important beats
    their inline grid-template-columns. */
