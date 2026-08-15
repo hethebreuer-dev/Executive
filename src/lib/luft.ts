@@ -92,8 +92,17 @@ export const GENERATIONS = [
 ];
 
 export const usd = (n: number) => "$" + n.toLocaleString("en-US");
-export const usdk = (n: number) =>
-  n >= 1000 ? "$" + Math.round(n / 1000) + "k" : "$" + n;
+// Compact price: millions roll up to "$X.XM" (trailing .0 dropped), thousands to
+// "$Xk". Without the millions case a $2,400,000 car rendered as "$2400k".
+export const usdk = (n: number) => {
+  if (n < 1000) return "$" + n;
+  const k = Math.round(n / 1000);
+  if (k >= 1000) {
+    const m = Math.round(n / 100_000) / 10; // one decimal
+    return "$" + (Number.isInteger(m) ? m.toFixed(0) : m.toFixed(1)) + "M";
+  }
+  return "$" + k + "k";
+};
 export const miles = (n: number) => n.toLocaleString("en-US") + " mi";
 
 export function deltaText(d: number) {
