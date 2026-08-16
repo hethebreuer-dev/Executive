@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FooterSimple } from "@/components/luft/Footer";
 import { getPart } from "@/lib/luft/parts";
 import { partModelLabel, type Part } from "@/lib/luft/parts-model";
-import { PartsGallery } from "./PartsGallery";
+import { MediaGallery } from "@/components/luft/MediaGallery";
 
 // Re-read per request so a newly-posted part is reachable without a redeploy.
 export const revalidate = 0;
@@ -83,7 +83,7 @@ function PartDetail({ p }: { p: Part }) {
       {/* GALLERY — capped landscape hero + square thumbnails, with a
           click-to-enlarge lightbox (client component). */}
       <section className="luft-container" style={{ padding: "28px 40px 0" }}>
-        <PartsGallery photos={photos} badge={p.model === "all" ? "Fits multiple" : partModelLabel(p.model)} />
+        <MediaGallery photos={photos} badge={p.model === "all" ? "Fits multiple" : partModelLabel(p.model)} />
       </section>
 
       {/* BODY */}
