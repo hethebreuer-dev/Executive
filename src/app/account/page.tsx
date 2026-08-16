@@ -7,8 +7,9 @@ import { Auth, Avatar } from "@/components/luft/Auth";
 import { FooterGrid } from "@/components/luft/Footer";
 import { usd } from "@/lib/luft";
 import type { SellerListing } from "@/lib/luft/model";
+import { partModelLabel, type Part } from "@/lib/luft/parts-model";
 
-type TabId = "listings" | "saved" | "messages";
+type TabId = "listings" | "parts" | "saved" | "messages";
 
 const STATUS_LABEL: Record<string, string> = {
   active: "● Live",
@@ -25,21 +26,35 @@ export default function AccountPage() {
   const [nameDraft, setNameDraft] = useState("");
   const [busyId, setBusyId] = useState(""); // listing being removed
   const [removeErr, setRemoveErr] = useState("");
+  const [parts, setParts] = useState<Part[]>([]);
+  const [partsLoading, setPartsLoading] = useState(true);
+  const [partBusyId, setPartBusyId] = useState("");
+  const [partErr, setPartErr] = useState("");
 
   useEffect(() => {
     if (!user?.email) {
       setLoading(false);
+      setPartsLoading(false);
       return;
     }
     let alive = true;
     setLoading(true);
-    fetch(`/api/account/listings?email=${encodeURIComponent(user.email)}`)
+    setPartsLoading(true);
+    const em = encodeURIComponent(user.email);
+    fetch(`/api/account/listings?email=${em}`)
       .then((r) => r.json())
       .then((j) => {
         if (alive) setListings((j.listings as SellerListing[]) || []);
       })
       .catch(() => {})
       .finally(() => alive && setLoading(false));
+    fetch(`/api/account/parts?email=${em}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive) setParts((j.parts as Part[]) || []);
+      })
+      .catch(() => {})
+      .finally(() => alive && setPartsLoading(false));
     return () => {
       alive = false;
     };
@@ -85,13 +100,14 @@ export default function AccountPage() {
 
   const kpis = [
     { label: "Live listings", value: String(live.length) },
+    { label: "Parts listed", value: String(parts.length) },
     { label: "In review", value: String(review.length) },
-    { label: "Saved cars", value: "0" },
     { label: "Plan", value: "Free" },
   ];
 
   const tabDefs: { id: TabId; label: string; badge: string }[] = [
     { id: "listings", label: "Listings", badge: listings.length ? String(listings.length) : "" },
+    { id: "parts", label: "Parts", badge: parts.length ? String(parts.length) : "" },
     { id: "saved", label: "Saved", badge: "" },
     { id: "messages", label: "Messages", badge: "" },
   ];
@@ -125,6 +141,30 @@ export default function AccountPage() {
       setRemoveErr("Could not remove the listing.");
     } finally {
       setBusyId("");
+    }
+  }
+
+  async function removePart(id: string) {
+    if (!user?.email) return;
+    if (!window.confirm("Remove this part? It will be taken off the parts marketplace. This can't be undone.")) return;
+    setPartBusyId(id);
+    setPartErr("");
+    try {
+      const r = await fetch("/api/account/delete-part", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: user.email, id }),
+      });
+      if (r.ok) {
+        setParts((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        const j = await r.json().catch(() => ({}));
+        setPartErr(j.error || "Could not remove the part.");
+      }
+    } catch {
+      setPartErr("Could not remove the part.");
+    } finally {
+      setPartBusyId("");
     }
   }
 
@@ -306,6 +346,68 @@ export default function AccountPage() {
             <EmptyState
               text="You haven't listed a car yet."
               cta={{ href: "/sell", label: "List your car →" }}
+            />
+          ))}
+
+        {tab === "parts" &&
+          (partsLoading ? (
+            <p style={{ color: "#8a8a85" }}>Loading your parts…</p>
+          ) : parts.length ? (
+            <>
+              {partErr && (
+                <div style={{ fontSize: 13, color: "#0d0d0d", background: "#f2f1ef", padding: "10px 14px", marginBottom: 16 }}>{partErr}</div>
+              )}
+              <div className="luft-grid-3" style={{ gap: 24 }}>
+                {parts.map((p) => {
+                  const removing = partBusyId === p.id;
+                  return (
+                    <div key={p.id} style={{ border: "1px solid #e6e5e2", display: "flex", flexDirection: "column" }}>
+                      <Link href={`/parts/${encodeURIComponent(p.id)}`} style={{ display: "block", color: "inherit" }}>
+                        <div style={{ position: "relative", height: 180, borderBottom: "1px solid #e6e5e2", background: p.photos[0] ? "#0d0d0d" : undefined }} className={p.photos[0] ? "" : "luft-hatch"}>
+                          {p.photos[0] && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.photos[0]} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          )}
+                          <span className="mono" style={{ position: "absolute", top: 12, right: 12, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", background: "#0d0d0d", color: "#fff", padding: "5px 8px" }}>
+                            {p.model === "all" ? "Fits multiple" : partModelLabel(p.model)}
+                          </span>
+                        </div>
+                      </Link>
+                      <div style={{ padding: "18px", display: "flex", flexDirection: "column", flex: 1 }}>
+                        <div className="display" style={{ fontWeight: 600, fontSize: 19, textTransform: "uppercase", lineHeight: 1.05 }}>
+                          {p.title}
+                        </div>
+                        {p.partNumber && (
+                          <div className="mono" style={{ fontSize: 11, color: "#8a8a85", margin: "6px 0 0" }}>
+                            Part # {p.partNumber}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #eceae6", paddingTop: 12, marginTop: 12 }}>
+                          <span className="mono" style={{ fontSize: 17, fontWeight: 500 }}>
+                            {p.price ? usd(p.price) : "Make an offer"}
+                          </span>
+                          <Link href={`/parts/${encodeURIComponent(p.id)}`} style={{ fontSize: 13, color: "#0d0d0d", fontWeight: 500 }}>
+                            View →
+                          </Link>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removePart(p.id)}
+                          disabled={removing}
+                          style={{ marginTop: 14, width: "100%", border: "1px solid #d9d8d4", background: "#ffffff", color: "#0d0d0d", fontSize: 13, fontWeight: 600, padding: "10px 0", cursor: removing ? "default" : "pointer", fontFamily: "var(--font-libre-franklin), sans-serif" }}
+                        >
+                          {removing ? "Removing…" : "Remove part"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              text="You haven't listed a part yet. Sell used, NOS, or restored parts to air-cooled owners."
+              cta={{ href: "/parts/sell", label: "List a part →" }}
             />
           ))}
 

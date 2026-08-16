@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { FooterGrid } from "@/components/luft/Footer";
+import { Auth } from "@/components/luft/Auth";
 import { useAuth } from "@/components/luft/AuthProvider";
 import type { ModelFamily } from "@/lib/luft/model";
 
@@ -52,7 +53,7 @@ const LABELS = ["The Car", "Condition", "Photos", "Contact", "Price"];
 const fmtK = (n: number) => "$" + Math.round(n) + "k";
 
 export default function SellPage() {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [refNo, setRefNo] = useState("");
@@ -307,6 +308,35 @@ export default function SellPage() {
     fontSize: 13,
     border: on ? "1px solid #0d0d0d" : "1px solid #d9d8d4",
   });
+
+  // Require sign-in to list a car — the listing is tied to the seller's account
+  // and managed from their garage.
+  if (!ready) return <div style={{ minHeight: "60vh" }} />;
+  if (!user) {
+    return (
+      <div style={{ background: "#ffffff" }}>
+        <section className="luft-container" style={{ padding: "96px 40px 120px", display: "flex", justifyContent: "center" }}>
+          <div style={{ maxWidth: 470, textAlign: "center" }}>
+            <div className="lbl" style={{ color: "#0d0d0d" }}>Sell · Private &amp; Dealer</div>
+            <h1 className="display luft-h1" style={{ fontWeight: 600, fontSize: 46, lineHeight: 0.98, textTransform: "uppercase", margin: "16px 0 14px" }}>
+              Sign in to list your car
+            </h1>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: "#5e5e5a", marginBottom: 30 }}>
+              Create a free account (or sign in) to list your air-cooled 911. Your
+              listings live in your garage, where you can track them against live
+              comps and manage or remove them anytime.
+            </p>
+            <div style={{ display: "inline-flex", gap: 12, justifyContent: "center", background: "#0d0d0d", color: "#fff", padding: 2 }}>
+              <div style={{ padding: "14px 26px", display: "flex" }}>
+                <Auth onDark />
+              </div>
+            </div>
+          </div>
+        </section>
+        <FooterGrid />
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: "#ffffff" }}>

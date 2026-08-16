@@ -143,6 +143,58 @@ export async function getPart(id: string): Promise<Part | null> {
   }
 }
 
+/** A seller's own active parts, newest first — for the account dashboard. */
+export async function listPartsBySeller(email: string): Promise<Part[]> {
+  const e = email.trim().toLowerCase();
+  const c = cfg();
+  if (!c)
+    return mem
+      .filter((p) => p.sellerEmail.toLowerCase() === e)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  try {
+    const rows = await d1<Row>(
+      c,
+      "SELECT * FROM parts WHERE seller_email = ? AND status = 'active' ORDER BY created_at DESC",
+      [e]
+    );
+    return rows.map(toPart);
+  } catch {
+    return [];
+  }
+}
+
+/** Delete a part, scoped to the seller's own email so nobody can remove another
+ *  seller's listing. Returns true when a row was actually removed. */
+export async function deletePart(id: string, email: string): Promise<boolean> {
+  const e = email.trim().toLowerCase();
+  const c = cfg();
+  if (!c) {
+    const i = mem.findIndex((p) => p.id === id && p.sellerEmail.toLowerCase() === e);
+    if (i < 0) return false;
+    mem.splice(i, 1);
+    return true;
+  }
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${c.accountId}/d1/database/${c.databaseId}/query`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${c.apiToken}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        sql: "DELETE FROM parts WHERE id = ? AND seller_email = ?",
+        params: [id, e],
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`D1 ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as {
+    success: boolean;
+    result?: { meta?: { changes?: number } }[];
+    errors?: unknown[];
+  };
+  if (!json.success) throw new Error(`D1 error: ${JSON.stringify(json.errors)}`);
+  return (json.result?.[0]?.meta?.changes ?? 0) > 0;
+}
+
 export async function createPart(input: Omit<Part, "id" | "createdAt">): Promise<Part> {
   const created = now();
   const id = `part:${created}-${Math.random().toString(36).slice(2, 10)}`;
