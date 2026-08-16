@@ -1231,6 +1231,223 @@ var mockConnector = {
   }
 };
 
+// ../src/lib/luft/connectors/pcarmarket.ts
+var ACTOR6 = "apify~cheerio-scraper";
+function browseUrls(pages) {
+  const base = "https://www.pcarmarket.com/marketplace?itemType=cars&make=porsche&startYear=1964&endYear=1998&porscheOnly=true";
+  const urls = [];
+  for (let p = 1; p <= pages; p++) urls.push(`${base}&page=${p}`);
+  return urls;
+}
+var START_URLS6 = browseUrls(6);
+var PAGE_FUNCTION5 = `async function pageFunction(context) {
+  var $ = context.$;
+  var out = [];
+  var seen = {};
+
+  function priceIn(text) {
+    var m = (text || '').match(/\\$[0-9][0-9,]{2,}/);
+    return m ? m[0] : '';
+  }
+  function pushCard(url, title, price, img) {
+    if (!url || url.indexOf('/auction/') === -1) return;
+    if (url.indexOf('http') !== 0) url = 'https://www.pcarmarket.com' + url;
+    url = url.split('?')[0];
+    if (seen[url]) return;
+    title = (title || '').replace(/\\s+/g, ' ').trim();
+    if (!title || title.length < 4) return;
+    seen[url] = true;
+    out.push({ url: url, title: title, price: price || '', image: img || '' });
+  }
+
+  function pushItem(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
+    var url = '';
+    ['url','permalink','link','absolute_url','path'].forEach(function (k) {
+      if (!url && typeof o[k] === 'string' && o[k].indexOf('/auction/') !== -1) url = o[k];
+    });
+    if (!url) return;
+    var title = o.title || o.name || o.headline || o.year_make_model || '';
+    var img = '';
+    ['thumbnail','image','image_url','thumbnail_url','photo'].forEach(function (k) {
+      if (img) return;
+      var v = o[k];
+      if (typeof v === 'string') img = v; else if (v && typeof v === 'object' && typeof v.url === 'string') img = v.url;
+    });
+    var price = o.current_bid || o.current_bid_formatted || o.price || o.high_bid || o.amount || '';
+    pushCard(url, String(title), typeof price === 'number' ? ('$' + price) : String(price), img);
+  }
+  function walk(node, depth) {
+    if (!node || depth > 8) return;
+    if (Array.isArray(node)) { for (var i = 0; i < node.length; i++) walk(node[i], depth + 1); return; }
+    if (typeof node === 'object') {
+      pushItem(node);
+      var keys = Object.keys(node);
+      for (var j = 0; j < keys.length; j++) { var v = node[keys[j]]; if (v && typeof v === 'object') walk(v, depth + 1); }
+    }
+  }
+
+  // 1) embedded JSON
+  $('script').each(function () {
+    var t = $(this).html() || '';
+    if (t.length < 40 || t.indexOf('/auction/') === -1) return;
+    var parsed = null; try { parsed = JSON.parse(t); } catch (e) { parsed = null; }
+    if (parsed) walk(parsed, 0);
+  });
+
+  // 2) DOM fallback: /auction/ anchors, pulling a price from the nearest card.
+  if (out.length === 0) {
+    $('a[href*="/auction/"]').each(function () {
+      var a = $(this);
+      var href = a.attr('href') || '';
+      var title = (a.attr('title') || a.text() || '').trim();
+      var card = a.closest('[class*="listing"], [class*="card"], [class*="item"], li, article, div');
+      var price = priceIn(card.text());
+      var img = card.find('img').attr('src') || card.find('img').attr('data-src') || a.find('img').attr('src') || '';
+      pushCard(href, title, price, img);
+    });
+  }
+
+  if (out.length > 0) return out;
+
+  var bodyText = ($('body').text() || '').replace(/\\s+/g, ' ').trim();
+  return [{
+    __diag: true,
+    url: context.request ? context.request.url : '',
+    pageTitle: ($('title').text() || '').trim(),
+    h1: ($('h1').first().text() || '').trim(),
+    auctionLinks: $('a[href*="/auction/"]').length,
+    bodyLen: bodyText.length,
+    textHead: bodyText.slice(0, 220)
+  }];
+}`;
+var str7 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice4(v) {
+  const s = str7(v);
+  if (!s) return null;
+  const first = s.split(/\bto\b|–|-/i)[0];
+  const cleaned = first.replace(/[^0-9.]/g, "");
+  if (!cleaned) return null;
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? Math.round(n) : null;
+}
+function bodyFrom7(title) {
+  if (/targa/i.test(title)) return "Targa";
+  if (/cabriolet|convertible|cabrio|speedster|\bcab\b/i.test(title)) return "Cabriolet";
+  return "Coupe";
+}
+function pcarmarketMap(item) {
+  const rawTitle = (str7(item.title) ?? "").trim();
+  const link = str7(item.url) ?? "";
+  if (!rawTitle || !link) return null;
+  const url = link.startsWith("http") ? link : `https://www.pcarmarket.com${link}`;
+  const year = Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
+  if (!year || year < 1963 || year > 1998) return null;
+  const family = classifyModelFamily(rawTitle, year);
+  if (!family) return null;
+  const price = parsePrice4(item.price);
+  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
+  const image = str7(item.image);
+  const title = rawTitle.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || rawTitle;
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  return {
+    id: `pcarmarket:${url}`,
+    source: "PCARMARKET",
+    sourceId: url,
+    url,
+    firstSeen: now,
+    lastSeen: now,
+    status: "active",
+    year,
+    modelFamily: family,
+    trim: title,
+    body: bodyFrom7(rawTitle),
+    transmission: "Unknown",
+    listingType: "auction",
+    sellerType: "private",
+    price,
+    currency: "USD",
+    photos: image ? [image] : [],
+    title
+  };
+}
+var pcarmarketConnector = {
+  meta: {
+    id: "pcarmarket",
+    name: "PCARMARKET",
+    tier: "apify",
+    provides: ["listings"],
+    enabled: true,
+    ref: "apify:apify/cheerio-scraper",
+    notes: "Air-cooled Porsche listings from PCARMARKET's year-filtered marketplace. Runs on APIFY_TOKEN."
+  },
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN"));
+  },
+  async fetchListings(ctx) {
+    const token = ctx.env("APIFY_TOKEN");
+    if (!token) throw new ConnectorNotImplemented("pcarmarket");
+    const input = {
+      startUrls: START_URLS6.map((url) => ({ url })),
+      pageFunction: PAGE_FUNCTION5,
+      proxyConfiguration: { useApifyProxy: true },
+      useSessionPool: true,
+      persistCookiesPerSession: true,
+      maxRequestRetries: 3,
+      maxRequestsPerCrawl: 12,
+      maxConcurrency: 4
+    };
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR6}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input)
+    });
+    if (!start.ok) throw new Error(`PCARMARKET start failed: ${start.status}`);
+    const run = (await start.json()).data;
+    const deadline = Date.now() + 28e4;
+    let status = run.status;
+    while (status === "READY" || status === "RUNNING") {
+      if (Date.now() > deadline) throw new Error("PCARMARKET run timed out (still running)");
+      await new Promise((r) => setTimeout(r, 5e3));
+      const poll = await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${token}`);
+      if (!poll.ok) throw new Error(`PCARMARKET poll failed: ${poll.status}`);
+      status = (await poll.json()).data.status;
+    }
+    if (status !== "SUCCEEDED") throw new Error(`PCARMARKET run ${status}`);
+    const ds = await fetch(
+      `https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${token}&clean=true`
+    );
+    if (!ds.ok) throw new Error(`PCARMARKET dataset failed: ${ds.status}`);
+    const data = await ds.json();
+    const items = Array.isArray(data) ? data : [];
+    if (items.length === 0) {
+      throw new Error("PCARMARKET returned an empty dataset \u2014 requests likely blocked (no pages fetched).");
+    }
+    const diag = items.find((it) => it && it.__diag);
+    const rawCards = items.filter((it) => it && !it.__diag);
+    const byId = /* @__PURE__ */ new Map();
+    for (const it of rawCards) {
+      const mapped = pcarmarketMap(it);
+      if (mapped && !byId.has(mapped.id)) byId.set(mapped.id, mapped);
+    }
+    const cars = [...byId.values()];
+    if (cars.length === 0) {
+      if (diag) {
+        throw new Error(
+          `PCARMARKET found no listing cards. url=${str7(diag.url)} title="${str7(diag.pageTitle)}" h1="${str7(diag.h1)}" auction-links=${str7(diag.auctionLinks)} bodyLen=${str7(diag.bodyLen)} :: ${str7(diag.textHead)}`
+        );
+      }
+      if (rawCards.length) {
+        const s = rawCards[0];
+        throw new Error(
+          `PCARMARKET scraped ${rawCards.length} cards but 0 passed the air-cooled filter. sample: title="${str7(s.title)}" price="${str7(s.price)}"`
+        );
+      }
+    }
+    return cars;
+  }
+};
+
 // ../src/lib/luft/registry.ts
 var CONNECTORS = [
   mockConnector,
@@ -1243,6 +1460,8 @@ var CONNECTORS = [
   // two-stage cheerio crawl — runs on APIFY_TOKEN alone
   autotraderConnector,
   // single-stage cheerio crawl — runs on APIFY_TOKEN alone
+  pcarmarketConnector,
+  // air-cooled Porsche marketplace — runs on APIFY_TOKEN alone
   bringATrailerConnector,
   // live BaT auctions — OPT-IN: needs APIFY_TOKEN + LUFT_ENABLE_BAT
   ...apifyConnectors

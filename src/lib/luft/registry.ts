@@ -12,6 +12,7 @@ import type { ConnectorContext } from "./connectors/context";
 import { ebayConnector } from "./connectors/ebay";
 import { elferspotConnector } from "./connectors/elferspot";
 import { mockConnector } from "./connectors/mock-connector";
+import { pcarmarketConnector } from "./connectors/pcarmarket";
 
 export const CONNECTORS: AnyConnector[] = [
   mockConnector, // connector #0 — off by default; opt in with LUFT_ENABLE_MOCK=1
@@ -19,6 +20,7 @@ export const CONNECTORS: AnyConnector[] = [
   classicComConnector, // working MVP source — runs on APIFY_TOKEN alone
   elferspotConnector, // two-stage cheerio crawl — runs on APIFY_TOKEN alone
   autotraderConnector, // single-stage cheerio crawl — runs on APIFY_TOKEN alone
+  pcarmarketConnector, // air-cooled Porsche marketplace — runs on APIFY_TOKEN alone
   bringATrailerConnector, // live BaT auctions — OPT-IN: needs APIFY_TOKEN + LUFT_ENABLE_BAT
   ...apifyConnectors, // other Apify-actor sources (need actorId/actorEnv)
 ];
