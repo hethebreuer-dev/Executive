@@ -22,33 +22,31 @@ type Raw = Record<string, unknown>;
 
 const ACTOR = "apify~cheerio-scraper";
 
-// We scrape the SERVER-RENDERED search endpoint (/sch/i.html) — the faceted
-// /b/…/bn_… browse page renders its grid client-side (JS), which a cheerio
-// scraper can't see. To pull the full air-cooled set (not just the sliver a
-// plain "porsche 911" search yields, which is dominated by modern 996–992
-// cars), we apply eBay's item-specific facets in the category-scoped search:
-// Model Year = 1964–1998 and Model = 911/912/930/964/993. classifyModelFamily()
-// still does the final generation bucketing in map().
-const YEAR_FACET = (() => {
-  const ys: number[] = [];
-  for (let y = 1964; y <= 1998; y++) ys.push(y);
-  return "Model%20Year=" + ys.join("%7C"); // "Model Year=1964|1965|…|1998"
-})();
-const MODEL_FACET = "Model=" + ["911", "912", "930", "964", "993"].join("%7C");
-
-// Primary: the faceted category search. Backups: model-name keyword searches
-// for the models that are inherently air-cooled (964/993/930/912) — a safety
-// net in case the aspect filters aren't honored, since those queries can't
-// return a modern car. De-duped by item id in fetchListings.
-function schUrl(extra: string, page: number): string {
-  return `https://www.ebay.com/sch/i.html?_sacat=6001&_ipg=240&_pgn=${page}&${extra}`;
+// Scrape the SERVER-RENDERED search endpoint (/sch/i.html). The /b/…/bn_…
+// vehicle browse renders its grid client-side (JS) and the pipe-encoded
+// "Model Year" facet trips eBay's bot detection (empty dataset), so we avoid
+// both. Instead we run plain keyword searches — the exact format that worked —
+// biased to the DISTINCTIVE air-cooled model names (964/993/930/912/SC/Carrera
+// 3.2), which can't return a modern car, plus a few pages of "porsche 911" for
+// the rest (the year filter in map() drops the modern 996–992 results).
+// De-duped by item id in fetchListings.
+function kw(query: string, pages: number): string[] {
+  const q = encodeURIComponent(query);
+  const urls: string[] = [];
+  for (let p = 1; p <= pages; p++) {
+    urls.push(`https://www.ebay.com/sch/i.html?_nkw=${q}&_sacat=6001&_ipg=60&_pgn=${p}`);
+  }
+  return urls;
 }
 const START_URLS = [
-  ...[1, 2, 3, 4].map((p) => schUrl(`_nkw=porsche&${MODEL_FACET}&${YEAR_FACET}`, p)),
-  schUrl("_nkw=" + encodeURIComponent("porsche 964"), 1),
-  schUrl("_nkw=" + encodeURIComponent("porsche 993"), 1),
-  schUrl("_nkw=" + encodeURIComponent("porsche 930"), 1),
-  schUrl("_nkw=" + encodeURIComponent("porsche 912"), 1),
+  ...kw("porsche 911", 4),
+  ...kw("porsche 911 SC", 1),
+  ...kw("porsche 911 carrera 3.2", 1),
+  ...kw("porsche 911 targa", 1),
+  ...kw("porsche 912", 1),
+  ...kw("porsche 930", 2),
+  ...kw("porsche 964", 2),
+  ...kw("porsche 993", 2),
 ];
 
 // Runs inside the actor. eBay renders each result as an `.s-item` (or, on the
@@ -234,6 +232,12 @@ export const ebayConnector: ListingConnector = {
     if (!ds.ok) throw new Error(`eBay dataset failed: ${ds.status}`);
     const data = (await ds.json()) as unknown;
     const items: Raw[] = Array.isArray(data) ? (data as Raw[]) : [];
+
+    // Empty dataset = the page-function never even emitted a diagnostic, i.e.
+    // the requests themselves failed (eBay blocked the session). Surface it.
+    if (items.length === 0) {
+      throw new Error("eBay returned an empty dataset — requests likely blocked (no pages fetched).");
+    }
 
     const diag = items.find((it) => it && it.__diag);
     const rawCards = items.filter((it) => it && !it.__diag);

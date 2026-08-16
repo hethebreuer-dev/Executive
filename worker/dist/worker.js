@@ -822,21 +822,23 @@ var classicComConnector = {
 
 // ../src/lib/luft/connectors/ebay.ts
 var ACTOR4 = "apify~cheerio-scraper";
-var YEAR_FACET = (() => {
-  const ys = [];
-  for (let y = 1964; y <= 1998; y++) ys.push(y);
-  return "Model%20Year=" + ys.join("%7C");
-})();
-var MODEL_FACET = "Model=" + ["911", "912", "930", "964", "993"].join("%7C");
-function schUrl(extra, page) {
-  return `https://www.ebay.com/sch/i.html?_sacat=6001&_ipg=240&_pgn=${page}&${extra}`;
+function kw(query, pages) {
+  const q = encodeURIComponent(query);
+  const urls = [];
+  for (let p = 1; p <= pages; p++) {
+    urls.push(`https://www.ebay.com/sch/i.html?_nkw=${q}&_sacat=6001&_ipg=60&_pgn=${p}`);
+  }
+  return urls;
 }
 var START_URLS4 = [
-  ...[1, 2, 3, 4].map((p) => schUrl(`_nkw=porsche&${MODEL_FACET}&${YEAR_FACET}`, p)),
-  schUrl("_nkw=" + encodeURIComponent("porsche 964"), 1),
-  schUrl("_nkw=" + encodeURIComponent("porsche 993"), 1),
-  schUrl("_nkw=" + encodeURIComponent("porsche 930"), 1),
-  schUrl("_nkw=" + encodeURIComponent("porsche 912"), 1)
+  ...kw("porsche 911", 4),
+  ...kw("porsche 911 SC", 1),
+  ...kw("porsche 911 carrera 3.2", 1),
+  ...kw("porsche 911 targa", 1),
+  ...kw("porsche 912", 1),
+  ...kw("porsche 930", 2),
+  ...kw("porsche 964", 2),
+  ...kw("porsche 993", 2)
 ];
 var PAGE_FUNCTION3 = `async function pageFunction(context) {
   var $ = context.$;
@@ -990,6 +992,9 @@ var ebayConnector = {
     if (!ds.ok) throw new Error(`eBay dataset failed: ${ds.status}`);
     const data = await ds.json();
     const items = Array.isArray(data) ? data : [];
+    if (items.length === 0) {
+      throw new Error("eBay returned an empty dataset \u2014 requests likely blocked (no pages fetched).");
+    }
     const diag = items.find((it) => it && it.__diag);
     const rawCards = items.filter((it) => it && !it.__diag);
     const byId = /* @__PURE__ */ new Map();
