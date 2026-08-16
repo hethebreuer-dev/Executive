@@ -28,18 +28,20 @@ function workerContext(env) {
 }
 
 // ../src/lib/luft/normalize.ts
-function classifyModelFamily(title) {
+function classifyModelFamily(title, yearHint) {
   const t = title.toLowerCase();
-  const year = Number(t.match(/\b(19\d{2})\b/)?.[1]);
+  const year = yearHint || Number(t.match(/\b(19\d{2})\b/)?.[1]) || 0;
   if (/\b912e?\b/.test(t)) return "912";
-  if (/\b930\b/.test(t) || /\bturbo\b/.test(t) && year >= 1975 && year <= 1989) return "930";
-  if (/\b993\b/.test(t)) return "993";
   if (/\b964\b/.test(t)) return "964";
-  if (/\b911\b|\bcarrera\b|\b\bsc\b\b|\brs\b|\bslant\s?nose\b/.test(t)) {
-    if (year && year > 1998) return null;
-    return "911";
-  }
-  return null;
+  if (/\b993\b/.test(t)) return "993";
+  if (/\b930\b/.test(t)) return "930";
+  if (/\bturbo\b/.test(t) && year >= 1975 && year <= 1989) return "930";
+  const is911 = /\b911\b|\bcarrera\b|\bsc\b|\brs\b|\btarga\b|\bspeedster\b|\bslant\s?nose\b/.test(t);
+  if (!is911) return null;
+  if (year > 1998) return null;
+  if (year >= 1995) return "993";
+  if (year >= 1990) return "964";
+  return "911";
 }
 function dedupeKey(l) {
   if (l.vin) return `vin:${l.vin.toUpperCase()}`;
@@ -143,7 +145,7 @@ function guessCanonical(item, cfg) {
   const price = num(priceRaw);
   const year = num(pick(item, ["year", "modelYear", "model_year"])) ?? num(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!title || !year || price == null) return null;
-  const family = classifyModelFamily(title);
+  const family = classifyModelFamily(title, year ?? void 0);
   if (!family) return null;
   const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "sourceUrl", "auctionUrl", "permalink", "href"])) ?? "#";
   const sourceId = str(pick(item, ["id", "listingId", "lotId", "slug", "vin"])) ?? url;
@@ -360,7 +362,7 @@ function autotraderMap(item) {
   const year = num2(item.year) ?? Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
   if (!rawTitle || !year) return null;
   if (year < 1963 || year > 1998) return null;
-  const family = classifyModelFamily(rawTitle);
+  const family = classifyModelFamily(rawTitle, year ?? void 0);
   if (!family) return null;
   const price = num2(item.price);
   if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
@@ -458,9 +460,238 @@ var autotraderConnector = {
   }
 };
 
-// ../src/lib/luft/connectors/classic-com.ts
-var ACTOR2 = "shahidirfan~classic-com-cars-scraper";
+// ../src/lib/luft/connectors/bring-a-trailer.ts
+var ACTOR2 = "apify~cheerio-scraper";
 var START_URLS2 = [
+  "https://bringatrailer.com/porsche/911/",
+  "https://bringatrailer.com/porsche/912/"
+];
+var PAGE_FUNCTION2 = `async function pageFunction(context) {
+  var $ = context.$;
+  var results = [];
+  var seen = {};
+
+  function pushItem(o) {
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
+    var url = '';
+    ['url','permalink','link','listing_url','href'].forEach(function (k) {
+      if (!url && typeof o[k] === 'string' && o[k].indexOf('/listing/') !== -1) url = o[k];
+    });
+    if (!url) return;
+    if (url.indexOf('http') !== 0) url = 'https://bringatrailer.com' + url;
+    if (seen[url]) return;
+    var title = o.title || o.name || o.headline || o.post_title || '';
+    if (!title) return;
+    seen[url] = true;
+
+    var img = '';
+    ['thumbnail_url','image','thumbnail','photo','image_url','featured_image'].forEach(function (k) {
+      if (img) return;
+      var v = o[k];
+      if (typeof v === 'string') img = v;
+      else if (v && typeof v === 'object' && typeof v.url === 'string') img = v.url;
+    });
+
+    var bid = null;
+    ['current_bid','current_bid_formatted','high_bid','price','amount','bid'].forEach(function (k) {
+      if (bid == null && o[k] != null) bid = o[k];
+    });
+    var end = o.timestamp_end || o.end_timestamp || o.ends_at || o.auction_end || o.timestamp || null;
+    var sold = o.sold_for || o.sold_text || o.sold || null;
+    var active = (o.active !== undefined) ? o.active : (o.is_active !== undefined ? o.is_active : null);
+
+    results.push({
+      url: url,
+      title: String(title),
+      year: o.year || null,
+      bid: bid,
+      image: img,
+      end: end,
+      sold: sold ? 1 : 0,
+      active: active === null ? null : (active ? 1 : 0)
+    });
+  }
+
+  function walk(node, depth) {
+    if (!node || depth > 8) return;
+    if (Array.isArray(node)) { for (var i = 0; i < node.length; i++) walk(node[i], depth + 1); return; }
+    if (typeof node === 'object') {
+      pushItem(node);
+      var keys = Object.keys(node);
+      for (var j = 0; j < keys.length; j++) {
+        var v = node[keys[j]];
+        if (v && typeof v === 'object') walk(v, depth + 1);
+      }
+    }
+  }
+
+  // 1) Embedded JSON \u2014 application/json blocks and any inline script that
+  //    mentions a listing URL. Try a straight parse; only walk what parses.
+  $('script').each(function () {
+    var t = $(this).html() || '';
+    if (t.length < 40 || t.indexOf('/listing/') === -1) return;
+    var parsed = null;
+    try { parsed = JSON.parse(t); } catch (e) { parsed = null; }
+    if (parsed) walk(parsed, 0);
+  });
+
+  // 2) React/props mount nodes carrying JSON in a data-* attribute.
+  $('[data-listing],[data-listings],[data-props],[data-react-props],[data-item]').each(function () {
+    var self = this;
+    ['data-listing','data-listings','data-props','data-react-props','data-item'].forEach(function (attr) {
+      var raw = $(self).attr(attr);
+      if (!raw) return;
+      try { walk(JSON.parse(raw), 0); } catch (e) {}
+    });
+  });
+
+  // 3) Last-resort DOM fallback: anchor cards linking to an auction.
+  if (results.length === 0) {
+    $('a[href*="/listing/"]').each(function () {
+      var href = $(this).attr('href') || '';
+      if (href.indexOf('/listing/') === -1) return;
+      if (href.indexOf('http') !== 0) href = 'https://bringatrailer.com' + href;
+      if (seen[href]) return;
+      var title = ($(this).attr('title') || $(this).text() || '').trim().replace(/\\s+/g, ' ');
+      if (!title || title.length < 4) return;
+      seen[href] = true;
+      results.push({ url: href, title: title, year: null, bid: null, image: '', end: null, sold: 0, active: null });
+    });
+  }
+
+  return results;
+}`;
+var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+var num3 = (v) => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : void 0;
+  if (typeof v === "string") {
+    const digits = v.replace(/[^0-9]/g, "");
+    if (!digits) return void 0;
+    const n = parseInt(digits, 10);
+    return Number.isNaN(n) ? void 0 : n;
+  }
+  return void 0;
+};
+function toEndMs(v) {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    if (v > 1e12) return v;
+    if (v > 1e9) return v * 1e3;
+    return void 0;
+  }
+  if (typeof v === "string") {
+    const asNum = Number(v);
+    if (Number.isFinite(asNum) && asNum > 1e9) return toEndMs(asNum);
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? void 0 : t;
+  }
+  return void 0;
+}
+function bodyFrom3(title) {
+  if (/targa/i.test(title)) return "Targa";
+  if (/cabriolet|convertible|cabrio|speedster/i.test(title)) return "Cabriolet";
+  return "Coupe";
+}
+function bringATrailerMap(item) {
+  const rawTitle = (str3(item.title) ?? "").trim();
+  const link = str3(item.url) ?? "";
+  if (!rawTitle || !link) return null;
+  const url = link.startsWith("http") ? link : `https://bringatrailer.com${link}`;
+  const year = num3(item.year) ?? Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
+  if (!year || year < 1963 || year > 1998) return null;
+  const family = classifyModelFamily(rawTitle, year);
+  if (!family) return null;
+  if (num3(item.sold)) return null;
+  if (item.active === 0) return null;
+  const endMs = toEndMs(item.end);
+  if (endMs != null && endMs < Date.now()) return null;
+  const price = num3(item.bid);
+  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
+  const title = rawTitle.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || rawTitle;
+  const image = str3(item.image);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  return {
+    id: `bringatrailer:${url}`,
+    source: "Bring a Trailer",
+    sourceId: url,
+    url,
+    firstSeen: now,
+    lastSeen: now,
+    status: "active",
+    year,
+    modelFamily: family,
+    trim: title,
+    body: bodyFrom3(rawTitle),
+    transmission: "Unknown",
+    listingType: "auction",
+    sellerType: "auction",
+    price,
+    currency: "USD",
+    endsAt: endMs != null ? new Date(endMs).toISOString() : void 0,
+    photos: image ? [image] : [],
+    title
+  };
+}
+var bringATrailerConnector = {
+  meta: {
+    id: "bring-a-trailer",
+    name: "Bring a Trailer",
+    tier: "apify",
+    provides: ["listings"],
+    enabled: true,
+    ref: "apify:apify/cheerio-scraper",
+    notes: "Live air-cooled auctions from BaT Porsche model pages. OPT-IN: needs APIFY_TOKEN and LUFT_ENABLE_BAT (BaT ToS restricts scraping; keep off unless intended)."
+  },
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN")) && Boolean(ctx.env("LUFT_ENABLE_BAT"));
+  },
+  async fetchListings(ctx) {
+    const token = ctx.env("APIFY_TOKEN");
+    if (!token) throw new ConnectorNotImplemented("bring-a-trailer");
+    const input = {
+      startUrls: START_URLS2.map((url) => ({ url })),
+      pageFunction: PAGE_FUNCTION2,
+      proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"] },
+      useSessionPool: true,
+      persistCookiesPerSession: true,
+      maxRequestRetries: 3,
+      maxRequestsPerCrawl: 12,
+      maxConcurrency: 4
+    };
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR2}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input)
+    });
+    if (!start.ok) throw new Error(`BaT start failed: ${start.status}`);
+    const run = (await start.json()).data;
+    const deadline = Date.now() + 28e4;
+    let status = run.status;
+    while (status === "READY" || status === "RUNNING") {
+      if (Date.now() > deadline) throw new Error("BaT run timed out (still running)");
+      await new Promise((r) => setTimeout(r, 5e3));
+      const poll = await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${token}`);
+      if (!poll.ok) throw new Error(`BaT poll failed: ${poll.status}`);
+      status = (await poll.json()).data.status;
+    }
+    if (status !== "SUCCEEDED") throw new Error(`BaT run ${status}`);
+    const ds = await fetch(
+      `https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${token}&clean=true`
+    );
+    if (!ds.ok) throw new Error(`BaT dataset failed: ${ds.status}`);
+    const data = await ds.json();
+    const items = Array.isArray(data) ? data : [];
+    const byId = /* @__PURE__ */ new Map();
+    for (const it of items) {
+      const mapped = bringATrailerMap(it);
+      if (mapped && !byId.has(mapped.id)) byId.set(mapped.id, mapped);
+    }
+    return [...byId.values()];
+  }
+};
+
+// ../src/lib/luft/connectors/classic-com.ts
+var ACTOR3 = "shahidirfan~classic-com-cars-scraper";
+var START_URLS3 = [
   "https://www.classic.com/m/porsche/911/f-body/",
   // 1963–1973 (proven)
   "https://www.classic.com/m/porsche/911/g-body/",
@@ -475,7 +706,7 @@ var START_URLS2 = [
   "https://www.classic.com/m/porsche/911/f-body/lwb/912/coupe/",
   "https://www.classic.com/m/porsche/911/f-body/swb/912/targa/"
 ];
-var str3 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+var str4 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
 function parsePrice(s) {
   if (!s) return void 0;
   const digits = s.replace(/[^0-9.]/g, "");
@@ -490,33 +721,33 @@ function parseMileage(s) {
   const n = parseFloat(m[1]) * (m[2] ? 1e3 : 1);
   return Number.isNaN(n) ? void 0 : Math.round(n);
 }
-function bodyFrom3(title) {
+function bodyFrom4(title) {
   if (/targa/i.test(title)) return "Targa";
   if (/cabriolet|convertible|\bcab\b/i.test(title)) return "Cabriolet";
   return "Coupe";
 }
 function classicComMap(item) {
-  const title = str3(item.title)?.trim();
+  const title = str4(item.title)?.trim();
   if (!title) return null;
-  const location = str3(item.location) ?? "";
+  const location = str4(item.location) ?? "";
   if (location && !/usa|united states/i.test(location)) return null;
-  const rawPrice = str3(item.price) ?? "";
+  const rawPrice = str4(item.price) ?? "";
   if (/€|eur|£|gbp/i.test(rawPrice)) return null;
   const price = parsePrice(rawPrice);
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!year || price == null || price < MIN_PLAUSIBLE_PRICE) return null;
   const cleanTitle = title.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || title;
-  const family = classifyModelFamily(title);
+  const family = classifyModelFamily(title, year ?? void 0);
   if (!family) return null;
-  const url = str3(item.url) ?? "#";
+  const url = str4(item.url) ?? "#";
   const [city, state] = location.split(",").map((s) => s.trim());
-  const status = /sold/i.test(str3(item.listing_status) ?? "") ? "sold" : "active";
-  const primary = str3(item.image_url);
+  const status = /sold/i.test(str4(item.listing_status) ?? "") ? "sold" : "active";
+  const primary = str4(item.image_url);
   const photos = Array.isArray(item.image_urls) ? item.image_urls.filter((u) => typeof u === "string") : primary ? [primary] : [];
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
     id: `classic-com:${url}`,
-    source: str3(item.seller) || "Classic.com",
+    source: str4(item.seller) || "Classic.com",
     sourceId: url,
     url,
     firstSeen: now,
@@ -525,13 +756,13 @@ function classicComMap(item) {
     year,
     modelFamily: family,
     trim: cleanTitle,
-    body: bodyFrom3(title),
-    transmission: str3(item.transmission) ?? "Unknown",
-    mileage: parseMileage(str3(item.mileage)),
+    body: bodyFrom4(title),
+    transmission: str4(item.transmission) ?? "Unknown",
+    mileage: parseMileage(str4(item.mileage)),
     listingType: "dealer",
     sellerType: "dealer",
     price,
-    currency: str3(item.price)?.includes("\u20AC") ? "EUR" : "USD",
+    currency: str4(item.price)?.includes("\u20AC") ? "EUR" : "USD",
     city: city || void 0,
     state: state || void 0,
     photos,
@@ -555,10 +786,10 @@ var classicComConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("classic-com");
     const out = [];
-    for (const startUrl of START_URLS2) {
+    for (const startUrl of START_URLS3) {
       try {
         const res = await fetch(
-          `https://api.apify.com/v2/acts/${ACTOR2}/run-sync-get-dataset-items?token=${token}`,
+          `https://api.apify.com/v2/acts/${ACTOR3}/run-sync-get-dataset-items?token=${token}`,
           {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -590,112 +821,164 @@ var classicComConnector = {
 };
 
 // ../src/lib/luft/connectors/ebay.ts
-var CARS_CATEGORY = "6001";
-function host(ctx) {
-  return ctx.env("EBAY_ENV") === "sandbox" ? "https://api.sandbox.ebay.com" : "https://api.ebay.com";
-}
-var tokenCache = null;
-async function appToken(ctx) {
-  if (tokenCache && tokenCache.expiresAt > Date.now() + 6e4) {
-    return tokenCache.token;
+var ACTOR4 = "apify~cheerio-scraper";
+var SACAT = "6001";
+function searchUrls(query, pages) {
+  const urls = [];
+  const q = encodeURIComponent(query);
+  for (let p = 1; p <= pages; p++) {
+    urls.push(`https://www.ebay.com/sch/i.html?_nkw=${q}&_sacat=${SACAT}&_ipg=60&_pgn=${p}`);
   }
-  const basic = ctx.base64(`${ctx.env("EBAY_APP_ID")}:${ctx.env("EBAY_CERT_ID")}`);
-  const res = await fetch(`${host(ctx)}/identity/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "content-type": "application/x-www-form-urlencoded"
-    },
-    body: "grant_type=client_credentials&scope=" + encodeURIComponent("https://api.ebay.com/oauth/api_scope")
+  return urls;
+}
+var START_URLS4 = [
+  ...searchUrls("porsche 911", 3),
+  ...searchUrls("porsche 912", 1),
+  ...searchUrls("porsche 930 turbo", 1),
+  ...searchUrls("porsche 964", 1),
+  ...searchUrls("porsche 993", 1)
+];
+var PAGE_FUNCTION3 = `async function pageFunction(context) {
+  var $ = context.$;
+  var out = [];
+  $('li.s-item, .s-item').each(function () {
+    var el = $(this);
+    var link = el.find('a.s-item__link').attr('href') || el.find('.s-item__link').attr('href') || '';
+    if (!link) return;
+    link = link.split('?')[0];
+    var title = (el.find('.s-item__title').text() || '').replace(/^\\s*New Listing/i, '').trim();
+    if (!title || title.toLowerCase() === 'shop on ebay') return;
+    var price = (el.find('.s-item__price').first().text() || '').trim();
+    var img = el.find('.s-item__image img').attr('src')
+      || el.find('.s-item__image img').attr('data-src')
+      || el.find('img').attr('src') || '';
+    var loc = (el.find('.s-item__location, .s-item__itemLocation').text() || '').trim();
+    var opts = (el.find('.s-item__purchase-options-with-icon, .s-item__dynamic, .s-item__bids').text() || '').trim();
+    out.push({ url: link, title: title, price: price, image: img, location: loc, opts: opts });
   });
-  if (!res.ok) throw new Error(`eBay OAuth failed: ${res.status}`);
-  const json = await res.json();
-  tokenCache = {
-    token: json.access_token,
-    expiresAt: Date.now() + json.expires_in * 1e3
-  };
-  return json.access_token;
+  return out;
+}`;
+var str5 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice2(v) {
+  const s = str5(v);
+  if (!s) return null;
+  const first = s.split(/\bto\b|–|-/i)[0];
+  const cleaned = first.replace(/[^0-9.]/g, "");
+  if (!cleaned) return null;
+  const n = parseFloat(cleaned);
+  return Number.isFinite(n) ? Math.round(n) : null;
 }
-var ebayConnector = {
-  meta: {
-    id: "ebay-motors",
-    name: "eBay Motors",
-    tier: "api",
-    provides: ["listings"],
-    enabled: true,
-    ref: "ebay:browse-api",
-    notes: "Live via Browse API. Set EBAY_APP_ID + EBAY_CERT_ID to configure."
-  },
-  isConfigured(ctx) {
-    return Boolean(ctx.env("EBAY_APP_ID") && ctx.env("EBAY_CERT_ID"));
-  },
-  async fetchListings(ctx) {
-    const token = await appToken(ctx);
-    const marketplace = ctx.env("EBAY_MARKETPLACE") || "EBAY_US";
-    const params = new URLSearchParams({
-      q: "Porsche 911 912 930 air-cooled",
-      category_ids: CARS_CATEGORY,
-      filter: "conditions:{USED},itemLocationCountry:US",
-      sort: "newlyListed",
-      limit: "200"
-    });
-    const res = await fetch(
-      `${host(ctx)}/buy/browse/v1/item_summary/search?${params}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "X-EBAY-C-MARKETPLACE-ID": marketplace
-        }
-      }
-    );
-    if (!res.ok) throw new Error(`eBay Browse search failed: ${res.status}`);
-    const json = await res.json();
-    return (json.itemSummaries ?? []).map(mapItem).filter((x) => x !== null);
-  }
-};
-function mapItem(item) {
-  const title = (item.title ?? "").trim();
-  const price = item.price?.value ? parseFloat(item.price.value) : NaN;
+function bodyFrom5(title) {
+  if (/targa/i.test(title)) return "Targa";
+  if (/cabriolet|convertible|cabrio|speedster|\bcab\b/i.test(title)) return "Cabriolet";
+  return "Coupe";
+}
+var NOT_A_CAR = /\b(wheel|wheels|fuchs|seat|seats|engine|transmission|gearbox|hood|bumper|manual|brochure|poster|model|1:18|1\/18|toy|shift knob|steering wheel|mirror|door|fender|badge|emblem|sign|key|jacket|watch)\b/i;
+function ebayMap(item) {
+  const title = (str5(item.title) ?? "").trim();
+  const link = str5(item.url) ?? "";
+  if (!title || !link) return null;
+  if (NOT_A_CAR.test(title)) return null;
   const year = Number(title.match(/\b(19\d{2})\b/)?.[1]);
-  if (!title || !year || Number.isNaN(price) || price < MIN_PLAUSIBLE_PRICE) return null;
-  const family = classifyModelFamily(title);
+  if (!year || year < 1963 || year > 1998) return null;
+  const family = classifyModelFamily(title, year);
   if (!family) return null;
-  const buyingOptions = item.buyingOptions ?? [];
-  const listingType = buyingOptions.includes("AUCTION") ? "auction" : "bin";
+  const price = parsePrice2(item.price);
+  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
+  const url = link.startsWith("http") ? link : `https://www.ebay.com${link}`;
+  const itemId = url.match(/\/itm\/(?:.*?\/)?(\d{6,})/)?.[1] ?? url;
+  const opts = (str5(item.opts) ?? "").toLowerCase();
+  const listingType = /bid|auction/.test(opts) ? "auction" : "bin";
+  const image = str5(item.image);
+  const location = (str5(item.location) ?? "").replace(/^from\s+/i, "").trim();
+  const [city, state] = location.split(",").map((s) => s.trim());
+  const clean = title.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || title;
   const now = (/* @__PURE__ */ new Date()).toISOString();
-  const photos = [
-    item.image?.imageUrl,
-    ...(item.additionalImages ?? []).map((i) => i.imageUrl)
-  ].filter((u) => Boolean(u));
   return {
-    id: `ebay-motors:${item.itemId}`,
+    id: `ebay-motors:${itemId}`,
     source: "eBay Motors",
-    sourceId: item.itemId,
-    url: item.itemWebUrl ?? "#",
+    sourceId: itemId,
+    url,
     firstSeen: now,
     lastSeen: now,
     status: "active",
     year,
     modelFamily: family,
-    trim: title.replace(/^\d{4}\s+(porsche\s+)?/i, ""),
-    body: /targa/i.test(title) ? "Targa" : /cabriolet|cab\b|convertible/i.test(title) ? "Cabriolet" : "Coupe",
-    transmission: /automatic|tiptronic|sportomatic/i.test(title) ? "Automatic" : /manual|5-spd|6-spd|4-spd/i.test(title) ? "Manual" : "Unknown",
+    trim: clean,
+    body: bodyFrom5(title),
+    transmission: /automatic|tiptronic|sportomatic/i.test(title) ? "Automatic" : /manual|5-spd|6-spd|4-spd|5 speed/i.test(title) ? "Manual" : "Unknown",
     listingType,
     sellerType: "dealer",
-    // eBay Motors skews dealer; refined once seller data is pulled
+    // eBay Motors skews dealer
     price,
-    currency: item.price?.currency ?? "USD",
-    endsAt: item.itemEndDate,
-    city: item.itemLocation?.city,
-    state: item.itemLocation?.stateOrProvince,
-    photos,
-    title: title.replace(/^\d{4}\s+/, `${year} `)
+    currency: "USD",
+    city: city || void 0,
+    state: state || void 0,
+    photos: image ? [image] : [],
+    title: clean
   };
 }
+var ebayConnector = {
+  meta: {
+    id: "ebay-motors",
+    name: "eBay Motors",
+    tier: "apify",
+    provides: ["listings"],
+    enabled: true,
+    ref: "apify:apify/cheerio-scraper",
+    notes: "Scrapes public eBay Motors search results (official Browse API path unavailable \u2014 dev account denied). Runs on APIFY_TOKEN."
+  },
+  isConfigured(ctx) {
+    return Boolean(ctx.env("APIFY_TOKEN"));
+  },
+  async fetchListings(ctx) {
+    const token = ctx.env("APIFY_TOKEN");
+    if (!token) throw new ConnectorNotImplemented("ebay-motors");
+    const input = {
+      startUrls: START_URLS4.map((url) => ({ url })),
+      pageFunction: PAGE_FUNCTION3,
+      proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"] },
+      useSessionPool: true,
+      persistCookiesPerSession: true,
+      maxRequestRetries: 3,
+      maxRequestsPerCrawl: 20,
+      maxConcurrency: 6
+    };
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR4}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input)
+    });
+    if (!start.ok) throw new Error(`eBay start failed: ${start.status}`);
+    const run = (await start.json()).data;
+    const deadline = Date.now() + 28e4;
+    let status = run.status;
+    while (status === "READY" || status === "RUNNING") {
+      if (Date.now() > deadline) throw new Error("eBay run timed out (still running)");
+      await new Promise((r) => setTimeout(r, 5e3));
+      const poll = await fetch(`https://api.apify.com/v2/actor-runs/${run.id}?token=${token}`);
+      if (!poll.ok) throw new Error(`eBay poll failed: ${poll.status}`);
+      status = (await poll.json()).data.status;
+    }
+    if (status !== "SUCCEEDED") throw new Error(`eBay run ${status}`);
+    const ds = await fetch(
+      `https://api.apify.com/v2/datasets/${run.defaultDatasetId}/items?token=${token}&clean=true`
+    );
+    if (!ds.ok) throw new Error(`eBay dataset failed: ${ds.status}`);
+    const data = await ds.json();
+    const items = Array.isArray(data) ? data : [];
+    const byId = /* @__PURE__ */ new Map();
+    for (const it of items) {
+      const mapped = ebayMap(it);
+      if (mapped && !byId.has(mapped.id)) byId.set(mapped.id, mapped);
+    }
+    return [...byId.values()];
+  }
+};
 
 // ../src/lib/luft/connectors/elferspot.ts
-var ACTOR3 = "apify~cheerio-scraper";
-var START_URLS3 = [
+var ACTOR5 = "apify~cheerio-scraper";
+var START_URLS5 = [
   "https://www.elferspot.com/en/search/?series%5B%5D=911-f-model&country%5B%5D=C_NA&sorting=newest",
   "https://www.elferspot.com/en/search/?series%5B%5D=912&country%5B%5D=C_NA&sorting=newest",
   "https://www.elferspot.com/en/search/?series%5B%5D=911-g-model&country%5B%5D=C_NA&sorting=newest",
@@ -703,7 +986,7 @@ var START_URLS3 = [
   "https://www.elferspot.com/en/search/?series%5B%5D=964&country%5B%5D=C_NA&sorting=newest",
   "https://www.elferspot.com/en/search/?series%5B%5D=993&country%5B%5D=C_NA&sorting=newest"
 ];
-var PAGE_FUNCTION2 = `async function pageFunction(context) {
+var PAGE_FUNCTION4 = `async function pageFunction(context) {
   var $ = context.$;
   var url = context.request.url;
   if (url.indexOf('/en/car/') === -1) return null;
@@ -717,8 +1000,8 @@ var PAGE_FUNCTION2 = `async function pageFunction(context) {
   var image = $('meta[property="og:image"]').attr('content') || '';
   return { url: url, price: price, image: image, specs: specs };
 }`;
-var str4 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
-function parsePrice2(s) {
+var str6 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
+function parsePrice3(s) {
   const currency = /eur|€/i.test(s) ? "EUR" : "USD";
   const first = s.replace(/,/g, "").match(/\d+/);
   const n = first ? parseInt(first[0], 10) : NaN;
@@ -732,7 +1015,7 @@ function parseMileage2(s) {
   if (/\bkm\b/i.test(s)) n = Math.round(n * 0.621371);
   return Number.isNaN(n) ? void 0 : n;
 }
-function bodyFrom4(body) {
+function bodyFrom6(body) {
   const b = (body ?? "").toLowerCase();
   if (/targa/.test(b)) return "Targa";
   if (/cabrio|convertible|spyder|speedster/.test(b)) return "Cabriolet";
@@ -742,15 +1025,15 @@ function elferspotMap(item) {
   const specs = item.specs ?? {};
   const model = (specs["Model"] ?? "").trim();
   const year = Number((specs["Year of construction"] ?? "").match(/\b(19|20)\d{2}\b/)?.[0]);
-  const title = model || (str4(item.title) ?? "").replace(/^porsche\s+/i, "").trim();
+  const title = model || (str6(item.title) ?? "").replace(/^porsche\s+/i, "").trim();
   if (!title || !year) return null;
   const family = classifyModelFamily(`${year} Porsche ${title}`);
   if (!family) return null;
-  const { price, currency } = parsePrice2(str4(item.price) ?? "");
+  const { price, currency } = parsePrice3(str6(item.price) ?? "");
   if (price == null || currency !== "USD" || price < MIN_PLAUSIBLE_PRICE) return null;
-  const url = str4(item.url) ?? "#";
+  const url = str6(item.url) ?? "#";
   const vin = (specs["VIN"] ?? "").match(/\b[A-HJ-NPR-Z0-9]{11,17}\b/i)?.[0];
-  const image = str4(item.image);
+  const image = str6(item.image);
   const now = (/* @__PURE__ */ new Date()).toISOString();
   return {
     id: `elferspot:${url}`,
@@ -763,7 +1046,7 @@ function elferspotMap(item) {
     year,
     modelFamily: family,
     trim: title,
-    body: bodyFrom4(specs["Body"]),
+    body: bodyFrom6(specs["Body"]),
     transmission: specs["Transmission"] || "Unknown",
     vin,
     mileage: parseMileage2(specs["Mileage"]),
@@ -797,15 +1080,15 @@ var elferspotConnector = {
     const token = ctx.env("APIFY_TOKEN");
     if (!token) throw new ConnectorNotImplemented("elferspot");
     const input = {
-      startUrls: START_URLS3.map((url) => ({ url })),
+      startUrls: START_URLS5.map((url) => ({ url })),
       linkSelector: "a.content-teaser",
       globs: [{ glob: "https://www.elferspot.com/en/car/*" }],
-      pageFunction: PAGE_FUNCTION2,
+      pageFunction: PAGE_FUNCTION4,
       proxyConfiguration: { useApifyProxy: true },
       maxRequestsPerCrawl: 400,
       maxConcurrency: 20
     };
-    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR3}/runs?token=${token}`, {
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR5}/runs?token=${token}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(input)
@@ -903,13 +1186,15 @@ var CONNECTORS = [
   mockConnector,
   // connector #0 — off by default; opt in with LUFT_ENABLE_MOCK=1
   ebayConnector,
-  // configured when EBAY_APP_ID + EBAY_CERT_ID are set
+  // eBay Motors scrape (Browse API path denied) — runs on APIFY_TOKEN
   classicComConnector,
   // working MVP source — runs on APIFY_TOKEN alone
   elferspotConnector,
   // two-stage cheerio crawl — runs on APIFY_TOKEN alone
   autotraderConnector,
   // single-stage cheerio crawl — runs on APIFY_TOKEN alone
+  bringATrailerConnector,
+  // live BaT auctions — OPT-IN: needs APIFY_TOKEN + LUFT_ENABLE_BAT
   ...apifyConnectors
   // other Apify-actor sources (need actorId/actorEnv)
 ];
@@ -1468,7 +1753,7 @@ ${e.stack ?? ""}` : String(e);
     return new Response("LUFT ingest worker", { status: 200 });
   }
 };
-var src_default = handler;
+var index_default = handler;
 export {
-  src_default as default
+  index_default as default
 };
