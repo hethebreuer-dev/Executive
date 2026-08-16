@@ -1,11 +1,11 @@
-// PCARMARKET via the managed apify/web-scraper actor.
+// PCARMARKET via its JSON marketplace API (fetched by apify/cheerio-scraper).
 //
-// PCARMARKET's marketplace grid is rendered client-side (JavaScript), so a
-// cheerio (no-JS) scraper only caught a stray link or two. web-scraper runs a
-// real Chromium browser, executes the page's JS, waits for the listing grid to
-// render, then extracts the cards. Scrapes the Porsche marketplace pre-filtered
-// server-side to the air-cooled years (startYear=1964&endYear=1998).
-// Runs on APIFY_TOKEN. Emits a diagnostic when it finds nothing.
+// The marketplace grid is client-rendered, but the SPA loads its listings from
+// a clean JSON endpoint (/api/marketplace/?type=cars&…), already filtered to the
+// air-cooled years server-side. We fetch that JSON with the cheerio actor (no
+// browser, no rental) and parse it — far simpler and cheaper than rendering the
+// page. The parser is defensive about the JSON shape and emits a diagnostic
+// (with a sample of the payload) when it can't find listings.
 
 import { MIN_PLAUSIBLE_PRICE, type BodyStyle, type CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
@@ -17,75 +17,95 @@ import {
 
 type Raw = Record<string, unknown>;
 
-const ACTOR = "apify~web-scraper";
+const ACTOR = "apify~cheerio-scraper";
 
-// Air-cooled Porsche cars, year-filtered server-side. Paginated with ?page=N.
-function browseUrls(pages: number): string[] {
+// The SPA's listings API, air-cooled years pinned. 24/page; paginate for room.
+function apiUrls(pages: number): string[] {
   const base =
-    "https://www.pcarmarket.com/marketplace?itemType=cars&make=porsche&startYear=1964&endYear=1998&porscheOnly=true";
+    "https://www.pcarmarket.com/api/marketplace/?type=cars&limit=24&make=porsche&series=all&start_year=1964&end_year=1998&sort_by=recent";
   const urls: string[] = [];
   for (let p = 1; p <= pages; p++) urls.push(`${base}&page=${p}`);
   return urls;
 }
-const START_URLS = browseUrls(3);
+const START_URLS = apiUrls(5);
 
-// Runs IN the browser (web-scraper) after the page loads. Waits for the client-
-// rendered /auction/ links, then extracts one record per listing card with
-// vanilla DOM. Returns a diagnostic object when nothing renders.
+// Runs inside the actor. context.body is the JSON payload; find the listings
+// array (defensively), then emit one flat record per car. Builds the auction
+// URL from a slug when the object doesn't carry a full URL.
 const PAGE_FUNCTION = `async function pageFunction(context) {
-  function waitFor(sel, ms) {
-    return new Promise(function (res) {
-      var t = Date.now();
-      (function chk() {
-        if (document.querySelector(sel)) return res(true);
-        if (Date.now() - t > ms) return res(false);
-        setTimeout(chk, 300);
-      })();
-    });
+  var body = context.body;
+  var json = null;
+  try { json = (typeof body === 'string') ? JSON.parse(body) : body; } catch (e) { json = null; }
+  if (!json) {
+    return { __diag: true, url: context.request ? context.request.url : '', note: 'body not JSON', head: String(body || '').slice(0, 200) };
   }
-  await waitFor('a[href*="/auction/"]', 20000);
-  await new Promise(function (r) { setTimeout(r, 1500); }); // let lazy cards settle
 
-  function priceIn(text) { var m = (text || '').match(/\\$[0-9][0-9,]{2,}/); return m ? m[0] : ''; }
-  var out = [], seen = {};
-  Array.prototype.slice.call(document.querySelectorAll('a[href*="/auction/"]')).forEach(function (a) {
-    var href = a.href || a.getAttribute('href') || '';
-    if (href.indexOf('/auction/') === -1) return;
-    href = href.split('?')[0];
-    if (seen[href]) return;
-    var card = a.closest('[class*="listing"],[class*="card"],[class*="item"],li,article,div') || a;
-    var title = (a.getAttribute('title') || a.textContent || '').replace(/\\s+/g, ' ').trim();
-    if (!title || title.length < 4) {
-      var h = card.querySelector('h2,h3,[class*="title"]');
-      title = h ? h.textContent.replace(/\\s+/g, ' ').trim() : title;
+  function firstArray(o, depth) {
+    if (!o || depth > 5) return null;
+    if (Array.isArray(o)) return o;
+    if (typeof o === 'object') {
+      var known = ['results','items','data','listings','vehicles','objects','cars','auctions'];
+      for (var i = 0; i < known.length; i++) { if (Array.isArray(o[known[i]])) return o[known[i]]; }
+      var kk = Object.keys(o);
+      for (var j = 0; j < kk.length; j++) { var r = firstArray(o[kk[j]], depth + 1); if (r && r.length) return r; }
     }
-    if (!title || title.length < 4) return;
-    seen[href] = true;
-    var imgEl = card.querySelector('img');
-    var img = imgEl ? (imgEl.src || imgEl.getAttribute('data-src') || '') : '';
-    out.push({ url: href, title: title, price: priceIn(card.textContent), image: img });
-  });
-  if (out.length) return out;
+    return null;
+  }
+  var arr = firstArray(json, 0);
+  if (arr === null) {
+    return { __diag: true, url: context.request ? context.request.url : '', note: 'no array found', keys: Object.keys(json).join(','), sample: JSON.stringify(json).slice(0, 400) };
+  }
 
-  var bodyText = (document.body.innerText || '').replace(/\\s+/g, ' ').trim();
-  return {
-    __diag: true,
-    url: (context.request && context.request.url) || location.href,
-    pageTitle: document.title,
-    auctionLinks: document.querySelectorAll('a[href*="/auction/"]').length,
-    bodyLen: bodyText.length,
-    textHead: bodyText.slice(0, 220)
-  };
+  var out = [];
+  arr.forEach(function (o) {
+    if (!o || typeof o !== 'object') return;
+    var title = o.title || o.name || o.headline || o.year_make_model || '';
+    if (!title && (o.year || o.make || o.model)) title = [o.year, o.make, o.model, o.submodel].filter(Boolean).join(' ');
+    title = String(title || '').trim();
+
+    var url = o.url || o.absolute_url || o.permalink || o.link || o.canonical_url || '';
+    if (!url && o.slug) url = '/auction/' + o.slug;
+    if (!url && o.auction && o.auction.slug) url = '/auction/' + o.auction.slug;
+    url = String(url || '');
+    if (url && url.indexOf('http') !== 0) url = 'https://www.pcarmarket.com/' + url.replace(/^\\//, '');
+
+    var price = o.current_bid || o.currentBid || o.price || o.high_bid || o.amount || o.current_bid_amount || o.bid || '';
+    var img = o.thumbnail || o.image || o.main_image || o.photo || o.image_url || o.thumbnail_url || '';
+    if (img && typeof img === 'object') img = img.url || '';
+
+    if (!title || !url) return;
+    out.push({
+      url: url,
+      title: title,
+      price: (typeof price === 'number' ? ('$' + price) : String(price)),
+      image: String(img || ''),
+      year: o.year || null
+    });
+  });
+
+  if (out.length) return out;
+  if (arr.length === 0) return []; // legitimately empty (trailing) page
+  return { __diag: true, url: context.request ? context.request.url : '', note: 'array found but 0 parsed', arrLen: arr.length, sample: JSON.stringify(arr[0]).slice(0, 500) };
 }`;
 
 const str = (v: unknown): string | undefined =>
   typeof v === "string" ? v : v == null ? undefined : String(v);
 
+const num = (v: unknown): number | undefined => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
+  if (typeof v === "string") {
+    const d = v.replace(/[^0-9]/g, "");
+    if (!d) return undefined;
+    const n = parseInt(d, 10);
+    return Number.isNaN(n) ? undefined : n;
+  }
+  return undefined;
+};
+
 function parsePrice(v: unknown): number | null {
   const s = str(v);
   if (!s) return null;
-  const first = s.split(/\bto\b|–|-/i)[0];
-  const cleaned = first.replace(/[^0-9.]/g, "");
+  const cleaned = s.split(/\bto\b|–|-/i)[0].replace(/[^0-9.]/g, "");
   if (!cleaned) return null;
   const n = parseFloat(cleaned);
   return Number.isFinite(n) ? Math.round(n) : null;
@@ -101,9 +121,9 @@ export function pcarmarketMap(item: Raw): CanonicalListing | null {
   const rawTitle = (str(item.title) ?? "").trim();
   const link = str(item.url) ?? "";
   if (!rawTitle || !link) return null;
-  const url = link.startsWith("http") ? link : `https://www.pcarmarket.com${link}`;
+  const url = link.startsWith("http") ? link : `https://www.pcarmarket.com/${link.replace(/^\//, "")}`;
 
-  const year = Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
+  const year = num(item.year) ?? Number(rawTitle.match(/\b(19\d{2})\b/)?.[1]);
   if (!year || year < 1963 || year > 1998) return null; // air-cooled range only
 
   const family = classifyModelFamily(rawTitle, year);
@@ -146,7 +166,7 @@ export const pcarmarketConnector: ListingConnector = {
     provides: ["listings"],
     enabled: true,
     ref: "apify:apify/cheerio-scraper",
-    notes: "Air-cooled Porsche listings from PCARMARKET's year-filtered marketplace. Runs on APIFY_TOKEN.",
+    notes: "Air-cooled Porsche listings from PCARMARKET's JSON marketplace API. Runs on APIFY_TOKEN.",
   } satisfies ConnectorMeta,
 
   isConfigured(ctx) {
@@ -161,25 +181,18 @@ export const pcarmarketConnector: ListingConnector = {
       startUrls: START_URLS.map((url) => ({ url })),
       pageFunction: PAGE_FUNCTION,
       proxyConfiguration: { useApifyProxy: true },
-      injectJQuery: false, // page-function uses vanilla DOM
-      maxRequestRetries: 2,
-      maxRequestsPerCrawl: 8,
-      maxConcurrency: 2,
-      pageLoadTimeoutSecs: 60,
+      useSessionPool: true,
+      persistCookiesPerSession: true,
+      maxRequestRetries: 3,
+      maxRequestsPerCrawl: 10,
+      maxConcurrency: 4,
     };
 
-    // memory=2048: web-scraper's default is 4096 MB, and connectors run in
-    // parallel — a 4 GB browser alongside the cheerio actors overflows the
-    // account's concurrent-memory limit and Apify 403s the run. A browser fits
-    // comfortably in 2 GB for a page this small.
-    const start = await fetch(
-      `https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}&memory=2048`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(input),
-      }
-    );
+    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
     if (!start.ok) {
       const detail = await start.text().catch(() => "");
       throw new Error(`PCARMARKET start failed: ${start.status} ${detail.slice(0, 200)}`);
@@ -207,7 +220,7 @@ export const pcarmarketConnector: ListingConnector = {
     const items: Raw[] = Array.isArray(data) ? (data as Raw[]) : [];
 
     if (items.length === 0) {
-      throw new Error("PCARMARKET returned an empty dataset — requests likely blocked (no pages fetched).");
+      throw new Error("PCARMARKET returned an empty dataset — requests likely blocked.");
     }
 
     const diag = items.find((it) => it && it.__diag);
@@ -223,15 +236,15 @@ export const pcarmarketConnector: ListingConnector = {
     if (cars.length === 0) {
       if (diag) {
         throw new Error(
-          `PCARMARKET found no listing cards. url=${str(diag.url)} title="${str(diag.pageTitle)}" ` +
-            `h1="${str(diag.h1)}" auction-links=${str(diag.auctionLinks)} bodyLen=${str(diag.bodyLen)} :: ${str(diag.textHead)}`
+          `PCARMARKET parsed no listings. url=${str(diag.url)} note="${str(diag.note)}" ` +
+            `keys=${str(diag.keys)} arrLen=${str(diag.arrLen)} sample=${str(diag.sample) ?? str(diag.head)}`
         );
       }
       if (rawCards.length) {
         const s = rawCards[0];
         throw new Error(
-          `PCARMARKET scraped ${rawCards.length} cards but 0 passed the air-cooled filter. ` +
-            `sample: title="${str(s.title)}" price="${str(s.price)}"`
+          `PCARMARKET scraped ${rawCards.length} cards but 0 passed the filter. ` +
+            `sample: title="${str(s.title)}" price="${str(s.price)}" url="${str(s.url)}"`
         );
       }
     }
