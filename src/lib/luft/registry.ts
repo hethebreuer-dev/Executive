@@ -5,6 +5,7 @@
 
 import { apifyConnectors } from "./connectors/apify-sites";
 import { autotraderConnector } from "./connectors/autotrader";
+import { bringATrailerConnector } from "./connectors/bring-a-trailer";
 import { classicComConnector } from "./connectors/classic-com";
 import { isConfigured, type AnyConnector } from "./connectors/connector";
 import type { ConnectorContext } from "./connectors/context";
@@ -18,6 +19,7 @@ export const CONNECTORS: AnyConnector[] = [
   classicComConnector, // working MVP source — runs on APIFY_TOKEN alone
   elferspotConnector, // two-stage cheerio crawl — runs on APIFY_TOKEN alone
   autotraderConnector, // single-stage cheerio crawl — runs on APIFY_TOKEN alone
+  bringATrailerConnector, // live BaT auctions — OPT-IN: needs APIFY_TOKEN + LUFT_ENABLE_BAT
   ...apifyConnectors, // other Apify-actor sources (need actorId/actorEnv)
 ];
 
