@@ -1273,27 +1273,28 @@ var PAGE_FUNCTION5 = `async function pageFunction(context) {
   var out = [];
   arr.forEach(function (o) {
     if (!o || typeof o !== 'object') return;
-    var title = o.title || o.name || o.headline || o.year_make_model || '';
-    if (!title && (o.year || o.make || o.model)) title = [o.year, o.make, o.model, o.submodel].filter(Boolean).join(' ');
+    var v = o.vehicle || {};
+    // Prefer the structured vehicle fields (clean, reliable year); fall back to
+    // the display title minus its "MarketPlace: " prefix.
+    var title = (v.year || v.make || v.model) ? [v.year, v.make, v.model].filter(Boolean).join(' ') : '';
+    if (!title) title = String(o.title || '').replace(/^\\s*marketplace:\\s*/i, '').trim();
     title = String(title || '').trim();
 
-    var url = o.url || o.absolute_url || o.permalink || o.link || o.canonical_url || '';
-    if (!url && o.slug) url = '/auction/' + o.slug;
-    if (!url && o.auction && o.auction.slug) url = '/auction/' + o.auction.slug;
-    url = String(url || '');
-    if (url && url.indexOf('http') !== 0) url = 'https://www.pcarmarket.com/' + url.replace(/^\\//, '');
-
-    var price = o.current_bid || o.currentBid || o.price || o.high_bid || o.amount || o.current_bid_amount || o.bid || '';
-    var img = o.thumbnail || o.image || o.main_image || o.photo || o.image_url || o.thumbnail_url || '';
-    if (img && typeof img === 'object') img = img.url || '';
-
+    var slug = o.slug || o.marketplace_listing_slug || '';
+    var url = slug ? ('https://www.pcarmarket.com/auction/' + slug) : '';
     if (!title || !url) return;
+
+    var img = o.featured_image_large_url || o.featured_image_url || '';
     out.push({
       url: url,
       title: title,
-      price: (typeof price === 'number' ? ('$' + price) : String(price)),
+      // Price candidates in preference order \u2014 live bid, then estimated value.
+      price: (typeof o.current_bid === 'number' ? ('$' + o.current_bid) : String(o.current_bid || '')),
+      highBid: (typeof o.high_bid === 'number' ? o.high_bid : null),
+      retail: String(o.retail_value || ''),
+      reserve: (typeof o.reserve_price === 'number' ? o.reserve_price : null),
       image: String(img || ''),
-      year: o.year || null
+      year: v.year || o.year || null
     });
   });
 
@@ -1334,8 +1335,9 @@ function pcarmarketMap(item) {
   if (!year || year < 1963 || year > 1998) return null;
   const family = classifyModelFamily(rawTitle, year);
   if (!family) return null;
-  const price = parsePrice4(item.price);
-  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
+  const candidates = [parsePrice4(item.price), num4(item.highBid), parsePrice4(item.retail), num4(item.reserve)];
+  const price = candidates.find((p) => p != null && p >= MIN_PLAUSIBLE_PRICE) ?? null;
+  if (price == null) return null;
   const image = str7(item.image);
   const title = rawTitle.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || rawTitle;
   const now = (/* @__PURE__ */ new Date()).toISOString();
