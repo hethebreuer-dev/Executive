@@ -822,22 +822,22 @@ var classicComConnector = {
 
 // ../src/lib/luft/connectors/ebay.ts
 var ACTOR4 = "apify~cheerio-scraper";
-var BROWSE_NODE = "Porsche-Cars-and-Trucks/6001/bn_24014594";
 var YEAR_FACET = (() => {
   const ys = [];
   for (let y = 1964; y <= 1998; y++) ys.push(y);
   return "Model%20Year=" + ys.join("%7C");
 })();
 var MODEL_FACET = "Model=" + ["911", "912", "930", "964", "993"].join("%7C");
-var START_URLS4 = (() => {
-  const urls = [];
-  for (let p = 1; p <= 8; p++) {
-    urls.push(
-      `https://www.ebay.com/b/${BROWSE_NODE}?${YEAR_FACET}&${MODEL_FACET}&rt=nc&_ipg=240&_pgn=${p}`
-    );
-  }
-  return urls;
-})();
+function schUrl(extra, page) {
+  return `https://www.ebay.com/sch/i.html?_sacat=6001&_ipg=240&_pgn=${page}&${extra}`;
+}
+var START_URLS4 = [
+  ...[1, 2, 3, 4].map((p) => schUrl(`_nkw=porsche&${MODEL_FACET}&${YEAR_FACET}`, p)),
+  schUrl("_nkw=" + encodeURIComponent("porsche 964"), 1),
+  schUrl("_nkw=" + encodeURIComponent("porsche 993"), 1),
+  schUrl("_nkw=" + encodeURIComponent("porsche 930"), 1),
+  schUrl("_nkw=" + encodeURIComponent("porsche 912"), 1)
+];
 var PAGE_FUNCTION3 = `async function pageFunction(context) {
   var $ = context.$;
   var out = [];
