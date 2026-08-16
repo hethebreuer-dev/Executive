@@ -98,6 +98,8 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
   const [transmissions, setTransmissions] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [minYear, setMinYear] = useState("");
+  const [maxYear, setMaxYear] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false); // mobile refine panel
 
   // Re-sync from the URL when the header submits ?q=… or a "browse by
@@ -123,7 +125,9 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
     bodies.length > 0 ||
     transmissions.length > 0 ||
     minPrice !== "" ||
-    maxPrice !== "";
+    maxPrice !== "" ||
+    minYear !== "" ||
+    maxYear !== "";
 
   // Count of active refine filters (excludes the free-text search), shown on
   // the mobile "Filters" toggle so applied filters are visible while collapsed.
@@ -132,7 +136,8 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
     bodies.length +
     transmissions.length +
     (minPrice ? 1 : 0) +
-    (maxPrice ? 1 : 0);
+    (maxPrice ? 1 : 0) +
+    (minYear || maxYear ? 1 : 0);
 
   function resetFilters() {
     setModel("all");
@@ -141,6 +146,8 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
     setTransmissions([]);
     setMinPrice("");
     setMaxPrice("");
+    setMinYear("");
+    setMaxYear("");
   }
 
   const view = useMemo(() => {
@@ -155,6 +162,11 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
     const max = parsePriceInput(maxPrice);
     if (min != null) filtered = filtered.filter((c) => c.price >= min);
     if (max != null) filtered = filtered.filter((c) => c.price <= max);
+
+    const minY = parseInt(minYear, 10);
+    const maxY = parseInt(maxYear, 10);
+    if (!Number.isNaN(minY)) filtered = filtered.filter((c) => c.year >= minY);
+    if (!Number.isNaN(maxY)) filtered = filtered.filter((c) => c.year <= maxY);
 
     const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (tokens.length) {
@@ -192,7 +204,7 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
       marketLabel: md ? md.label : "All air-cooled",
       sparkPoints: spark,
     };
-  }, [model, sort, listings, query, bodies, transmissions, minPrice, maxPrice]);
+  }, [model, sort, listings, query, bodies, transmissions, minPrice, maxPrice, minYear, maxYear]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: listings.length };
@@ -393,6 +405,15 @@ export function MarketplaceClient({ listings }: { listings: Listing[] }) {
             <div style={{ display: "flex", gap: 8 }}>
               <PriceInput value={minPrice} onChange={setMinPrice} placeholder="$30k" />
               <PriceInput value={maxPrice} onChange={setMaxPrice} placeholder="$600k+" />
+            </div>
+          </div>
+
+          <div style={{ padding: "22px 0", borderBottom: "1px solid #e6e5e2" }}>
+            <FilterLabel>Year</FilterLabel>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <YearInput value={minYear} onChange={setMinYear} placeholder="1965" />
+              <span className="mono" style={{ fontSize: 12, color: "#adaca7" }}>–</span>
+              <YearInput value={maxYear} onChange={setMaxYear} placeholder="1998" />
             </div>
           </div>
 
@@ -803,6 +824,41 @@ function PriceInput({
         fontSize: 12,
         color: "#0d0d0d",
         outline: "none",
+      }}
+    />
+  );
+}
+
+function YearInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <input
+      className="mono"
+      inputMode="numeric"
+      maxLength={4}
+      value={value}
+      // Digits only, capped at 4 so the field can't take a stray price/comma.
+      onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+      placeholder={placeholder}
+      style={{
+        flex: 1,
+        minWidth: 0,
+        width: "100%",
+        border: "1px solid #e6e5e2",
+        background: "#fafafa",
+        borderRadius: 2,
+        padding: "8px 10px",
+        fontSize: 12,
+        color: "#0d0d0d",
+        outline: "none",
+        textAlign: "center",
       }}
     />
   );

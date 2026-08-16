@@ -7,6 +7,7 @@
 // pipelines are live. See docs/DATA_ARCHITECTURE.md.
 
 import { MOCK_LISTINGS } from "@/lib/luft/connectors/mock-connector";
+import { classifyModelFamily, classifyBody } from "@/lib/luft/normalize";
 import type { CanonicalListing } from "@/lib/luft/model";
 
 export const TAGLINE = "Buy. Sell. Breathe air-cooled.";
@@ -52,11 +53,15 @@ export function toLegacyListing(c: CanonicalListing, i: number): Listing {
     canonicalId: c.id,
     year: c.year,
     title: c.title,
-    key: c.modelFamily,
+    // Re-derive generation & body from the title + reliable year at read time,
+    // so already-ingested rows that were mis-bucketed (e.g. a 964 titled "911
+    // Carrera" stored as "911") are corrected live, not only on the next ingest.
+    // Fall back to the stored value when the title yields nothing.
+    key: classifyModelFamily(c.title, c.year) ?? c.modelFamily,
     price: c.price,
     miles: c.mileage ?? 0,
     trans: c.transmission,
-    body: c.body,
+    body: classifyBody(c.title) ?? c.body,
     city: c.city ?? "",
     state: c.state ?? "",
     source: c.source,

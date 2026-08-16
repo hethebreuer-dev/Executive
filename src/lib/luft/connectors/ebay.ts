@@ -116,7 +116,7 @@ function mapItem(item: EbayItemSummary): CanonicalListing | null {
   // Floor drops parts/wheel/model-car listings priced far below any real car.
   if (!title || !year || Number.isNaN(price) || price < MIN_PLAUSIBLE_PRICE) return null;
 
-  const family = classifyModelFamily(title);
+  const family = classifyModelFamily(title, year ?? undefined);
   if (!family) return null; // filter out non-air-cooled results
 
   const buyingOptions = item.buyingOptions ?? [];

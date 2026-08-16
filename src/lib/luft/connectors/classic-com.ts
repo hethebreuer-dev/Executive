@@ -86,7 +86,7 @@ export function classicComMap(item: Raw): CanonicalListing | null {
   const cleanTitle =
     title.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || title;
 
-  const family = classifyModelFamily(title);
+  const family = classifyModelFamily(title, year ?? undefined);
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
   const url = str(item.url) ?? "#";

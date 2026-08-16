@@ -129,7 +129,7 @@ export function autotraderMap(item: Raw): CanonicalListing | null {
   if (!rawTitle || !year) return null;
   if (year < 1963 || year > 1998) return null; // air-cooled range only (guards water-cooled)
 
-  const family = classifyModelFamily(rawTitle);
+  const family = classifyModelFamily(rawTitle, year ?? undefined);
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
   const price = num(item.price);
