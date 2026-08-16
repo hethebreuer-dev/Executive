@@ -1234,18 +1234,24 @@ var mockConnector = {
 // ../src/lib/luft/connectors/pcarmarket.ts
 var ACTOR6 = "apify~cheerio-scraper";
 function apiUrls(pages) {
-  const base = "https://www.pcarmarket.com/api/marketplace/?type=cars&limit=24&make=porsche&series=all&start_year=1964&end_year=1998&sort_by=recent";
+  const base = "https://www.pcarmarket.com/api/marketplace/?type=cars&limit=48&make=porsche&series=all&start_year=1964&end_year=1998&sort_by=recent";
   const urls = [];
   for (let p = 1; p <= pages; p++) urls.push(`${base}&page=${p}`);
   return urls;
 }
-var START_URLS6 = apiUrls(5);
+var START_URLS6 = apiUrls(2);
 var PAGE_FUNCTION5 = `async function pageFunction(context) {
-  var body = context.body;
-  var json = null;
-  try { json = (typeof body === 'string') ? JSON.parse(body) : body; } catch (e) { json = null; }
+  // cheerio-scraper exposes a parsed JSON body as context.json; fall back to
+  // parsing context.body, which can be a Buffer for JSON responses (a plain
+  // typeof-string check misses it, leaving the payload unparsed).
+  var json = context.json || null;
   if (!json) {
-    return { __diag: true, url: context.request ? context.request.url : '', note: 'body not JSON', head: String(body || '').slice(0, 200) };
+    var raw = context.body;
+    if (raw && typeof raw !== 'string' && typeof raw.toString === 'function') raw = raw.toString('utf8');
+    try { json = JSON.parse(raw); } catch (e) { json = null; }
+  }
+  if (!json) {
+    return { __diag: true, url: context.request ? context.request.url : '', note: 'body not JSON', head: String(context.body || '').slice(0, 200) };
   }
 
   function firstArray(o, depth) {
