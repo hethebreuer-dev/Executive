@@ -1,12 +1,11 @@
-// PCARMARKET via the managed apify/cheerio-scraper actor.
+// PCARMARKET via the managed apify/web-scraper actor.
 //
-// Scrapes the Porsche marketplace, pre-filtered to the air-cooled years
-// (startYear=1964&endYear=1998) server-side. PCARMARKET is enthusiast-run and
-// far more scrape-friendly than eBay. Runs on APIFY_TOKEN.
-//
-// The page-function is defensive (embedded-JSON walk + /auction/ anchor
-// fallback) and emits a diagnostic when it finds nothing, so a markup change or
-// client-rendering surfaces as an ingest error instead of a silent zero.
+// PCARMARKET's marketplace grid is rendered client-side (JavaScript), so a
+// cheerio (no-JS) scraper only caught a stray link or two. web-scraper runs a
+// real Chromium browser, executes the page's JS, waits for the listing grid to
+// render, then extracts the cards. Scrapes the Porsche marketplace pre-filtered
+// server-side to the air-cooled years (startYear=1964&endYear=1998).
+// Runs on APIFY_TOKEN. Emits a diagnostic when it finds nothing.
 
 import { MIN_PLAUSIBLE_PRICE, type BodyStyle, type CanonicalListing } from "../model";
 import { classifyModelFamily } from "../normalize";
@@ -18,7 +17,7 @@ import {
 
 type Raw = Record<string, unknown>;
 
-const ACTOR = "apify~cheerio-scraper";
+const ACTOR = "apify~web-scraper";
 
 // Air-cooled Porsche cars, year-filtered server-side. Paginated with ?page=N.
 function browseUrls(pages: number): string[] {
@@ -28,91 +27,55 @@ function browseUrls(pages: number): string[] {
   for (let p = 1; p <= pages; p++) urls.push(`${base}&page=${p}`);
   return urls;
 }
-const START_URLS = browseUrls(6);
+const START_URLS = browseUrls(3);
 
-// Runs inside the actor. Collects listings from any embedded JSON blob (walking
-// for objects that carry a pcarmarket /auction/ URL + a title), then falls back
-// to /auction/ anchors in the DOM. Emits a diagnostic record if nothing matches.
+// Runs IN the browser (web-scraper) after the page loads. Waits for the client-
+// rendered /auction/ links, then extracts one record per listing card with
+// vanilla DOM. Returns a diagnostic object when nothing renders.
 const PAGE_FUNCTION = `async function pageFunction(context) {
-  var $ = context.$;
-  var out = [];
-  var seen = {};
-
-  function priceIn(text) {
-    var m = (text || '').match(/\\$[0-9][0-9,]{2,}/);
-    return m ? m[0] : '';
-  }
-  function pushCard(url, title, price, img) {
-    if (!url || url.indexOf('/auction/') === -1) return;
-    if (url.indexOf('http') !== 0) url = 'https://www.pcarmarket.com' + url;
-    url = url.split('?')[0];
-    if (seen[url]) return;
-    title = (title || '').replace(/\\s+/g, ' ').trim();
-    if (!title || title.length < 4) return;
-    seen[url] = true;
-    out.push({ url: url, title: title, price: price || '', image: img || '' });
-  }
-
-  function pushItem(o) {
-    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
-    var url = '';
-    ['url','permalink','link','absolute_url','path'].forEach(function (k) {
-      if (!url && typeof o[k] === 'string' && o[k].indexOf('/auction/') !== -1) url = o[k];
+  function waitFor(sel, ms) {
+    return new Promise(function (res) {
+      var t = Date.now();
+      (function chk() {
+        if (document.querySelector(sel)) return res(true);
+        if (Date.now() - t > ms) return res(false);
+        setTimeout(chk, 300);
+      })();
     });
-    if (!url) return;
-    var title = o.title || o.name || o.headline || o.year_make_model || '';
-    var img = '';
-    ['thumbnail','image','image_url','thumbnail_url','photo'].forEach(function (k) {
-      if (img) return;
-      var v = o[k];
-      if (typeof v === 'string') img = v; else if (v && typeof v === 'object' && typeof v.url === 'string') img = v.url;
-    });
-    var price = o.current_bid || o.current_bid_formatted || o.price || o.high_bid || o.amount || '';
-    pushCard(url, String(title), typeof price === 'number' ? ('$' + price) : String(price), img);
   }
-  function walk(node, depth) {
-    if (!node || depth > 8) return;
-    if (Array.isArray(node)) { for (var i = 0; i < node.length; i++) walk(node[i], depth + 1); return; }
-    if (typeof node === 'object') {
-      pushItem(node);
-      var keys = Object.keys(node);
-      for (var j = 0; j < keys.length; j++) { var v = node[keys[j]]; if (v && typeof v === 'object') walk(v, depth + 1); }
+  await waitFor('a[href*="/auction/"]', 20000);
+  await new Promise(function (r) { setTimeout(r, 1500); }); // let lazy cards settle
+
+  function priceIn(text) { var m = (text || '').match(/\\$[0-9][0-9,]{2,}/); return m ? m[0] : ''; }
+  var out = [], seen = {};
+  Array.prototype.slice.call(document.querySelectorAll('a[href*="/auction/"]')).forEach(function (a) {
+    var href = a.href || a.getAttribute('href') || '';
+    if (href.indexOf('/auction/') === -1) return;
+    href = href.split('?')[0];
+    if (seen[href]) return;
+    var card = a.closest('[class*="listing"],[class*="card"],[class*="item"],li,article,div') || a;
+    var title = (a.getAttribute('title') || a.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!title || title.length < 4) {
+      var h = card.querySelector('h2,h3,[class*="title"]');
+      title = h ? h.textContent.replace(/\\s+/g, ' ').trim() : title;
     }
-  }
-
-  // 1) embedded JSON
-  $('script').each(function () {
-    var t = $(this).html() || '';
-    if (t.length < 40 || t.indexOf('/auction/') === -1) return;
-    var parsed = null; try { parsed = JSON.parse(t); } catch (e) { parsed = null; }
-    if (parsed) walk(parsed, 0);
+    if (!title || title.length < 4) return;
+    seen[href] = true;
+    var imgEl = card.querySelector('img');
+    var img = imgEl ? (imgEl.src || imgEl.getAttribute('data-src') || '') : '';
+    out.push({ url: href, title: title, price: priceIn(card.textContent), image: img });
   });
+  if (out.length) return out;
 
-  // 2) DOM fallback: /auction/ anchors, pulling a price from the nearest card.
-  if (out.length === 0) {
-    $('a[href*="/auction/"]').each(function () {
-      var a = $(this);
-      var href = a.attr('href') || '';
-      var title = (a.attr('title') || a.text() || '').trim();
-      var card = a.closest('[class*="listing"], [class*="card"], [class*="item"], li, article, div');
-      var price = priceIn(card.text());
-      var img = card.find('img').attr('src') || card.find('img').attr('data-src') || a.find('img').attr('src') || '';
-      pushCard(href, title, price, img);
-    });
-  }
-
-  if (out.length > 0) return out;
-
-  var bodyText = ($('body').text() || '').replace(/\\s+/g, ' ').trim();
-  return [{
+  var bodyText = (document.body.innerText || '').replace(/\\s+/g, ' ').trim();
+  return {
     __diag: true,
-    url: context.request ? context.request.url : '',
-    pageTitle: ($('title').text() || '').trim(),
-    h1: ($('h1').first().text() || '').trim(),
-    auctionLinks: $('a[href*="/auction/"]').length,
+    url: (context.request && context.request.url) || location.href,
+    pageTitle: document.title,
+    auctionLinks: document.querySelectorAll('a[href*="/auction/"]').length,
     bodyLen: bodyText.length,
     textHead: bodyText.slice(0, 220)
-  }];
+  };
 }`;
 
 const str = (v: unknown): string | undefined =>
@@ -198,11 +161,11 @@ export const pcarmarketConnector: ListingConnector = {
       startUrls: START_URLS.map((url) => ({ url })),
       pageFunction: PAGE_FUNCTION,
       proxyConfiguration: { useApifyProxy: true },
-      useSessionPool: true,
-      persistCookiesPerSession: true,
-      maxRequestRetries: 3,
-      maxRequestsPerCrawl: 12,
-      maxConcurrency: 4,
+      injectJQuery: false, // page-function uses vanilla DOM
+      maxRequestRetries: 2,
+      maxRequestsPerCrawl: 8,
+      maxConcurrency: 2,
+      pageLoadTimeoutSecs: 60,
     };
 
     const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}`, {

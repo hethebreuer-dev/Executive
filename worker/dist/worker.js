@@ -1232,94 +1232,58 @@ var mockConnector = {
 };
 
 // ../src/lib/luft/connectors/pcarmarket.ts
-var ACTOR6 = "apify~cheerio-scraper";
+var ACTOR6 = "apify~web-scraper";
 function browseUrls(pages) {
   const base = "https://www.pcarmarket.com/marketplace?itemType=cars&make=porsche&startYear=1964&endYear=1998&porscheOnly=true";
   const urls = [];
   for (let p = 1; p <= pages; p++) urls.push(`${base}&page=${p}`);
   return urls;
 }
-var START_URLS6 = browseUrls(6);
+var START_URLS6 = browseUrls(3);
 var PAGE_FUNCTION5 = `async function pageFunction(context) {
-  var $ = context.$;
-  var out = [];
-  var seen = {};
-
-  function priceIn(text) {
-    var m = (text || '').match(/\\$[0-9][0-9,]{2,}/);
-    return m ? m[0] : '';
-  }
-  function pushCard(url, title, price, img) {
-    if (!url || url.indexOf('/auction/') === -1) return;
-    if (url.indexOf('http') !== 0) url = 'https://www.pcarmarket.com' + url;
-    url = url.split('?')[0];
-    if (seen[url]) return;
-    title = (title || '').replace(/\\s+/g, ' ').trim();
-    if (!title || title.length < 4) return;
-    seen[url] = true;
-    out.push({ url: url, title: title, price: price || '', image: img || '' });
-  }
-
-  function pushItem(o) {
-    if (!o || typeof o !== 'object' || Array.isArray(o)) return;
-    var url = '';
-    ['url','permalink','link','absolute_url','path'].forEach(function (k) {
-      if (!url && typeof o[k] === 'string' && o[k].indexOf('/auction/') !== -1) url = o[k];
+  function waitFor(sel, ms) {
+    return new Promise(function (res) {
+      var t = Date.now();
+      (function chk() {
+        if (document.querySelector(sel)) return res(true);
+        if (Date.now() - t > ms) return res(false);
+        setTimeout(chk, 300);
+      })();
     });
-    if (!url) return;
-    var title = o.title || o.name || o.headline || o.year_make_model || '';
-    var img = '';
-    ['thumbnail','image','image_url','thumbnail_url','photo'].forEach(function (k) {
-      if (img) return;
-      var v = o[k];
-      if (typeof v === 'string') img = v; else if (v && typeof v === 'object' && typeof v.url === 'string') img = v.url;
-    });
-    var price = o.current_bid || o.current_bid_formatted || o.price || o.high_bid || o.amount || '';
-    pushCard(url, String(title), typeof price === 'number' ? ('$' + price) : String(price), img);
   }
-  function walk(node, depth) {
-    if (!node || depth > 8) return;
-    if (Array.isArray(node)) { for (var i = 0; i < node.length; i++) walk(node[i], depth + 1); return; }
-    if (typeof node === 'object') {
-      pushItem(node);
-      var keys = Object.keys(node);
-      for (var j = 0; j < keys.length; j++) { var v = node[keys[j]]; if (v && typeof v === 'object') walk(v, depth + 1); }
+  await waitFor('a[href*="/auction/"]', 20000);
+  await new Promise(function (r) { setTimeout(r, 1500); }); // let lazy cards settle
+
+  function priceIn(text) { var m = (text || '').match(/\\$[0-9][0-9,]{2,}/); return m ? m[0] : ''; }
+  var out = [], seen = {};
+  Array.prototype.slice.call(document.querySelectorAll('a[href*="/auction/"]')).forEach(function (a) {
+    var href = a.href || a.getAttribute('href') || '';
+    if (href.indexOf('/auction/') === -1) return;
+    href = href.split('?')[0];
+    if (seen[href]) return;
+    var card = a.closest('[class*="listing"],[class*="card"],[class*="item"],li,article,div') || a;
+    var title = (a.getAttribute('title') || a.textContent || '').replace(/\\s+/g, ' ').trim();
+    if (!title || title.length < 4) {
+      var h = card.querySelector('h2,h3,[class*="title"]');
+      title = h ? h.textContent.replace(/\\s+/g, ' ').trim() : title;
     }
-  }
-
-  // 1) embedded JSON
-  $('script').each(function () {
-    var t = $(this).html() || '';
-    if (t.length < 40 || t.indexOf('/auction/') === -1) return;
-    var parsed = null; try { parsed = JSON.parse(t); } catch (e) { parsed = null; }
-    if (parsed) walk(parsed, 0);
+    if (!title || title.length < 4) return;
+    seen[href] = true;
+    var imgEl = card.querySelector('img');
+    var img = imgEl ? (imgEl.src || imgEl.getAttribute('data-src') || '') : '';
+    out.push({ url: href, title: title, price: priceIn(card.textContent), image: img });
   });
+  if (out.length) return out;
 
-  // 2) DOM fallback: /auction/ anchors, pulling a price from the nearest card.
-  if (out.length === 0) {
-    $('a[href*="/auction/"]').each(function () {
-      var a = $(this);
-      var href = a.attr('href') || '';
-      var title = (a.attr('title') || a.text() || '').trim();
-      var card = a.closest('[class*="listing"], [class*="card"], [class*="item"], li, article, div');
-      var price = priceIn(card.text());
-      var img = card.find('img').attr('src') || card.find('img').attr('data-src') || a.find('img').attr('src') || '';
-      pushCard(href, title, price, img);
-    });
-  }
-
-  if (out.length > 0) return out;
-
-  var bodyText = ($('body').text() || '').replace(/\\s+/g, ' ').trim();
-  return [{
+  var bodyText = (document.body.innerText || '').replace(/\\s+/g, ' ').trim();
+  return {
     __diag: true,
-    url: context.request ? context.request.url : '',
-    pageTitle: ($('title').text() || '').trim(),
-    h1: ($('h1').first().text() || '').trim(),
-    auctionLinks: $('a[href*="/auction/"]').length,
+    url: (context.request && context.request.url) || location.href,
+    pageTitle: document.title,
+    auctionLinks: document.querySelectorAll('a[href*="/auction/"]').length,
     bodyLen: bodyText.length,
     textHead: bodyText.slice(0, 220)
-  }];
+  };
 }`;
 var str7 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
 function parsePrice4(v) {
@@ -1391,11 +1355,12 @@ var pcarmarketConnector = {
       startUrls: START_URLS6.map((url) => ({ url })),
       pageFunction: PAGE_FUNCTION5,
       proxyConfiguration: { useApifyProxy: true },
-      useSessionPool: true,
-      persistCookiesPerSession: true,
-      maxRequestRetries: 3,
-      maxRequestsPerCrawl: 12,
-      maxConcurrency: 4
+      injectJQuery: false,
+      // page-function uses vanilla DOM
+      maxRequestRetries: 2,
+      maxRequestsPerCrawl: 8,
+      maxConcurrency: 2,
+      pageLoadTimeoutSecs: 60
     };
     const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR6}/runs?token=${token}`, {
       method: "POST",
