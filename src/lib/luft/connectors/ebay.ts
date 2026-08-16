@@ -42,28 +42,52 @@ const START_URLS = [
   ...searchUrls("porsche 993", 1),
 ];
 
-// Runs inside the actor. eBay renders each result as an `.s-item` card with
-// stable child classes. Emit one flat record per card (skipping the leading
-// "Shop on eBay" placeholder card).
+// Runs inside the actor. eBay renders each result as an `.s-item` (or, on the
+// newer SRP, `.s-card`) card. Try the known card selectors, then a generic
+// /itm/ anchor sweep. If nothing matches, emit ONE diagnostic record so the
+// connector can report what the page actually was (bot-wall? new markup?).
 const PAGE_FUNCTION = `async function pageFunction(context) {
   var $ = context.$;
   var out = [];
-  $('li.s-item, .s-item').each(function () {
-    var el = $(this);
-    var link = el.find('a.s-item__link').attr('href') || el.find('.s-item__link').attr('href') || '';
-    if (!link) return;
-    link = link.split('?')[0];
-    var title = (el.find('.s-item__title').text() || '').replace(/^\\s*New Listing/i, '').trim();
-    if (!title || title.toLowerCase() === 'shop on ebay') return;
-    var price = (el.find('.s-item__price').first().text() || '').trim();
-    var img = el.find('.s-item__image img').attr('src')
-      || el.find('.s-item__image img').attr('data-src')
-      || el.find('img').attr('src') || '';
-    var loc = (el.find('.s-item__location, .s-item__itemLocation').text() || '').trim();
-    var opts = (el.find('.s-item__purchase-options-with-icon, .s-item__dynamic, .s-item__bids').text() || '').trim();
-    out.push({ url: link, title: title, price: price, image: img, location: loc, opts: opts });
-  });
-  return out;
+  function addFrom(sel) {
+    $(sel).each(function () {
+      var el = $(this);
+      var a = el.is('a') ? el : el.find('a[href*="/itm/"]').first();
+      var link = a.attr('href') || el.find('.s-item__link, .s-card__link').attr('href') || '';
+      if (!link || link.indexOf('/itm/') === -1) return;
+      link = link.split('?')[0];
+      var title = (el.find('.s-item__title, .s-card__title, [role=heading]').first().text() || a.attr('title') || a.text() || '').replace(/^\\s*New Listing/i, '').trim();
+      if (!title || title.toLowerCase() === 'shop on ebay') return;
+      var price = (el.find('.s-item__price, .s-card__price').first().text() || '').trim();
+      var img = el.find('img').attr('src') || el.find('img').attr('data-src') || '';
+      var loc = (el.find('.s-item__location, .s-item__itemLocation, .s-card__location').text() || '').trim();
+      var opts = (el.find('.s-item__bids, .s-item__purchase-options-with-icon, .s-card__attribute-row').text() || '').trim();
+      out.push({ url: link, title: title, price: price, image: img, location: loc, opts: opts });
+    });
+  }
+  addFrom('li.s-item');
+  if (out.length === 0) addFrom('.s-item');
+  if (out.length === 0) addFrom('.s-card');
+  if (out.length === 0) addFrom('li[data-viewport]');
+  if (out.length === 0) addFrom('a[href*="/itm/"]');
+
+  var seen = {}; var uniq = [];
+  out.forEach(function (o) { if (!seen[o.url]) { seen[o.url] = 1; uniq.push(o); } });
+  if (uniq.length > 0) return uniq;
+
+  // Nothing matched — return a diagnostic snapshot of the page.
+  var bodyText = ($('body').text() || '').replace(/\\s+/g, ' ').trim();
+  return [{
+    __diag: true,
+    url: context.request ? context.request.url : '',
+    pageTitle: ($('title').text() || '').trim(),
+    h1: ($('h1').first().text() || '').trim(),
+    sItem: $('.s-item').length,
+    sCard: $('.s-card').length,
+    itmLinks: $('a[href*="/itm/"]').length,
+    bodyLen: bodyText.length,
+    textHead: bodyText.slice(0, 220)
+  }];
 }`;
 
 const str = (v: unknown): string | undefined =>
@@ -202,11 +226,34 @@ export const ebayConnector: ListingConnector = {
     const data = (await ds.json()) as unknown;
     const items: Raw[] = Array.isArray(data) ? (data as Raw[]) : [];
 
+    const diag = items.find((it) => it && it.__diag);
+    const rawCards = items.filter((it) => it && !it.__diag);
+
     const byId = new Map<string, CanonicalListing>();
-    for (const it of items) {
+    for (const it of rawCards) {
       const mapped = ebayMap(it);
       if (mapped && !byId.has(mapped.id)) byId.set(mapped.id, mapped);
     }
-    return [...byId.values()];
+    const cars = [...byId.values()];
+
+    // Nothing came through — surface *why* in the ingest error so we can tell a
+    // markup/bot-wall miss (no cards at all) from an over-strict filter.
+    if (cars.length === 0) {
+      if (diag) {
+        throw new Error(
+          `eBay found no item cards. url=${str(diag.url)} title="${str(diag.pageTitle)}" ` +
+            `h1="${str(diag.h1)}" s-item=${str(diag.sItem)} s-card=${str(diag.sCard)} ` +
+            `itm-links=${str(diag.itmLinks)} bodyLen=${str(diag.bodyLen)} :: ${str(diag.textHead)}`
+        );
+      }
+      if (rawCards.length) {
+        const s = rawCards[0];
+        throw new Error(
+          `eBay scraped ${rawCards.length} cards but 0 passed the air-cooled filter. ` +
+            `sample: title="${str(s.title)}" price="${str(s.price)}"`
+        );
+      }
+    }
+    return cars;
   },
 };
