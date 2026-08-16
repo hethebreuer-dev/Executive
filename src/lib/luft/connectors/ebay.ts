@@ -21,26 +21,30 @@ import {
 type Raw = Record<string, unknown>;
 
 const ACTOR = "apify~cheerio-scraper";
-const SACAT = "6001"; // eBay Motors → Cars & Trucks (whole vehicles, not parts)
 
-// Model-scoped searches, 60 items/page. "porsche 911" also surfaces most 964/993
-// (commonly titled "911 Carrera"); the explicit 964/993/930/912 queries catch
-// the rest. Water-cooled and non-air-cooled results are dropped in map().
-function searchUrls(query: string, pages: number): string[] {
+// eBay Motors' faceted VEHICLE browse for Porsche cars, pre-filtered server-side
+// to the air-cooled 911 family (Model = 911/912/930/964/993) across the air-
+// cooled model years (1964–1998). This is the complete, on-topic set (~245
+// cars) — a keyword search returns only a sliver, and the all-Porsche node
+// without the Model facet drags in 944/924/928. classifyModelFamily() still does
+// the final generation bucketing in map(). 240 items/page with pagination
+// headroom; out-of-range pages just come back empty.
+const BROWSE_NODE = "Porsche-Cars-and-Trucks/6001/bn_24014594";
+const YEAR_FACET = (() => {
+  const ys: number[] = [];
+  for (let y = 1964; y <= 1998; y++) ys.push(y);
+  return "Model%20Year=" + ys.join("%7C"); // "Model Year=1964|1965|…|1998"
+})();
+const MODEL_FACET = "Model=" + ["911", "912", "930", "964", "993"].join("%7C");
+const START_URLS = (() => {
   const urls: string[] = [];
-  const q = encodeURIComponent(query);
-  for (let p = 1; p <= pages; p++) {
-    urls.push(`https://www.ebay.com/sch/i.html?_nkw=${q}&_sacat=${SACAT}&_ipg=60&_pgn=${p}`);
+  for (let p = 1; p <= 8; p++) {
+    urls.push(
+      `https://www.ebay.com/b/${BROWSE_NODE}?${YEAR_FACET}&${MODEL_FACET}&rt=nc&_ipg=240&_pgn=${p}`
+    );
   }
   return urls;
-}
-const START_URLS = [
-  ...searchUrls("porsche 911", 3),
-  ...searchUrls("porsche 912", 1),
-  ...searchUrls("porsche 930 turbo", 1),
-  ...searchUrls("porsche 964", 1),
-  ...searchUrls("porsche 993", 1),
-];
+})();
 
 // Runs inside the actor. eBay renders each result as an `.s-item` (or, on the
 // newer SRP, `.s-card`) card. Try the known card selectors, then a generic
