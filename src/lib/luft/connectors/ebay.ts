@@ -22,29 +22,34 @@ type Raw = Record<string, unknown>;
 
 const ACTOR = "apify~cheerio-scraper";
 
-// eBay Motors' faceted VEHICLE browse for Porsche cars, pre-filtered server-side
-// to the air-cooled 911 family (Model = 911/912/930/964/993) across the air-
-// cooled model years (1964–1998). This is the complete, on-topic set (~245
-// cars) — a keyword search returns only a sliver, and the all-Porsche node
-// without the Model facet drags in 944/924/928. classifyModelFamily() still does
-// the final generation bucketing in map(). 240 items/page with pagination
-// headroom; out-of-range pages just come back empty.
-const BROWSE_NODE = "Porsche-Cars-and-Trucks/6001/bn_24014594";
+// We scrape the SERVER-RENDERED search endpoint (/sch/i.html) — the faceted
+// /b/…/bn_… browse page renders its grid client-side (JS), which a cheerio
+// scraper can't see. To pull the full air-cooled set (not just the sliver a
+// plain "porsche 911" search yields, which is dominated by modern 996–992
+// cars), we apply eBay's item-specific facets in the category-scoped search:
+// Model Year = 1964–1998 and Model = 911/912/930/964/993. classifyModelFamily()
+// still does the final generation bucketing in map().
 const YEAR_FACET = (() => {
   const ys: number[] = [];
   for (let y = 1964; y <= 1998; y++) ys.push(y);
   return "Model%20Year=" + ys.join("%7C"); // "Model Year=1964|1965|…|1998"
 })();
 const MODEL_FACET = "Model=" + ["911", "912", "930", "964", "993"].join("%7C");
-const START_URLS = (() => {
-  const urls: string[] = [];
-  for (let p = 1; p <= 8; p++) {
-    urls.push(
-      `https://www.ebay.com/b/${BROWSE_NODE}?${YEAR_FACET}&${MODEL_FACET}&rt=nc&_ipg=240&_pgn=${p}`
-    );
-  }
-  return urls;
-})();
+
+// Primary: the faceted category search. Backups: model-name keyword searches
+// for the models that are inherently air-cooled (964/993/930/912) — a safety
+// net in case the aspect filters aren't honored, since those queries can't
+// return a modern car. De-duped by item id in fetchListings.
+function schUrl(extra: string, page: number): string {
+  return `https://www.ebay.com/sch/i.html?_sacat=6001&_ipg=240&_pgn=${page}&${extra}`;
+}
+const START_URLS = [
+  ...[1, 2, 3, 4].map((p) => schUrl(`_nkw=porsche&${MODEL_FACET}&${YEAR_FACET}`, p)),
+  schUrl("_nkw=" + encodeURIComponent("porsche 964"), 1),
+  schUrl("_nkw=" + encodeURIComponent("porsche 993"), 1),
+  schUrl("_nkw=" + encodeURIComponent("porsche 930"), 1),
+  schUrl("_nkw=" + encodeURIComponent("porsche 912"), 1),
+];
 
 // Runs inside the actor. eBay renders each result as an `.s-item` (or, on the
 // newer SRP, `.s-card`) card. Try the known card selectors, then a generic
