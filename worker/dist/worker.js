@@ -1362,12 +1362,18 @@ var pcarmarketConnector = {
       maxConcurrency: 2,
       pageLoadTimeoutSecs: 60
     };
-    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR6}/runs?token=${token}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input)
-    });
-    if (!start.ok) throw new Error(`PCARMARKET start failed: ${start.status}`);
+    const start = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR6}/runs?token=${token}&memory=2048`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input)
+      }
+    );
+    if (!start.ok) {
+      const detail = await start.text().catch(() => "");
+      throw new Error(`PCARMARKET start failed: ${start.status} ${detail.slice(0, 200)}`);
+    }
     const run = (await start.json()).data;
     const deadline = Date.now() + 28e4;
     let status = run.status;
