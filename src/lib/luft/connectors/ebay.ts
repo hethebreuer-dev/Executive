@@ -180,10 +180,16 @@ export const ebayConnector: ListingConnector = {
     name: "eBay Motors",
     tier: "apify",
     provides: ["listings"],
-    enabled: true,
+    // PARKED. The official Browse API path was denied, and eBay now actively
+    // blocks the cheerio scraper (empty dataset — non-browser client on a
+    // flagged proxy session). Beating this needs a JS/browser actor
+    // (Puppeteer/Playwright or a paid dedicated eBay actor). eBay's air-cooled
+    // inventory also overlaps heavily with Classic.com/Autotrader, so the
+    // marginal gain is small — disabled until a browser actor is worth it.
+    enabled: false,
     ref: "apify:apify/cheerio-scraper",
     notes:
-      "Scrapes public eBay Motors search results (official Browse API path unavailable — dev account denied). Runs on APIFY_TOKEN.",
+      "Disabled: eBay blocks the cheerio scraper. Re-enable only with a JS/browser actor (the keyword-search page-function/map below still apply).",
   } satisfies ConnectorMeta,
 
   isConfigured(ctx) {
