@@ -67,27 +67,28 @@ const PAGE_FUNCTION = `async function pageFunction(context) {
   var out = [];
   arr.forEach(function (o) {
     if (!o || typeof o !== 'object') return;
-    var title = o.title || o.name || o.headline || o.year_make_model || '';
-    if (!title && (o.year || o.make || o.model)) title = [o.year, o.make, o.model, o.submodel].filter(Boolean).join(' ');
+    var v = o.vehicle || {};
+    // Prefer the structured vehicle fields (clean, reliable year); fall back to
+    // the display title minus its "MarketPlace: " prefix.
+    var title = (v.year || v.make || v.model) ? [v.year, v.make, v.model].filter(Boolean).join(' ') : '';
+    if (!title) title = String(o.title || '').replace(/^\\s*marketplace:\\s*/i, '').trim();
     title = String(title || '').trim();
 
-    var url = o.url || o.absolute_url || o.permalink || o.link || o.canonical_url || '';
-    if (!url && o.slug) url = '/auction/' + o.slug;
-    if (!url && o.auction && o.auction.slug) url = '/auction/' + o.auction.slug;
-    url = String(url || '');
-    if (url && url.indexOf('http') !== 0) url = 'https://www.pcarmarket.com/' + url.replace(/^\\//, '');
-
-    var price = o.current_bid || o.currentBid || o.price || o.high_bid || o.amount || o.current_bid_amount || o.bid || '';
-    var img = o.thumbnail || o.image || o.main_image || o.photo || o.image_url || o.thumbnail_url || '';
-    if (img && typeof img === 'object') img = img.url || '';
-
+    var slug = o.slug || o.marketplace_listing_slug || '';
+    var url = slug ? ('https://www.pcarmarket.com/auction/' + slug) : '';
     if (!title || !url) return;
+
+    var img = o.featured_image_large_url || o.featured_image_url || '';
     out.push({
       url: url,
       title: title,
-      price: (typeof price === 'number' ? ('$' + price) : String(price)),
+      // Price candidates in preference order — live bid, then estimated value.
+      price: (typeof o.current_bid === 'number' ? ('$' + o.current_bid) : String(o.current_bid || '')),
+      highBid: (typeof o.high_bid === 'number' ? o.high_bid : null),
+      retail: String(o.retail_value || ''),
+      reserve: (typeof o.reserve_price === 'number' ? o.reserve_price : null),
       image: String(img || ''),
-      year: o.year || null
+      year: v.year || o.year || null
     });
   });
 
@@ -137,8 +138,12 @@ export function pcarmarketMap(item: Raw): CanonicalListing | null {
   const family = classifyModelFamily(rawTitle, year);
   if (!family) return null; // air-cooled 911/912/930/964/993 only
 
-  const price = parsePrice(item.price);
-  if (price == null || price < MIN_PLAUSIBLE_PRICE) return null;
+  // First plausible price across the candidates — a live current bid can be low
+  // early in an auction, so fall back to high bid / retail estimate / reserve
+  // rather than dropping the car.
+  const candidates = [parsePrice(item.price), num(item.highBid), parsePrice(item.retail), num(item.reserve)];
+  const price = candidates.find((p): p is number => p != null && p >= MIN_PLAUSIBLE_PRICE) ?? null;
+  if (price == null) return null;
 
   const image = str(item.image);
   const title = rawTitle.replace(/^\d{4}\s+/, "").replace(/^porsche\s+/i, "").trim() || rawTitle;
