@@ -134,7 +134,7 @@ export function guessCanonical(item: Raw, cfg: ApifySiteConfig): CanonicalListin
   const year = num(pick(item, ["year", "modelYear", "model_year"])) ?? num(title.match(/\b(19\d{2})\b/)?.[1]);
   if (!title || !year || price == null) return null;
 
-  const family = classifyModelFamily(title);
+  const family = classifyModelFamily(title, year ?? undefined);
   if (!family) return null; // keep it air-cooled 911/912/930 only
 
   const url = str(pick(item, ["url", "link", "listingUrl", "listing_url", "detailUrl", "sourceUrl", "auctionUrl", "permalink", "href"])) ?? "#";
