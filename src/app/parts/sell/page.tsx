@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { FooterGrid } from "@/components/luft/Footer";
+import { Auth } from "@/components/luft/Auth";
 import { useAuth } from "@/components/luft/AuthProvider";
 import { PART_MODELS } from "@/lib/luft/parts-model";
 
@@ -10,7 +11,7 @@ type Photo = { id: string; url: string; name: string; file: File };
 const WORKER_URL = process.env.NEXT_PUBLIC_WORKER_URL;
 
 export default function SellPartPage() {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const [title, setTitle] = useState("");
   const [model, setModel] = useState("all");
   const [partNumber, setPartNumber] = useState("");
@@ -90,6 +91,34 @@ export default function SellPartPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Require sign-in to post — so the part is tied to the seller's account and
+  // manageable from their garage (mirrors the car listing flow).
+  if (!ready) return <div style={{ minHeight: "60vh" }} />;
+  if (!user) {
+    return (
+      <div style={{ background: "#ffffff" }}>
+        <section className="luft-container" style={{ padding: "96px 40px 120px", display: "flex", justifyContent: "center" }}>
+          <div style={{ maxWidth: 470, textAlign: "center" }}>
+            <Link href="/parts" style={{ fontSize: 13, color: "#5e5e5a" }}>← Parts marketplace</Link>
+            <h1 className="display luft-h1" style={{ fontWeight: 600, fontSize: 46, lineHeight: 0.98, textTransform: "uppercase", margin: "16px 0 14px" }}>
+              Sign in to list a part
+            </h1>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: "#5e5e5a", marginBottom: 30 }}>
+              Create a free account (or sign in) to post a part. Your listings live
+              in your garage, where you can manage or remove them once they sell.
+            </p>
+            <div style={{ display: "inline-flex", gap: 12, justifyContent: "center", background: "#0d0d0d", color: "#fff", padding: 2 }}>
+              <div style={{ padding: "14px 26px", display: "flex" }}>
+                <Auth onDark />
+              </div>
+            </div>
+          </div>
+        </section>
+        <FooterGrid />
+      </div>
+    );
   }
 
   if (done) {
