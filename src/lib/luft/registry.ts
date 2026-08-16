@@ -15,7 +15,7 @@ import { mockConnector } from "./connectors/mock-connector";
 
 export const CONNECTORS: AnyConnector[] = [
   mockConnector, // connector #0 — off by default; opt in with LUFT_ENABLE_MOCK=1
-  ebayConnector, // configured when EBAY_APP_ID + EBAY_CERT_ID are set
+  ebayConnector, // eBay Motors scrape (Browse API path denied) — runs on APIFY_TOKEN
   classicComConnector, // working MVP source — runs on APIFY_TOKEN alone
   elferspotConnector, // two-stage cheerio crawl — runs on APIFY_TOKEN alone
   autotraderConnector, // single-stage cheerio crawl — runs on APIFY_TOKEN alone
