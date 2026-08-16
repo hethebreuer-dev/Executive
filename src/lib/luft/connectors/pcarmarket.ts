@@ -168,12 +168,22 @@ export const pcarmarketConnector: ListingConnector = {
       pageLoadTimeoutSecs: 60,
     };
 
-    const start = await fetch(`https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input),
-    });
-    if (!start.ok) throw new Error(`PCARMARKET start failed: ${start.status}`);
+    // memory=2048: web-scraper's default is 4096 MB, and connectors run in
+    // parallel — a 4 GB browser alongside the cheerio actors overflows the
+    // account's concurrent-memory limit and Apify 403s the run. A browser fits
+    // comfortably in 2 GB for a page this small.
+    const start = await fetch(
+      `https://api.apify.com/v2/acts/${ACTOR}/runs?token=${token}&memory=2048`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(input),
+      }
+    );
+    if (!start.ok) {
+      const detail = await start.text().catch(() => "");
+      throw new Error(`PCARMARKET start failed: ${start.status} ${detail.slice(0, 200)}`);
+    }
     const run = ((await start.json()) as {
       data: { id: string; defaultDatasetId: string; status: string };
     }).data;
