@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FooterSimple } from "@/components/luft/Footer";
 import { SaveButton } from "@/components/luft/SaveButton";
+import { MediaGallery } from "@/components/luft/MediaGallery";
 import { repository } from "@/lib/luft/factory";
 import { usd, miles } from "@/lib/luft";
 import type { CanonicalListing } from "@/lib/luft/model";
@@ -524,8 +525,6 @@ function BlockHead({ children }: { children: React.ReactNode }) {
 // submissions and any internally-hosted car). Scraped cars link out to source.
 function RealListing({ c }: { c: CanonicalListing }) {
   const photos = c.photos ?? [];
-  const hero = photos[0];
-  const rest = photos.slice(1, 5);
   const location = [c.city, c.state].filter(Boolean).join(", ");
   const specs: { k: string; v: string }[] = [
     { k: "Model", v: `${c.modelFamily} ${c.trim}`.trim() },
@@ -555,29 +554,10 @@ function RealListing({ c }: { c: CanonicalListing }) {
         </div>
       </div>
 
-      {/* GALLERY */}
+      {/* GALLERY — capped landscape hero + square thumbnails with a
+          click-to-enlarge lightbox (client component; fixes mobile squish). */}
       <section className="luft-container" style={{ padding: "28px 40px 0" }}>
-        <div className="luft-grid-2" style={{ gridTemplateColumns: "2.2fr 1fr", gap: 10, height: 520 }}>
-          <div className={hero ? "" : "luft-hatch"} style={{ position: "relative", border: "1px solid #e6e5e2", background: hero ? "#0d0d0d" : undefined, overflow: "hidden" }}>
-            {hero && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={hero} alt={`${c.year} ${c.title}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-            )}
-            <span className="mono" style={{ position: "absolute", top: 16, left: 16, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", background: "#0d0d0d", color: "#ffffff", padding: "5px 9px" }}>
-              {c.sellerType === "dealer" ? "Dealer" : "Private seller"}
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[0, 1].map((i) => (
-              <div key={i} className={rest[i] ? "" : "luft-hatch"} style={{ position: "relative", flex: 1, border: "1px solid #e6e5e2", background: rest[i] ? "#0d0d0d" : undefined, overflow: "hidden" }}>
-                {rest[i] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={rest[i]} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <MediaGallery photos={photos} badge={c.sellerType === "dealer" ? "Dealer" : "Private seller"} />
       </section>
 
       {/* BODY */}
@@ -615,21 +595,6 @@ function RealListing({ c }: { c: CanonicalListing }) {
               </div>
             ))}
           </div>
-
-          {/* EXTRA PHOTOS */}
-          {photos.length > 1 && (
-            <>
-              <BlockHead>Photos</BlockHead>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-                {photos.map((p, i) => (
-                  <div key={i} style={{ position: "relative", aspectRatio: "4 / 3", background: "#0d0d0d", border: "1px solid #e6e5e2", overflow: "hidden" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p} alt="" loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </main>
 
         {/* STICKY PRICE RAIL */}

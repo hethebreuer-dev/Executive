@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-// Client gallery for a part: a capped landscape hero + square thumbnails, with a
-// click-to-enlarge lightbox that shows each photo at its original size
-// (object-fit: contain, so nothing is cropped). Keyboard: Esc closes, ←/→ page.
-export function PartsGallery({ photos, badge }: { photos: string[]; badge: string }) {
+// Shared media gallery for a detail page (parts + car listings): a capped
+// landscape hero + square thumbnails, with a click-to-enlarge lightbox that
+// shows each photo at its original size (object-fit: contain, uncropped).
+// Keyboard: Esc closes, ←/→ page. Replaces the old fixed-height split gallery,
+// which cropped awkwardly and squished on mobile.
+export function MediaGallery({ photos, badge }: { photos: string[]; badge: string }) {
   const [open, setOpen] = useState<number | null>(null);
   const has = photos.length > 0;
   const hero = photos[0];
