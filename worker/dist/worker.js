@@ -841,22 +841,45 @@ var START_URLS4 = [
 var PAGE_FUNCTION3 = `async function pageFunction(context) {
   var $ = context.$;
   var out = [];
-  $('li.s-item, .s-item').each(function () {
-    var el = $(this);
-    var link = el.find('a.s-item__link').attr('href') || el.find('.s-item__link').attr('href') || '';
-    if (!link) return;
-    link = link.split('?')[0];
-    var title = (el.find('.s-item__title').text() || '').replace(/^\\s*New Listing/i, '').trim();
-    if (!title || title.toLowerCase() === 'shop on ebay') return;
-    var price = (el.find('.s-item__price').first().text() || '').trim();
-    var img = el.find('.s-item__image img').attr('src')
-      || el.find('.s-item__image img').attr('data-src')
-      || el.find('img').attr('src') || '';
-    var loc = (el.find('.s-item__location, .s-item__itemLocation').text() || '').trim();
-    var opts = (el.find('.s-item__purchase-options-with-icon, .s-item__dynamic, .s-item__bids').text() || '').trim();
-    out.push({ url: link, title: title, price: price, image: img, location: loc, opts: opts });
-  });
-  return out;
+  function addFrom(sel) {
+    $(sel).each(function () {
+      var el = $(this);
+      var a = el.is('a') ? el : el.find('a[href*="/itm/"]').first();
+      var link = a.attr('href') || el.find('.s-item__link, .s-card__link').attr('href') || '';
+      if (!link || link.indexOf('/itm/') === -1) return;
+      link = link.split('?')[0];
+      var title = (el.find('.s-item__title, .s-card__title, [role=heading]').first().text() || a.attr('title') || a.text() || '').replace(/^\\s*New Listing/i, '').trim();
+      if (!title || title.toLowerCase() === 'shop on ebay') return;
+      var price = (el.find('.s-item__price, .s-card__price').first().text() || '').trim();
+      var img = el.find('img').attr('src') || el.find('img').attr('data-src') || '';
+      var loc = (el.find('.s-item__location, .s-item__itemLocation, .s-card__location').text() || '').trim();
+      var opts = (el.find('.s-item__bids, .s-item__purchase-options-with-icon, .s-card__attribute-row').text() || '').trim();
+      out.push({ url: link, title: title, price: price, image: img, location: loc, opts: opts });
+    });
+  }
+  addFrom('li.s-item');
+  if (out.length === 0) addFrom('.s-item');
+  if (out.length === 0) addFrom('.s-card');
+  if (out.length === 0) addFrom('li[data-viewport]');
+  if (out.length === 0) addFrom('a[href*="/itm/"]');
+
+  var seen = {}; var uniq = [];
+  out.forEach(function (o) { if (!seen[o.url]) { seen[o.url] = 1; uniq.push(o); } });
+  if (uniq.length > 0) return uniq;
+
+  // Nothing matched \u2014 return a diagnostic snapshot of the page.
+  var bodyText = ($('body').text() || '').replace(/\\s+/g, ' ').trim();
+  return [{
+    __diag: true,
+    url: context.request ? context.request.url : '',
+    pageTitle: ($('title').text() || '').trim(),
+    h1: ($('h1').first().text() || '').trim(),
+    sItem: $('.s-item').length,
+    sCard: $('.s-card').length,
+    itmLinks: $('a[href*="/itm/"]').length,
+    bodyLen: bodyText.length,
+    textHead: bodyText.slice(0, 220)
+  }];
 }`;
 var str5 = (v) => typeof v === "string" ? v : v == null ? void 0 : String(v);
 function parsePrice2(v) {
@@ -967,12 +990,28 @@ var ebayConnector = {
     if (!ds.ok) throw new Error(`eBay dataset failed: ${ds.status}`);
     const data = await ds.json();
     const items = Array.isArray(data) ? data : [];
+    const diag = items.find((it) => it && it.__diag);
+    const rawCards = items.filter((it) => it && !it.__diag);
     const byId = /* @__PURE__ */ new Map();
-    for (const it of items) {
+    for (const it of rawCards) {
       const mapped = ebayMap(it);
       if (mapped && !byId.has(mapped.id)) byId.set(mapped.id, mapped);
     }
-    return [...byId.values()];
+    const cars = [...byId.values()];
+    if (cars.length === 0) {
+      if (diag) {
+        throw new Error(
+          `eBay found no item cards. url=${str5(diag.url)} title="${str5(diag.pageTitle)}" h1="${str5(diag.h1)}" s-item=${str5(diag.sItem)} s-card=${str5(diag.sCard)} itm-links=${str5(diag.itmLinks)} bodyLen=${str5(diag.bodyLen)} :: ${str5(diag.textHead)}`
+        );
+      }
+      if (rawCards.length) {
+        const s = rawCards[0];
+        throw new Error(
+          `eBay scraped ${rawCards.length} cards but 0 passed the air-cooled filter. sample: title="${str5(s.title)}" price="${str5(s.price)}"`
+        );
+      }
+    }
+    return cars;
   }
 };
 
