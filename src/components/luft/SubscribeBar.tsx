@@ -20,23 +20,15 @@ export function SubscribeBar() {
       /* ignore */
     }
     if (dismissed) return;
-    const reveal = () => {
-      setShow(true);
-      cleanup();
-    };
-    // Show after a little scrolling — or, as a fallback, after a short dwell, so
-    // it still appears on desktop / short pages where the visitor barely scrolls.
     const onScroll = () => {
-      if (window.scrollY > 400) reveal();
+      if (window.scrollY > 500) {
+        setShow(true);
+        window.removeEventListener("scroll", onScroll);
+      }
     };
-    const timer = setTimeout(reveal, 9000);
-    function cleanup() {
-      window.removeEventListener("scroll", onScroll);
-      clearTimeout(timer);
-    }
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll(); // in case the page is already scrolled
-    return cleanup;
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const persistDismiss = () => {
