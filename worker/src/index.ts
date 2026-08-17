@@ -439,21 +439,43 @@ function renderConfirmHtml(env: Env, token: string): string {
 
 // Live market snapshot for the welcome email — computed at send time so the
 // numbers reflect the market when the member confirms. Median asking is over
-// plausible-priced active listings; live count is all active inventory.
-async function marketSnapshot(env: Env): Promise<{ median: number; liveCount: number }> {
+// plausible-priced active listings; live count is all active inventory; byGen
+// is the median asking for each generation (only those with inventory), highest
+// first.
+const GEN_LABEL: Record<string, string> = {
+  "911": "911 · SC · Carrera",
+  "912": "912",
+  "930": "930 Turbo",
+  "964": "964",
+  "993": "993",
+};
+const medianOf = (a: number[]): number => {
+  if (!a.length) return 0;
+  const s = a.slice().sort((x, y) => x - y);
+  return s[Math.floor(s.length / 2)];
+};
+async function marketSnapshot(
+  env: Env
+): Promise<{ median: number; liveCount: number; byGen: { label: string; median: number }[] }> {
   try {
     const countRow = await env.DB
       .prepare("SELECT COUNT(*) AS n FROM listings WHERE status = 'active'")
       .first<{ n: number }>();
     const liveCount = countRow?.n ?? 0;
-    const priceRows = await env.DB
-      .prepare("SELECT price FROM listings WHERE status = 'active' AND price >= 1000 ORDER BY price")
-      .all<{ price: number }>();
-    const prices = (priceRows.results ?? []).map((r) => r.price).filter((p) => typeof p === "number");
-    const median = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
-    return { median, liveCount };
+    const rows = await env.DB
+      .prepare("SELECT model_family AS mf, price FROM listings WHERE status = 'active' AND price >= 1000")
+      .all<{ mf: string; price: number }>();
+    const list = (rows.results ?? []).filter((r) => typeof r.price === "number");
+    const median = medianOf(list.map((r) => r.price));
+    const byFam: Record<string, number[]> = {};
+    for (const r of list) (byFam[r.mf] ||= []).push(r.price);
+    const byGen = Object.keys(GEN_LABEL)
+      .map((fam) => ({ label: GEN_LABEL[fam], median: medianOf(byFam[fam] || []) }))
+      .filter((g) => g.median > 0)
+      .sort((a, b) => b.median - a.median);
+    return { median, liveCount, byGen };
   } catch {
-    return { median: 0, liveCount: 0 };
+    return { median: 0, liveCount: 0, byGen: [] };
   }
 }
 
@@ -461,10 +483,23 @@ async function marketSnapshot(env: Env): Promise<{ median: number; liveCount: nu
 // Market Data figures (median asking, live listings) are interpolated live from
 // marketSnapshot(); the appreciation table is editorial (needs sold-price
 // history we don't collect yet).
-function renderWelcomeHtml(env: Env, snap: { median: number; liveCount: number }): string {
+function renderWelcomeHtml(
+  env: Env,
+  snap: { median: number; liveCount: number; byGen: { label: string; median: number }[] }
+): string {
   const base = (env.APP_BASE_URL || "https://www.driveluft.com").replace(/\/$/, "");
   const median = snap.median > 0 ? "$" + snap.median.toLocaleString("en-US") : "—";
   const live = snap.liveCount > 0 ? snap.liveCount.toLocaleString("en-US") : "—";
+  // Median asking by generation — one row per generation with inventory.
+  const genRows =
+    snap.byGen.length > 0
+      ? snap.byGen
+          .map(
+            (g) =>
+              `<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">${esc(g.label)}</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">$${g.median.toLocaleString("en-US")}</td></tr>`
+          )
+          .join("")
+      : `<tr><td colspan="2" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#8a8a85;padding:14px 0;border-bottom:1px solid #eeeeec;">Fresh numbers land with the next market update.</td></tr>`;
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -553,12 +588,9 @@ function renderWelcomeHtml(env: Env, snap: { median: number; liveCount: number }
         <!-- MOVERS TABLE -->
         <tr>
           <td class="px" style="padding:30px 32px 0;" bgcolor="#ffffff">
-            <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:2px;color:#8a8a85;text-transform:uppercase;padding-bottom:12px;border-bottom:1px solid #0d0d0d;">12-month appreciation leaders</div>
+            <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:2px;color:#8a8a85;text-transform:uppercase;padding-bottom:12px;border-bottom:1px solid #0d0d0d;">Median asking by generation</div>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tbody>
-              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">993 Turbo / Turbo S</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+18.4%</td></tr>
-              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">964 Turbo 3.3</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+14.1%</td></tr>
-              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">911 Carrera RS 2.7</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+11.2%</td></tr>
-              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">911 Carrera 3.2 (G50)</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+7.3%</td></tr>
+              ${genRows}
             </tbody></table>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:16px;"><tbody><tr>
               <td style="font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;"><a href="${base}/market-data" target="_blank" style="color:#0d0d0d;text-decoration:none;border-bottom:1px solid #0d0d0d;padding-bottom:2px;">See the full market data →</a></td>
