@@ -437,6 +437,203 @@ function renderConfirmHtml(env: Env, token: string): string {
   </body></html>`;
 }
 
+// Live market snapshot for the welcome email — computed at send time so the
+// numbers reflect the market when the member confirms. Median asking is over
+// plausible-priced active listings; live count is all active inventory.
+async function marketSnapshot(env: Env): Promise<{ median: number; liveCount: number }> {
+  try {
+    const countRow = await env.DB
+      .prepare("SELECT COUNT(*) AS n FROM listings WHERE status = 'active'")
+      .first<{ n: number }>();
+    const liveCount = countRow?.n ?? 0;
+    const priceRows = await env.DB
+      .prepare("SELECT price FROM listings WHERE status = 'active' AND price >= 1000 ORDER BY price")
+      .all<{ price: number }>();
+    const prices = (priceRows.results ?? []).map((r) => r.price).filter((p) => typeof p === "number");
+    const median = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
+    return { median, liveCount };
+  } catch {
+    return { median: 0, liveCount: 0 };
+  }
+}
+
+// Welcome email — sent once, when a member confirms their subscription. The two
+// Market Data figures (median asking, live listings) are interpolated live from
+// marketSnapshot(); the appreciation table is editorial (needs sold-price
+// history we don't collect yet).
+function renderWelcomeHtml(env: Env, snap: { median: number; liveCount: number }): string {
+  const base = (env.APP_BASE_URL || "https://www.driveluft.com").replace(/\/$/, "");
+  const median = snap.median > 0 ? "$" + snap.median.toLocaleString("en-US") : "—";
+  const live = snap.liveCount > 0 ? snap.liveCount.toLocaleString("en-US") : "—";
+  return `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Welcome to LUFT</title>
+<style>
+  body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+  table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
+  img{-ms-interpolation-mode:bicubic;border:0;line-height:100%;outline:none;text-decoration:none;}
+  body{margin:0;padding:0;width:100%!important;}
+  a{color:#0d0d0d;}
+  @media screen and (max-width:600px){
+    .container{width:100%!important;}
+    .px{padding-left:24px!important;padding-right:24px!important;}
+    .stack{display:block!important;width:100%!important;}
+    .h1{font-size:38px!important;line-height:40px!important;}
+    .kpi-num{font-size:26px!important;}
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#e9e7e2;">
+  <span style="display:none!important;visibility:hidden;mso-hide:all;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">You're in. Here's what the air-cooled 911 market is doing right now — plus your AI-powered Workshop.</span>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#e9e7e2;">
+    <tbody><tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#ffffff;border:1px solid #d9d6cf;">
+
+        <!-- HEADER -->
+        <tbody><tr>
+          <td class="px" style="padding:22px 32px;border-bottom:1px solid #e6e5e2;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tbody><tr>
+              <td align="left" style="font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:bold;letter-spacing:1px;color:#0d0d0d;">LUFT</td>
+              <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:2px;color:#8a8a85;text-transform:uppercase;">Air-Cooled</td>
+            </tr></tbody></table>
+          </td>
+        </tr>
+
+        <!-- HERO -->
+        <tr>
+          <td class="px" style="padding:44px 32px 36px;" bgcolor="#ffffff">
+            <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:3px;color:#0d0d0d;text-transform:uppercase;padding-bottom:18px;">Welcome aboard</div>
+            <div class="h1" style="font-family:Arial,Helvetica,sans-serif;font-size:46px;line-height:46px;font-weight:bold;letter-spacing:-0.5px;color:#0d0d0d;text-transform:uppercase;">Every air-cooled 911 in America. One market.</div>
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:26px;color:#5e5e5a;padding-top:20px;">Thanks for signing up. You'll be first to know when a fresh 911, 912, or 930 hits the market — each one benchmarked against the current market for its generation, so you can tell at a glance whether it's priced above or below the going rate.</div>
+          </td>
+        </tr>
+
+        <!-- CTA -->
+        <tr>
+          <td class="px" style="padding:0 32px 44px;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tbody><tr>
+              <td bgcolor="#0d0d0d"><a href="${base}" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;padding:16px 34px;">Browse the market →</a></td>
+            </tr></tbody></table>
+          </td>
+        </tr>
+
+        <!-- MARKET DATA HEADER -->
+        <tr>
+          <td class="px" style="padding:8px 32px 0;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:2px solid #0d0d0d;"><tbody>
+              <tr><td style="height:18px;line-height:18px;font-size:0;">&nbsp;</td></tr>
+              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:2px;color:#0d0d0d;text-transform:uppercase;">Market Data · Right now</td></tr>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:bold;color:#0d0d0d;text-transform:uppercase;padding-top:8px;">The market, right now</td></tr>
+            </tbody></table>
+          </td>
+        </tr>
+
+        <!-- KPI ROW -->
+        <tr>
+          <td class="px" style="padding:22px 32px 0;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tbody><tr>
+              <td class="stack" width="50%" valign="top" style="border:1px solid #e6e5e2;padding:18px 20px;">
+                <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:1px;color:#8a8a85;text-transform:uppercase;">Median asking · all air-cooled</div>
+                <div class="kpi-num" style="font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:bold;color:#0d0d0d;padding-top:8px;">${median}</div>
+                <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:#5e5e5a;padding-top:6px;">updated daily</div>
+              </td>
+              <td class="stack" width="12" style="font-size:0;line-height:0;">&nbsp;</td>
+              <td class="stack" width="50%" valign="top" style="border:1px solid #e6e5e2;padding:18px 20px;">
+                <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:1px;color:#8a8a85;text-transform:uppercase;">Live listings</div>
+                <div class="kpi-num" style="font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:bold;color:#0d0d0d;padding-top:8px;">${live}</div>
+                <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:#5e5e5a;padding-top:6px;">across every US source we track</div>
+              </td>
+            </tr></tbody></table>
+          </td>
+        </tr>
+
+        <!-- MOVERS TABLE -->
+        <tr>
+          <td class="px" style="padding:30px 32px 0;" bgcolor="#ffffff">
+            <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:2px;color:#8a8a85;text-transform:uppercase;padding-bottom:12px;border-bottom:1px solid #0d0d0d;">12-month appreciation leaders</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tbody>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">993 Turbo / Turbo S</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+18.4%</td></tr>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">964 Turbo 3.3</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+14.1%</td></tr>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">911 Carrera RS 2.7</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+11.2%</td></tr>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">911 Carrera 3.2 (G50)</td><td align="right" style="font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:bold;color:#0d0d0d;padding:14px 0;border-bottom:1px solid #eeeeec;">+7.3%</td></tr>
+            </tbody></table>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:16px;"><tbody><tr>
+              <td style="font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;"><a href="${base}/market-data" target="_blank" style="color:#0d0d0d;text-decoration:none;border-bottom:1px solid #0d0d0d;padding-bottom:2px;">See the full market data →</a></td>
+            </tr></tbody></table>
+          </td>
+        </tr>
+
+        <!-- WORKSHOP AI SECTION -->
+        <tr>
+          <td style="padding:44px 0 0;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#0d0d0d" style="background-color:#0d0d0d;"><tbody><tr>
+              <td class="px" style="padding:40px 32px;">
+                <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:2px;color:#cfcfca;text-transform:uppercase;">The Workshop · AI Service</div>
+                <div style="font-family:Arial,Helvetica,sans-serif;font-size:32px;line-height:34px;font-weight:bold;color:#ffffff;text-transform:uppercase;padding-top:14px;">Own it. Understand it. Fix it.</div>
+                <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:25px;color:#b0afaa;padding-top:16px;">Your sign-up also unlocks the Workshop — guided, torque-spec-accurate service walkthroughs tuned to your exact chassis, plus an AI that diagnoses symptoms in plain language.</div>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="padding-top:26px;"><tbody>
+                  <tr><td align="right" style="padding-bottom:12px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tbody><tr><td bgcolor="#262626" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#ffffff;padding:12px 16px;">Why won't my 3.2 idle when it's warm?</td></tr></tbody></table></td></tr>
+                  <tr><td align="left"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #262626;background-color:#151515;"><tbody><tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#dcdcd8;padding:15px 18px;">On a warm G50 3.2, a hunting idle usually means a leaking intake boot or a lazy idle-stabilizer valve. Spray the boots with the engine running — a momentary rise means a vacuum leak. I can walk you through both checks for your exact 1985 chassis.</td></tr></tbody></table></td></tr>
+                </tbody></table>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:26px;"><tbody><tr>
+                  <td bgcolor="#ffffff"><a href="${base}/workshop" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#0d0d0d;text-decoration:none;padding:15px 30px;">Open the Workshop →</a></td>
+                </tr></tbody></table>
+                <div style="font-family:'Courier New',Courier,monospace;font-size:11px;color:#8a8a85;padding-top:14px;">Free to browse · LUFT Pro $19/mo for the full guides &amp; unlimited AI</div>
+              </td>
+            </tr></tbody></table>
+          </td>
+        </tr>
+
+        <!-- PARTS MARKETPLACE -->
+        <tr>
+          <td class="px" style="padding:44px 32px 0;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:2px solid #0d0d0d;"><tbody>
+              <tr><td style="height:18px;line-height:18px;font-size:0;">&nbsp;</td></tr>
+              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:2px;color:#0d0d0d;text-transform:uppercase;">Parts &amp; Spares · New</td></tr>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:bold;color:#0d0d0d;text-transform:uppercase;padding-top:8px;">Parts marketplace</td></tr>
+              <tr><td style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:25px;color:#5e5e5a;padding-top:14px;">Have a shelf of spares? We just opened a marketplace for used, NOS, and restored parts — list yours in a minute and reach air-cooled owners looking for exactly your chassis.</td></tr>
+            </tbody></table>
+          </td>
+        </tr>
+        <tr>
+          <td class="px" style="padding:22px 32px 4px;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tbody><tr>
+              <td bgcolor="#0d0d0d"><a href="${base}/parts/sell" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;padding:15px 30px;">List parts →</a></td>
+            </tr></tbody></table>
+          </td>
+        </tr>
+
+        <!-- SIGN-OFF -->
+        <tr>
+          <td class="px" style="padding:36px 32px 8px;" bgcolor="#ffffff">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:25px;color:#3f3f3d;">See you in the market,</div>
+            <div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#0d0d0d;padding-top:4px;">The LUFT team</div>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td class="px" style="padding:32px 32px 40px;" bgcolor="#ffffff">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:1px solid #e6e5e2;"><tbody>
+              <tr><td style="height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>
+              <tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;letter-spacing:1px;color:#0d0d0d;">LUFT</td></tr>
+              <tr><td style="font-family:'Courier New',Courier,monospace;font-size:11px;line-height:18px;color:#8a8a85;padding-top:12px;">
+                Aggregated from 40+ US sources · Not affiliated with Dr. Ing. h.c. F. Porsche AG<br>
+                You're receiving this because you signed up at driveluft.com.<br>
+                <a href="${base}/unsubscribe" target="_blank" style="color:#8a8a85;text-decoration:underline;">Unsubscribe</a> · <a href="${base}" target="_blank" style="color:#8a8a85;text-decoration:underline;">driveluft.com</a>
+              </td></tr>
+            </tbody></table>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr></tbody></table>
+</body></html>`;
+}
+
 async function sendDailyDigest(env: Env): Promise<{ sent: number; newListings: number; reason?: string }> {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { sent: 0, newListings: 0, reason: "email not configured" };
   await ensureSubscribers(env.DB);
@@ -662,12 +859,23 @@ const handler = {
       await ensureSubscribers(env.DB);
       // Confirm only flips a pending row to active; an unsubscribed row stays
       // unsubscribed (don't resurrect via an old confirm link).
-      await env.DB.prepare("UPDATE subscribers SET status = 'active' WHERE token = ? AND status = 'pending'")
+      const upd = await env.DB.prepare("UPDATE subscribers SET status = 'active' WHERE token = ? AND status = 'pending'")
         .bind(b.token)
         .run();
-      const row = await env.DB.prepare("SELECT status FROM subscribers WHERE token = ?")
+      const row = await env.DB.prepare("SELECT status, email FROM subscribers WHERE token = ?")
         .bind(b.token)
-        .first<{ status: string }>();
+        .first<{ status: string; email: string }>();
+      // First-time activation only (changes > 0) → send the one-time welcome
+      // email with a live market snapshot. Best-effort: a send failure must not
+      // fail the confirmation itself.
+      if ((upd.meta?.changes ?? 0) > 0 && row?.email && env.RESEND_API_KEY && env.EMAIL_FROM) {
+        try {
+          const snap = await marketSnapshot(env);
+          await resendSend(env, row.email, "Welcome to LUFT", renderWelcomeHtml(env, snap));
+        } catch (e) {
+          console.error("welcome email failed:", e);
+        }
+      }
       return Response.json({ ok: true, status: row?.status ?? "unknown" }, { headers: CORS });
     }
 
