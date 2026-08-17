@@ -4,7 +4,6 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AuthProvider } from "@/components/luft/AuthProvider";
 import { Header } from "@/components/luft/Header";
-import { SubscribeBar } from "@/components/luft/SubscribeBar";
 
 // Self-hosted (variable) fonts. Previously next/font/google fetched these from
 // Google's CDN at build time, which intermittently 404'd on Vercel (stale font
@@ -51,7 +50,6 @@ export default function RootLayout({
         <AuthProvider>
           <Header />
           {children}
-          <SubscribeBar />
         </AuthProvider>
         <Analytics />
       </body>

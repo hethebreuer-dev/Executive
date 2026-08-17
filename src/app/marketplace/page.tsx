@@ -7,6 +7,7 @@ import { repository } from "@/lib/luft/factory";
 import { toLegacyListing, type Listing } from "@/lib/luft";
 import { withMarketDelta } from "@/lib/luft/market";
 import { MarketplaceClient } from "./MarketplaceClient";
+import { SubscribeBar } from "@/components/luft/SubscribeBar";
 
 // Re-read per request so newly-ingested listings show without a redeploy.
 export const revalidate = 0;
@@ -18,5 +19,10 @@ export default async function MarketplacePage() {
   const { items } = await repository.listListings({ limit: 5000 });
   // Real "vs market" delta = price vs the median asking of the same generation.
   const listings: Listing[] = withMarketDelta(items.map(toLegacyListing));
-  return <MarketplaceClient listings={listings} />;
+  return (
+    <>
+      <MarketplaceClient listings={listings} />
+      <SubscribeBar />
+    </>
+  );
 }
