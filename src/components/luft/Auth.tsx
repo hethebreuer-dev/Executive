@@ -34,6 +34,7 @@ export function Auth({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [intent, setIntent] = useState<(typeof INTENTS)[number]>("Buy a car");
+  const [subscribe, setSubscribe] = useState(true); // opt-in to daily listings (create only)
   const [error, setError] = useState("");
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -82,6 +83,16 @@ export function Auth({
       email,
       initials: initialsFor(name, email),
     };
+    // On account creation, opt the member into the daily-listings email if they
+    // left the box checked — same double-opt-in flow as the standalone form
+    // (they'll get a confirmation email, then the welcome). Best-effort.
+    if (isCreate && subscribe) {
+      fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
+    }
     finish(next);
   }
 
@@ -348,6 +359,47 @@ export function Auth({
                   })}
                 </div>
               </div>
+            )}
+
+            {isCreate && (
+              <button
+                type="button"
+                onClick={() => setSubscribe((v) => !v)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  width: "100%",
+                  background: "transparent",
+                  border: "none",
+                  padding: "6px 0 2px",
+                  margin: "10px 0 0",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  fontFamily: "var(--font-libre-franklin), sans-serif",
+                }}
+              >
+                <span
+                  style={{
+                    width: 18,
+                    height: 18,
+                    flex: "0 0 auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: subscribe ? "#0d0d0d" : "#fff",
+                    color: "#fff",
+                    fontSize: 12,
+                    border: subscribe ? "1px solid #0d0d0d" : "1px solid #adaca7",
+                    borderRadius: 2,
+                  }}
+                >
+                  {subscribe ? "✓" : ""}
+                </span>
+                <span style={{ fontSize: 13.5, color: "#3f3f3d", lineHeight: 1.4 }}>
+                  Email me new air-cooled listings
+                </span>
+              </button>
             )}
 
             {error && (
