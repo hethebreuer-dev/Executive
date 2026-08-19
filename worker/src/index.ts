@@ -684,7 +684,7 @@ async function sendDailyDigest(env: Env): Promise<{ sent: number; newListings: n
   if (!subs?.length) return { sent: 0, newListings: cars.length, reason: "no subscribers" };
 
   const body = renderDigestHtml(cars, env);
-  const subject = `${cars.length} new air-cooled listing${cars.length === 1 ? "" : "s"} on LUFT`;
+  const subject = "New air-cooled listings on LUFT";
   const base = (env.APP_BASE_URL || "").replace(/\/$/, "");
   let sent = 0;
   for (let i = 0; i < subs.length; i += 100) {
