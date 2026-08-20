@@ -191,11 +191,12 @@ const AI_BY_CAT: Record<string, { q: string; a: string; prompts: string[] }> = {
 };
 
 const CHASSIS_OPTIONS = [
-  "1985 911 Carrera 3.2 (G-series)",
-  "1973 911 Carrera RS 2.7 (901)",
-  "1987 930 Turbo",
-  "1994 964 Carrera 2",
-  "1997 993 Carrera S",
+  "1965–1973 911 (F-body / long-hood)",
+  "1974–1983 911 / 911 SC (G-body)",
+  "1984–1989 911 Carrera 3.2 (G-body)",
+  "1975–1989 930 Turbo",
+  "1989–1994 964",
+  "1994–1998 993",
 ];
 
 export default function WorkshopPage() {
