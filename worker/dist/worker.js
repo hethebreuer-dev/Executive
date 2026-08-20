@@ -1726,13 +1726,20 @@ function renderDigestHtml(cars, env) {
         </td>
       </tr>`;
   }).join("");
-  const browse = env.APP_BASE_URL ? `${env.APP_BASE_URL.replace(/\/$/, "")}/marketplace` : "#";
+  const site = env.APP_BASE_URL ? env.APP_BASE_URL.replace(/\/$/, "") : "";
+  const browse = site ? `${site}/marketplace` : "#";
+  const sellCar = site ? `${site}/sell` : "#";
+  const sellParts = site ? `${site}/parts/sell` : "#";
   return `<!doctype html><html><body style="margin:0;background:#f2f1ef;padding:24px 0">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e6e5e2">
         <tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif">
           <div style="font-size:26px;font-weight:800;letter-spacing:1px;color:#0d0d0d">LUFT</div>
           <div style="font-size:13px;color:#8a8a85;letter-spacing:2px;text-transform:uppercase">Air-cooled \xB7 new today</div>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px"><tr>
+            <td style="padding-right:8px"><a href="${esc(sellCar)}" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">Sell your car</a></td>
+            <td><a href="${esc(sellParts)}" style="display:inline-block;border:1px solid #0d0d0d;color:#0d0d0d;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">List your parts</a></td>
+          </tr></table>
         </td></tr>
         <tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards}</table></td></tr>
         <tr><td style="padding:8px 28px 28px;font-family:Arial,Helvetica,sans-serif">
