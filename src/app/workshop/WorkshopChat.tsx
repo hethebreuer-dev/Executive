@@ -79,7 +79,8 @@ export function WorkshopChat({
     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
       <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ffffff" }} />
       <span className="lbl" style={{ color: "#cfcfca" }}>
-        Ask the Workshop · AI, tuned to {chassis.replace(/\s*\(.*\)$/, "")}
+        Ask the Workshop · AI, tuned to{" "}
+        {chassis ? chassis.replace(/\s*\(.*\)$/, "") : "your air-cooled Porsche"}
       </span>
     </div>
   );
@@ -148,7 +149,8 @@ export function WorkshopChat({
               color: "#dcdcd8",
             }}
           >
-            Ask me anything about your {chassis.replace(/\s*\(.*\)$/, "")} — a
+            Ask me anything about your{" "}
+            {chassis ? chassis.replace(/\s*\(.*\)$/, "") : "air-cooled Porsche"} — a
             symptom to diagnose, a torque spec, or how a job should go.
           </div>
         )}

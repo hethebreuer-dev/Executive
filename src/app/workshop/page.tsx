@@ -200,7 +200,7 @@ const CHASSIS_OPTIONS = [
 
 export default function WorkshopPage() {
   const [active, setActive] = useState("valve");
-  const [chassis, setChassis] = useState(CHASSIS_OPTIONS[0]);
+  const [chassis, setChassis] = useState("");
   const [search, setSearch] = useState("");
   const [proSoon, setProSoon] = useState(false);
 
@@ -279,7 +279,7 @@ export default function WorkshopPage() {
                   Your Garage
                 </div>
                 <div className="display" style={{ fontWeight: 500, fontSize: 20, textTransform: "uppercase" }}>
-                  {chassis.replace(/\s*\(.*\)$/, "")}
+                  {chassis ? chassis.replace(/\s*\(.*\)$/, "") : "All air-cooled"}
                 </div>
               </div>
               <select
@@ -296,6 +296,7 @@ export default function WorkshopPage() {
                   fontSize: 13,
                 }}
               >
+                <option value="">Select your chassis</option>
                 {CHASSIS_OPTIONS.map((c) => (
                   <option key={c} value={c}>
                     {c}
