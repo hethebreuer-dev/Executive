@@ -1703,60 +1703,226 @@ var isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 var esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function renderDigestHtml(cars, env) {
   const money = (n, cur) => (cur === "EUR" ? "\u20AC" : "$") + Math.round(n).toLocaleString("en-US");
-  const cards = cars.map((c) => {
-    const photo = (() => {
-      try {
-        const arr = JSON.parse(c.photos || "[]");
-        return Array.isArray(arr) && arr[0] ? String(arr[0]) : "";
-      } catch {
-        return "";
-      }
-    })();
+  const photoOf = (c) => {
+    try {
+      const a = JSON.parse(c.photos || "[]");
+      return Array.isArray(a) && a[0] ? String(a[0]) : "";
+    } catch {
+      return "";
+    }
+  };
+  const metaOf = (c) => {
     const loc = [c.city, c.state].filter(Boolean).join(", ");
-    const meta = [c.source, loc, c.mileage ? `${c.mileage.toLocaleString("en-US")} mi` : ""].filter(Boolean).join(" \xB7 ");
-    const img = photo ? `<img src="${esc(photo)}" width="160" height="120" alt="" style="width:160px;height:120px;object-fit:cover;display:block;border:1px solid #e6e5e2;background:#e5e4e0" />` : `<div style="width:160px;height:120px;background:#f1f0ed;border:1px solid #e6e5e2"></div>`;
-    return `<tr>
-        <td width="160" style="padding:0 16px 20px 0;vertical-align:top">${img}</td>
-        <td style="padding:0 0 20px 0;vertical-align:top;font-family:Arial,Helvetica,sans-serif">
-          <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#8a8a85">${esc(c.model_family)}</div>
-          <div style="font-size:18px;font-weight:700;color:#0d0d0d;margin:4px 0 2px">${esc(String(c.year))} ${esc(c.title)}</div>
-          <div style="font-size:14px;color:#5e5e5a;margin-bottom:6px">${esc(meta)}</div>
-          <div style="font-size:18px;font-weight:700;color:#0d0d0d;margin-bottom:8px">${money(c.price, c.currency)}</div>
-          <a href="${esc(c.url)}" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">View listing \u2192</a>
-        </td>
-      </tr>`;
-  }).join("");
+    return [c.source, loc, c.mileage ? `${c.mileage.toLocaleString("en-US")} mi` : ""].filter(Boolean).join(" \xB7 ");
+  };
   const site = env.APP_BASE_URL ? env.APP_BASE_URL.replace(/\/$/, "") : "";
+  const hrefOf = (c) => c.url && /^https?:\/\//i.test(c.url) ? c.url : site ? `${site}/listing/${encodeURIComponent(c.id)}` : "#";
   const browse = site ? `${site}/marketplace` : "#";
   const sellCar = site ? `${site}/sell` : "#";
   const sellParts = site ? `${site}/parts/sell` : "#";
-  return `<!doctype html><html><body style="margin:0;background:#f2f1ef;padding:24px 0">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e6e5e2">
-        <tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif">
-          <div style="font-size:26px;font-weight:800;letter-spacing:1px;color:#0d0d0d">LUFT</div>
-          <div style="font-size:13px;color:#8a8a85;letter-spacing:2px;text-transform:uppercase">Air-cooled \xB7 new today</div>
-          <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px"><tr>
-            <td style="padding-right:8px"><a href="${esc(sellCar)}" style="display:inline-block;background:#0d0d0d;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">Sell your car</a></td>
-            <td><a href="${esc(sellParts)}" style="display:inline-block;border:1px solid #0d0d0d;color:#0d0d0d;text-decoration:none;font-size:13px;font-weight:700;padding:9px 16px">List your parts</a></td>
-          </tr></table>
-        </td></tr>
-        <tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards}</table></td></tr>
-        <tr><td style="padding:8px 28px 28px;font-family:Arial,Helvetica,sans-serif">
-          <a href="${esc(browse)}" style="display:inline-block;border:1px solid #0d0d0d;color:#0d0d0d;text-decoration:none;font-size:13px;font-weight:700;padding:10px 18px">Browse the full marketplace \u2192</a>
-        </td></tr>
-      </table>
-    </td></tr></table>
-    __UNSUB__
-  </body></html>`;
-}
-function unsubFooter(env, token) {
-  const base = (env.APP_BASE_URL || "").replace(/\/$/, "");
-  const link = base ? `${base}/unsubscribe?token=${encodeURIComponent(token)}` : "#";
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8a8a85">
-    You're getting this because you subscribed to LUFT new-listing alerts.<br/>
-    <a href="${link}" style="color:#8a8a85">Unsubscribe</a>
-  </td></tr></table>`;
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const now = /* @__PURE__ */ new Date();
+  const dateLabel = `${MON[now.getUTCMonth()]} ${now.getUTCDate()}`;
+  const countLabel = `${cars.length} new listing${cars.length === 1 ? "" : "s"}`;
+  const feat = cars[0];
+  const rest = cars.slice(1);
+  const featPhoto = photoOf(feat);
+  const featTitle = `${feat.year} ${feat.title}`;
+  const featHref = hrefOf(feat);
+  const featImg = featPhoto ? `<!--[if !mso]><!--><img src="${esc(featPhoto)}" alt="${esc(featTitle)}" width="536" style="width:100%;max-width:536px;height:auto;"><!--<![endif]--><!--[if mso]>[ ${esc(featTitle)} ]<![endif]-->` : esc(feat.model_family.toUpperCase());
+  const rows = rest.map((c) => {
+    const photo = photoOf(c);
+    const title = `${c.year} ${c.title}`;
+    const href = hrefOf(c);
+    const rimg = photo ? `<a href="${esc(href)}" target="_blank"><img src="${esc(photo)}" alt="${esc(title)}" width="150" style="width:150px;height:auto;border:1px solid #e6e5e2;"></a>` : `<div style="width:150px;height:100px;background:#f1f0ed;border:1px solid #e6e5e2;"></div>`;
+    return `
+          <tr>
+            <td class="px" style="padding:20px 32px 0;" bgcolor="#ffffff">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-bottom:1px solid #eeeeec;">
+                <tbody><tr>
+                  <td class="rimg" width="150" valign="top" style="width:150px;padding-bottom:22px;">${rimg}</td>
+                  <td width="18" style="font-size:0;line-height:0;">&nbsp;</td>
+                  <td valign="top" style="padding-bottom:22px;">
+                    <div style="font-family:'Courier New',Courier,monospace;font-size:10px;letter-spacing:1px;color:#8a8a85;text-transform:uppercase;">${esc(c.model_family)}</div>
+                    <div class="rtitle" style="font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:23px;font-weight:bold;color:#0d0d0d;padding-top:5px;">${esc(title)}</div>
+                    <div style="font-family:'Courier New',Courier,monospace;font-size:12px;color:#8a8a85;padding-top:6px;">${esc(metaOf(c))}</div>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="padding-top:12px;">
+                      <tbody><tr>
+                        <td valign="middle" style="font-family:'Courier New',Courier,monospace;font-size:20px;font-weight:bold;color:#0d0d0d;">${money(c.price, c.currency)}</td>
+                        <td align="right" valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;"><a href="${esc(href)}" target="_blank" style="color:#0d0d0d;text-decoration:none;border-bottom:1px solid #0d0d0d;padding-bottom:2px;">View \u2192</a></td>
+                      </tr></tbody>
+                    </table>
+                  </td>
+                </tr></tbody>
+              </table>
+            </td>
+          </tr>`;
+  }).join("");
+  const alsoLabel = rest.length ? `<tr>
+            <td class="px" style="padding:34px 32px 4px;" bgcolor="#ffffff">
+              <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:2px;color:#8a8a85;text-transform:uppercase;padding-bottom:14px;border-bottom:1px solid #0d0d0d;">Also new today</div>
+            </td>
+          </tr>` : "";
+  return `<!DOCTYPE html>
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>New air-cooled listings on LUFT</title>
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+<![endif]-->
+<style>
+  body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+  table,td{mso-table-lspace:0pt;mso-table-rspace:0pt;}
+  img{-ms-interpolation-mode:bicubic;border:0;line-height:100%;outline:none;text-decoration:none;display:block;}
+  body{margin:0;padding:0;width:100%!important;}
+  a{color:#0d0d0d;}
+  @media screen and (max-width:600px){
+    .container{width:100%!important;}
+    .px{padding-left:24px!important;padding-right:24px!important;}
+    .h1{font-size:34px!important;line-height:36px!important;}
+    .hero-t{font-size:26px!important;line-height:28px!important;}
+    .rimg{width:120px!important;}
+    .rtitle{font-size:17px!important;}
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#e9e7e2;">
+
+  <span style="display:none!important;visibility:hidden;mso-hide:all;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${esc(countLabel)} of air-cooled Porsche hit the market today.</span>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#e9e7e2;">
+    <tbody><tr>
+      <td align="center" style="padding:24px 12px;">
+
+        <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#ffffff;border:1px solid #d9d6cf;">
+
+          <!-- HEADER -->
+          <tbody><tr>
+            <td class="px" style="padding:34px 32px 0;" bgcolor="#ffffff">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:bold;letter-spacing:1px;color:#0d0d0d;">LUFT</div>
+              <div style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:3px;color:#8a8a85;text-transform:uppercase;padding-top:8px;">Air-Cooled \xB7 New Today</div>
+            </td>
+          </tr>
+
+          <!-- CTA BUTTONS -->
+          <tr>
+            <td class="px" style="padding:22px 32px 28px;" bgcolor="#ffffff">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tbody><tr>
+                  <td bgcolor="#0d0d0d" style="border:1px solid #0d0d0d;">
+                    <a href="${esc(sellCar)}" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;padding:13px 24px;">Sell your car</a>
+                  </td>
+                  <td style="width:10px;font-size:0;line-height:0;">&nbsp;</td>
+                  <td style="border:1px solid #0d0d0d;">
+                    <a href="${esc(sellParts)}" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#0d0d0d;text-decoration:none;padding:13px 24px;">List your parts</a>
+                  </td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr>
+
+          <!-- SECTION LABEL -->
+          <tr>
+            <td class="px" style="padding:0 32px;" bgcolor="#ffffff">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:2px solid #0d0d0d;">
+                <tbody><tr><td style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr>
+                <tr>
+                  <td style="font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:2px;color:#0d0d0d;text-transform:uppercase;">${esc(countLabel)} \xB7 ${esc(dateLabel)}</td>
+                  <td align="right" style="font-family:'Courier New',Courier,monospace;font-size:11px;color:#8a8a85;">Aggregated overnight</td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr>
+
+          <!-- FEATURED HERO -->
+          <tr>
+            <td class="px" style="padding:20px 32px 0;" bgcolor="#ffffff">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e6e5e2;">
+                <tbody><tr>
+                  <td style="padding:0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tbody><tr>
+                        <td height="300" align="center" valign="middle" bgcolor="#f1f0ed" style="height:300px;background-color:#f1f0ed;font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:1px;color:#a3a29d;text-transform:uppercase;">
+                          <a href="${esc(featHref)}" target="_blank" style="text-decoration:none;color:#a3a29d;">${featImg}</a>
+                        </td>
+                      </tr>
+                    </tbody></table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:22px 24px 24px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tbody><tr>
+                        <td bgcolor="#0d0d0d" style="font-family:'Courier New',Courier,monospace;font-size:9px;letter-spacing:1px;color:#ffffff;text-transform:uppercase;padding:4px 8px;">Featured \xB7 New</td>
+                      </tr>
+                    </tbody></table>
+                    <div class="hero-t" style="font-family:Arial,Helvetica,sans-serif;font-size:30px;line-height:32px;font-weight:bold;color:#0d0d0d;padding-top:14px;">${esc(featTitle)}</div>
+                    <div style="font-family:'Courier New',Courier,monospace;font-size:13px;color:#8a8a85;padding-top:10px;">${esc(metaOf(feat))}</div>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="padding-top:18px;">
+                      <tbody><tr>
+                        <td valign="middle" style="font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;color:#0d0d0d;">${money(feat.price, feat.currency)}</td>
+                        <td align="right" valign="middle">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tbody><tr><td bgcolor="#0d0d0d"><a href="${esc(featHref)}" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;padding:13px 24px;">View listing \u2192</a></td></tr>
+                          </tbody></table>
+                        </td>
+                      </tr>
+                    </tbody></table>
+                  </td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr>
+
+          <!-- ALSO NEW LABEL -->
+          ${alsoLabel}
+
+          <!-- LISTING ROWS -->
+          ${rows}
+
+          <!-- VIEW ALL -->
+          <tr>
+            <td class="px" style="padding:30px 32px 40px;" bgcolor="#ffffff">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tbody><tr>
+                  <td align="center" style="border:1px solid #0d0d0d;">
+                    <a href="${esc(browse)}" target="_blank" style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#0d0d0d;text-decoration:none;padding:16px 24px;">See all new air-cooled listings \u2192</a>
+                  </td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td class="px" style="padding:0 32px 40px;" bgcolor="#ffffff">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-top:1px solid #e6e5e2;">
+                <tbody><tr><td style="height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>
+                <tr>
+                  <td style="font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;letter-spacing:1px;color:#0d0d0d;">LUFT</td>
+                </tr>
+                <tr>
+                  <td style="font-family:'Courier New',Courier,monospace;font-size:11px;line-height:18px;color:#8a8a85;padding-top:12px;">
+                    Aggregated from 40+ US sources \xB7 Not affiliated with Dr. Ing. h.c. F. Porsche AG<br><br>
+                    You're receiving the daily digest because you signed up at driveluft.com.<br>
+                    <a href="__UNSUB_URL__" target="_blank" style="color:#8a8a85;text-decoration:underline;">Unsubscribe</a>
+                  </td>
+                </tr>
+              </tbody></table>
+            </td>
+          </tr>
+
+        </tbody></table>
+
+      </td>
+    </tr>
+  </tbody></table>
+
+</body></html>`;
 }
 async function resendBatch(env, emails) {
   const res = await fetch("https://api.resend.com/emails/batch", {
@@ -2019,7 +2185,10 @@ async function sendDailyDigest(env) {
       from: env.EMAIL_FROM,
       to: [s.email],
       subject,
-      html: body.replace("__UNSUB__", unsubFooter(env, s.token)),
+      html: body.replace(
+        "__UNSUB_URL__",
+        base ? `${base}/unsubscribe?token=${encodeURIComponent(s.token)}` : "#"
+      ),
       // List-Unsubscribe header — mail clients (esp. Gmail/Yahoo/AOL) surface a
       // native "Unsubscribe" control and reward its presence with better inbox
       // placement. Points at the same token-based unsubscribe page.
