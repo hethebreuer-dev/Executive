@@ -373,7 +373,7 @@ export function ShopsClient() {
         <div style={{ marginTop: 28, fontSize: 14, color: "#5e5e5a", lineHeight: 1.6 }}>
           Know an air-cooled shop we're missing, or own one?{" "}
           <a
-            href="mailto:shops@driveluft.com?subject=Air-cooled%20shop%20suggestion"
+            href="mailto:info@driveluft.com?subject=Air-cooled%20shop%20suggestion"
             style={{ color: "#0d0d0d", fontWeight: 600, borderBottom: "1px solid #0d0d0d" }}
           >
             Suggest a shop →

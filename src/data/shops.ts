@@ -284,4 +284,240 @@ export const SHOPS: Shop[] = [
     blurb:
       "New Jersey shop specializing in restoration, service, parts, performance and sales of classic air-cooled Porsches.",
   },
+
+  // ==== Expansion batch ====
+
+  // ---- California ----
+  {
+    id: "church-of-the-aircooled",
+    name: "Church of the Air-Cooled",
+    city: "San Francisco",
+    state: "CA",
+    lat: 37.8044,
+    lng: -122.4158,
+    website: "https://churchoftheaircooled.com/",
+    specialties: ["Restoration", "Service", "Engine/trans rebuilds"],
+    blurb:
+      "San Francisco air-cooled specialist handling everything from routine maintenance to full engine and transmission rebuilds.",
+  },
+  {
+    id: "911s-restoration",
+    name: "911s Restoration",
+    city: "San Diego",
+    state: "CA",
+    lat: 32.7157,
+    lng: -117.1611,
+    website: "https://911srestoration.com/",
+    specialties: ["Restoration", "Vintage 911"],
+    blurb:
+      "San Diego shop focused on masterful, detail-obsessed restorations of vintage air-cooled 911s.",
+  },
+  {
+    id: "makellos-classics",
+    name: "Makellos Classics",
+    city: "Escondido",
+    state: "CA",
+    lat: 33.1192,
+    lng: -117.0864,
+    website: "https://www.makellosclassics.com/services/porsche-services",
+    specialties: ["Engine rebuilds", "356 · 912 · 911"],
+    blurb:
+      "Full-service Porsche specialist near San Diego, rebuilding air-cooled engines from the 356 and 912 through the 911.",
+  },
+  {
+    id: "cape-auto-repair",
+    name: "Cape Auto Repair",
+    city: "Mission Viejo",
+    state: "CA",
+    lat: 33.6,
+    lng: -117.672,
+    website: "https://www.capeautorepair.com/orange-county-porsche-shop.php",
+    specialties: ["Service", "Repair"],
+    blurb:
+      "Orange County Porsche experts since 1979, working on air-cooled 356 and 911 alongside modern cars.",
+  },
+  // ---- Texas ----
+  {
+    id: "modern-aircooled",
+    name: "Modern Aircooled",
+    city: "Houston",
+    state: "TX",
+    lat: 29.8,
+    lng: -95.42,
+    website: "https://www.modernaircooled.com/",
+    specialties: ["Service", "Repair"],
+    blurb:
+      "Houston's dedicated air-cooled Porsche service and repair center.",
+  },
+  {
+    id: "dmw-motor-cars",
+    name: "DMW Motor Cars",
+    city: "Houston",
+    state: "TX",
+    lat: 29.74,
+    lng: -95.46,
+    website: "https://dmwmotorcars.com/porsche-repair-houston/air-cooled-mechanic/",
+    specialties: ["Repair", "911T · RS · SC · 356"],
+    blurb:
+      "Houston shop specializing in air-cooled Porsche repair, from the 356 to the 911T, Carrera RS and SC.",
+  },
+  {
+    id: "flat-6-werks",
+    name: "Flat 6 Werks",
+    city: "Houston",
+    state: "TX",
+    lat: 29.7,
+    lng: -95.5,
+    website: "https://www.flat6werks.com/",
+    specialties: ["Maintenance", "Repair"],
+    blurb:
+      "Houston independent facility specializing in maintenance and repair for air- and water-cooled Porsches.",
+  },
+  {
+    id: "einars-garage",
+    name: "Einar's Garage",
+    city: "Houston",
+    state: "TX",
+    lat: 29.81,
+    lng: -95.4,
+    website: "https://www.einarsgarage.com/",
+    specialties: ["Service", "Restoration"],
+    blurb:
+      "Porsche-specific service and restoration shop in Houston.",
+  },
+  {
+    id: "moorespeed",
+    name: "Moorespeed",
+    city: "Austin",
+    state: "TX",
+    lat: 30.2672,
+    lng: -97.7431,
+    website: "https://www.moorespeed.com/porsche-service/",
+    specialties: ["Service", "Race prep"],
+    blurb:
+      "Austin Porsche shop experienced across the range, from 356 and early 911 to later cars and race prep.",
+  },
+  // ---- Mountain / Southwest ----
+  {
+    id: "motorsport-slc",
+    name: "Motorsport",
+    city: "South Salt Lake",
+    state: "UT",
+    lat: 40.7089,
+    lng: -111.888,
+    specialties: ["Service", "964 · 993"],
+    blurb:
+      "Independent Salt Lake specialist with deep air-cooled 911 knowledge, run by a longtime Porsche mechanical engineer.",
+  },
+  // ---- Midwest ----
+  {
+    id: "arbormotion-rennstatt",
+    name: "ArborMotion (Rennstatt)",
+    city: "Ann Arbor",
+    state: "MI",
+    lat: 42.2808,
+    lng: -83.743,
+    website: "https://www.arbormotion.com/services/import/porsche-rennstatt/air-cooled-porsche-service-ann-arbor",
+    specialties: ["Service", "356 · 912 · 914 · 993"],
+    blurb:
+      "Ann Arbor's Rennstatt division brings a 40-year history with air-cooled Porsches from the 356 to the 993.",
+  },
+  {
+    id: "jp-werks",
+    name: "JP Werks",
+    city: "Lenexa",
+    state: "KS",
+    lat: 38.9536,
+    lng: -94.7336,
+    website: "https://www.jpwerks.com/",
+    specialties: ["Restoration"],
+    blurb:
+      "Kansas City-area shop that has become a preeminent air-cooled Porsche restoration specialist in the Midwest.",
+  },
+  // ---- Southeast ----
+  {
+    id: "monkey-nut-vw",
+    name: "Monkey Nut VW",
+    city: "Charlotte",
+    state: "NC",
+    lat: 35.2271,
+    lng: -80.8431,
+    website: "https://www.monkeynutvw.com/",
+    specialties: ["Restoration", "Air-cooled VW & Porsche"],
+    blurb:
+      "Charlotte shop specializing in the maintenance and restoration of vintage air-cooled VWs and Porsches.",
+  },
+  {
+    id: "sonderwerks",
+    name: "Sonderwerks",
+    city: "Cornelius",
+    state: "NC",
+    lat: 35.4868,
+    lng: -80.8601,
+    website: "https://www.sonderwerks.com/",
+    specialties: ["Engine", "Body & paint", "Trim"],
+    blurb:
+      "One-stop Porsche shop near Charlotte with engine, transmission, paint/body and upholstery all in-house — air- and water-cooled.",
+  },
+  {
+    id: "gpo-tuning",
+    name: "GPO Tuning",
+    city: "Nashville",
+    state: "TN",
+    lat: 36.1627,
+    lng: -86.7816,
+    website: "https://gpotuning.com/porsche-service-nashville/",
+    specialties: ["Service", "Tuning"],
+    blurb:
+      "Widely regarded as Nashville's best for air-cooled Porsche service and tuning.",
+  },
+  {
+    id: "niche-motors",
+    name: "Niche Motors",
+    city: "Nashville",
+    state: "TN",
+    lat: 36.145,
+    lng: -86.81,
+    website: "https://www.nichemotors.com/",
+    specialties: ["Service", "Air-cooled"],
+    blurb:
+      "Nashville specialist servicing air-cooled Porsches and VWs alongside classic and exotic cars.",
+  },
+  // ---- Mid-Atlantic / Northeast ----
+  {
+    id: "auto-therapy",
+    name: "Auto Therapy",
+    city: "Gaithersburg",
+    state: "MD",
+    lat: 39.1434,
+    lng: -77.2014,
+    website: "https://porscherepairmdc.com/",
+    specialties: ["Service", "Restoration", "356 · 912"],
+    blurb:
+      "DC-area Porsche specialist since 1985, with air-cooled 356, 912 and 911 diagnostics, tuning and restoration.",
+  },
+  {
+    id: "repasi-motorwerks",
+    name: "Repasi Motorwerks",
+    city: "Stratford",
+    state: "CT",
+    lat: 41.1845,
+    lng: -73.1332,
+    website: "https://repasimotorwerks.com/services/classic-porsche",
+    specialties: ["Restoration", "GT service", "Porsche Classic Certified"],
+    blurb:
+      "Porsche Classic Certified Connecticut shop that draws New England collectors for air-cooled restoration and GT service.",
+  },
+  {
+    id: "auto-engineering",
+    name: "Auto Engineering",
+    city: "Lexington",
+    state: "MA",
+    lat: 42.4473,
+    lng: -71.2245,
+    website: "https://www.autoengineering.com/air-cooled-porsche-repair-lexington-ma/",
+    specialties: ["Repair", "Restoration", "911 · 912 · 964 · 993"],
+    blurb:
+      "Lexington, MA specialist with decades of hands-on experience on air-cooled 911, 912, 964 and 993 models.",
+  },
 ];
