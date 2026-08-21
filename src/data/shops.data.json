@@ -1,0 +1,3876 @@
+[
+{
+"id": "birmingham-road-and-race-al",
+"name": "Birmingham Road and Race",
+"city": "Birmingham",
+"state": "AL",
+"lat": 33.5207,
+"lng": -86.8025,
+"website": "https://birminghamroadandrace.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche; classic/air-cooled",
+"verified": true
+},
+{
+"id": "ollie-s-machine-shop-az",
+"name": "Ollie's Machine Shop",
+"city": "Lake Havasu City",
+"state": "AZ",
+"lat": 34.4839,
+"lng": -114.3225,
+"website": null,
+"phone": null,
+"services": [
+"Machine work"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "air-cooleds-only-az",
+"name": "Air Cooleds Only",
+"city": "Prescott",
+"state": "AZ",
+"lat": 34.54,
+"lng": -112.4685,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": false
+},
+{
+"id": "benton-performance-llc-ca",
+"name": "Benton Performance, LLC",
+"city": "Anaheim",
+"state": "CA",
+"lat": 33.8353,
+"lng": -117.9145,
+"website": "https://www.bentonperformance.com/",
+"phone": "714-630-5025",
+"services": [
+"Engine & Trans",
+"Parts",
+"Performance & Race",
+"Restoration"
+],
+"focus": "356, 912, early 911",
+"verified": true
+},
+{
+"id": "scott-s-independent-inc-ca",
+"name": "Scott's Independent Inc",
+"city": "Anaheim",
+"state": "CA",
+"lat": 33.8353,
+"lng": -117.9145,
+"website": "https://www.scottsindependent.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "911, 912, 356",
+"verified": true
+},
+{
+"id": "anthony-s-classic-auto-werks-ca",
+"name": "Anthony's Classic Auto Werks",
+"city": "Auburn",
+"state": "CA",
+"lat": 38.9324,
+"lng": -121.0805,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "boyle-future-tech-ca",
+"name": "Boyle Future Tech",
+"city": "Auburn",
+"state": "CA",
+"lat": 38.9324,
+"lng": -121.0805,
+"website": null,
+"phone": null,
+"services": [
+"Machine work",
+"Service & Repair"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "holleran-performance-ca",
+"name": "Holleran Performance",
+"city": "Auburn",
+"state": "CA",
+"lat": 38.9324,
+"lng": -121.0805,
+"website": "https://www.holleranperformance.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Machine work",
+"Performance & Race"
+],
+"focus": "356; air-cooled",
+"verified": false
+},
+{
+"id": "ron-s-transaxles-ca",
+"name": "Ron’s Transaxles",
+"city": "Bay",
+"state": "CA",
+"lat": 36.0954,
+"lng": -119.6018,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "356",
+"verified": false
+},
+{
+"id": "norman-racing-engine-machine-shop-ca",
+"name": "Norman Racing Engine Machine Shop",
+"city": "Berkeley",
+"state": "CA",
+"lat": 37.8716,
+"lng": -122.2728,
+"website": null,
+"phone": null,
+"services": [
+"Machine work"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "jim-musage-machine-shop-ca",
+"name": "Jim Musage Machine Shop",
+"city": "Boulder Creek",
+"state": "CA",
+"lat": 37.1547,
+"lng": -122.1365,
+"website": null,
+"phone": null,
+"services": [
+"Machine work"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "champion-engines-ca",
+"name": "Champion Engines",
+"city": "Campbell",
+"state": "CA",
+"lat": 37.2872,
+"lng": -121.95,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "sportech-ca",
+"name": "Sportech",
+"city": "Campbell",
+"state": "CA",
+"lat": 37.2872,
+"lng": -121.95,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "gerolamy-s-ca",
+"name": "Gerolamy's",
+"city": "Carmichael",
+"state": "CA",
+"lat": 38.6171,
+"lng": -121.3283,
+"website": null,
+"phone": null,
+"services": [
+"Machine work"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "3a-garage-ca",
+"name": "3A Garage",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche; classic models",
+"verified": true
+},
+{
+"id": "auto-strasse-porsche-repair-ca",
+"name": "Auto Strasse Porsche Repair",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://autostrassecorp.com/",
+"phone": "(949) 645-1928",
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "911; air-cooled",
+"verified": true
+},
+{
+"id": "california-porsches-ca",
+"name": "California Porsches",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://www.californiaporsches.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "Early 911, 912, 356",
+"verified": true
+},
+{
+"id": "carparcusa-ca",
+"name": "CarparcUSA",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://carparcusa.com/",
+"phone": "562-331-0681",
+"services": [
+"Restoration",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "Early 911",
+"verified": true
+},
+{
+"id": "european-collectibles-ca",
+"name": "European Collectibles",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://www.europeancollectibles.com/",
+"phone": "949-650-4718",
+"services": [
+"Restoration",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "356, 911, 993",
+"verified": true
+},
+{
+"id": "joe-anselmo-motorsports-ca",
+"name": "Joe Anselmo Motorsports",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": null,
+"services": [
+"Parts",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356 through modern; air-cooled 911",
+"verified": true
+},
+{
+"id": "liberty-motorsports-ca",
+"name": "Liberty Motorsports",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": "949-375-1888",
+"services": [
+"Restoration"
+],
+"focus": "356",
+"verified": true
+},
+{
+"id": "newport-motorsports-ca",
+"name": "Newport Motorsports",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche; classic 911",
+"verified": true
+},
+{
+"id": "rs-autowerks-ca",
+"name": "RS Autowerks",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "911, 914, 912, 964, 993",
+"verified": true
+},
+{
+"id": "rennwagen-motor-company-ca",
+"name": "Rennwagen Motor Company",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": "949-548-1063",
+"services": [],
+"focus": "356 Carrera; 4-cam",
+"verified": true
+},
+{
+"id": "sleepers-speed-shop-ca",
+"name": "Sleepers Speed Shop",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": null,
+"phone": "949-631-2020",
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Classic 911; 964; 993",
+"verified": true
+},
+{
+"id": "wholesale-california-ca",
+"name": "Wholesale California",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://wholesalecalifornia.com/",
+"phone": "(949) 631-7456",
+"services": [],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "makellos-classics-ca",
+"name": "Makellos Classics",
+"city": "Escondido",
+"state": "CA",
+"lat": 33.1192,
+"lng": -117.0864,
+"website": "https://www.makellosclassics.com/",
+"phone": "760-300-4037",
+"services": [
+"Engine & Trans",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "356, 912, 911, 930, 964, 993",
+"verified": true
+},
+{
+"id": "goritz-sixfix-llc-ca",
+"name": "Goritz SIXFIX LLC",
+"city": "Fountain Valley",
+"state": "CA",
+"lat": 33.7092,
+"lng": -117.9537,
+"website": "https://www.sixfix-us.com/",
+"phone": "949-542-5653",
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356, 912, 914, 911",
+"verified": true
+},
+{
+"id": "aase-motors-ca",
+"name": "Aase Motors",
+"city": "Fullerton",
+"state": "CA",
+"lat": 33.8703,
+"lng": -117.9253,
+"website": "http://aasemotors.com/",
+"phone": "714-992-2283",
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "911; classic Porsche",
+"verified": true
+},
+{
+"id": "motor-electric-ca",
+"name": "Motor Electric",
+"city": "Grass Valley",
+"state": "CA",
+"lat": 39.1637,
+"lng": -121.0504,
+"website": null,
+"phone": null,
+"services": [
+"Parts",
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "german-competition-motors-ca",
+"name": "German Competition Motors",
+"city": "Hayward",
+"state": "CA",
+"lat": 37.6688,
+"lng": -122.0808,
+"website": null,
+"phone": "510-537-5955",
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "asv-motorsports-ca",
+"name": "ASV Motorsports",
+"city": "Huntington Beach",
+"state": "CA",
+"lat": 33.6603,
+"lng": -117.9992,
+"website": "https://www.asvmotorsports.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "901, 911, 964, 993",
+"verified": true
+},
+{
+"id": "bbi-autosport-ca",
+"name": "BBI Autosport",
+"city": "Huntington Beach",
+"state": "CA",
+"lat": 33.6603,
+"lng": -117.9992,
+"website": "https://www.bbiautosport.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "911; classic Porsche",
+"verified": true
+},
+{
+"id": "the-parts-shop-ca",
+"name": "The Parts Shop",
+"city": "Huntington Beach",
+"state": "CA",
+"lat": 33.6603,
+"lng": -117.9992,
+"website": "https://partsshophb.com/",
+"phone": "714-894-3112",
+"services": [
+"Parts",
+"Restoration"
+],
+"focus": "356; 912",
+"verified": true
+},
+{
+"id": "blam-motorwerks-ca",
+"name": "Blam Motorwerks",
+"city": "Laguna Beach",
+"state": "CA",
+"lat": 33.5423,
+"lng": -117.7831,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Classic air-cooled + modern Porsche",
+"verified": true
+},
+{
+"id": "vision-motorsports-ca",
+"name": "Vision Motorsports",
+"city": "Laguna Hills",
+"state": "CA",
+"lat": 33.6125,
+"lng": -117.7128,
+"website": "https://www.visionmotorsports.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled + modern Porsche",
+"verified": true
+},
+{
+"id": "competition-engineering-ca",
+"name": "Competition Engineering",
+"city": "Lake Isabella",
+"state": "CA",
+"lat": 35.669,
+"lng": -118.457,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "356",
+"verified": false
+},
+{
+"id": "willhoit-auto-restoration-ca",
+"name": "Willhoit Auto Restoration",
+"city": "Long Beach",
+"state": "CA",
+"lat": 33.767,
+"lng": -118.1892,
+"website": "https://www.willhoitautorestoration.com/",
+"phone": "562-439-3333",
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "356",
+"verified": true
+},
+{
+"id": "workshop-5001-ca",
+"name": "Workshop 5001",
+"city": "Los Angeles",
+"state": "CA",
+"lat": 34.0522,
+"lng": -118.2437,
+"website": null,
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356, 911, 930",
+"verified": true
+},
+{
+"id": "reinhardt-reidell-ca",
+"name": "Reinhardt Reidell",
+"city": "Meadow Vista",
+"state": "CA",
+"lat": 39.0031,
+"lng": -121.0292,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "356",
+"verified": false
+},
+{
+"id": "craig-smith-ca",
+"name": "Craig Smith",
+"city": "Morro Bay",
+"state": "CA",
+"lat": 35.3727,
+"lng": -120.8473,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "custom-alignment-ca",
+"name": "Custom Alignment",
+"city": "Mountain View",
+"state": "CA",
+"lat": 37.386,
+"lng": -122.0838,
+"website": "https://www.customalignment.com/",
+"phone": "650-961-5311",
+"services": [
+"Parts"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "modderman-services-ca",
+"name": "Modderman Services",
+"city": "Mountain View",
+"state": "CA",
+"lat": 37.386,
+"lng": -122.0838,
+"website": "https://modderman.com/",
+"phone": "650-967-3213",
+"services": [
+"Service & Repair"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "eason-auto-works-ca",
+"name": "Eason Auto Works",
+"city": "Oakland",
+"state": "CA",
+"lat": 37.8044,
+"lng": -122.2708,
+"website": "http://www.easonauto.com/",
+"phone": "510-420-1262",
+"services": [
+"Service & Repair"
+],
+"focus": "356; air-cooled Porsche",
+"verified": false
+},
+{
+"id": "sv-automotive-ca",
+"name": "SV Automotive",
+"city": "Ontario",
+"state": "CA",
+"lat": 34.0633,
+"lng": -117.6509,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "Classic Porsche; 911",
+"verified": true
+},
+{
+"id": "9xx-motors-ca",
+"name": "9xx Motors",
+"city": "Orange",
+"state": "CA",
+"lat": 33.7878,
+"lng": -117.8531,
+"website": null,
+"phone": "562-470-7202",
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled 911; other Porsche",
+"verified": true
+},
+{
+"id": "rusnak-pasadena-porsche-ca",
+"name": "Rusnak/Pasadena Porsche",
+"city": "Pasadena",
+"state": "CA",
+"lat": 34.1478,
+"lng": -118.1445,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "ron-chuck-engineering-ca",
+"name": "Ron Chuck Engineering",
+"city": "Redwood City",
+"state": "CA",
+"lat": 37.4852,
+"lng": -122.2364,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Machine work"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "wallentine-motorsports-ca",
+"name": "Wallentine Motorsports",
+"city": "Roseville",
+"state": "CA",
+"lat": 38.7521,
+"lng": -121.288,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "356; air-cooled Porsche",
+"verified": false
+},
+{
+"id": "wallentine-motorsports-llc-ca",
+"name": "Wallentine Motorsports LLC",
+"city": "Roseville",
+"state": "CA",
+"lat": 38.7521,
+"lng": -121.288,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "dawn-s-restoration-repair-ca",
+"name": "Dawn's Restoration & Repair",
+"city": "Sacramento",
+"state": "CA",
+"lat": 38.5816,
+"lng": -121.4944,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "ipb-autosport-ca",
+"name": "IPB Autosport",
+"city": "Sacramento",
+"state": "CA",
+"lat": 38.5816,
+"lng": -121.4944,
+"website": null,
+"phone": "916-453-1465",
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "356; air-cooled Porsche",
+"verified": false
+},
+{
+"id": "kenmonth-engine-ca",
+"name": "Kenmonth Engine",
+"city": "Sacramento",
+"state": "CA",
+"lat": 38.5816,
+"lng": -121.4944,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "356",
+"verified": false
+},
+{
+"id": "porsche-sacramento-classic-center-ca",
+"name": "Porsche Sacramento Classic Center",
+"city": "Sacramento",
+"state": "CA",
+"lat": 38.5816,
+"lng": -121.4944,
+"website": null,
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "ted-blake-restorations-ca",
+"name": "Ted Blake Restorations",
+"city": "Sacramento",
+"state": "CA",
+"lat": 38.5816,
+"lng": -121.4944,
+"website": null,
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "ted-blake-s-restoration-ca",
+"name": "Ted Blake's Restoration",
+"city": "Sacramento",
+"state": "CA",
+"lat": 38.5816,
+"lng": -121.4944,
+"website": null,
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "jack-staggs-ca",
+"name": "Jack Staggs",
+"city": "San Clemente",
+"state": "CA",
+"lat": 33.427,
+"lng": -117.612,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "aldo-s-performance-motors-ca",
+"name": "Aldo's Performance Motors",
+"city": "San Francisco",
+"state": "CA",
+"lat": 37.7749,
+"lng": -122.4194,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "auto-sport-haus-ca",
+"name": "Auto Sport Haus",
+"city": "San Francisco",
+"state": "CA",
+"lat": 37.7749,
+"lng": -122.4194,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "rite-way-electric-ca",
+"name": "Rite-Way Electric",
+"city": "San Francisco",
+"state": "CA",
+"lat": 37.7749,
+"lng": -122.4194,
+"website": null,
+"phone": null,
+"services": [
+"Parts",
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "san-jose-generator-ca",
+"name": "San Jose Generator",
+"city": "San Jose",
+"state": "CA",
+"lat": 37.3394,
+"lng": -121.895,
+"website": null,
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "s-car-go-racing-ca",
+"name": "S-Car-Go Racing",
+"city": "San Rafael",
+"state": "CA",
+"lat": 37.9735,
+"lng": -122.5311,
+"website": null,
+"phone": "415-485-6026",
+"services": [
+"Performance & Race"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "marine-crankshaft-ca",
+"name": "Marine Crankshaft",
+"city": "Santa Ana",
+"state": "CA",
+"lat": 33.7456,
+"lng": -117.8678,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "larry-markham-ca",
+"name": "Larry Markham",
+"city": "Somis",
+"state": "CA",
+"lat": 34.2798,
+"lng": -119.0115,
+"website": null,
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "ed-rutherford-company-ca",
+"name": "Ed Rutherford & Company",
+"city": "Torrance",
+"state": "CA",
+"lat": 33.8359,
+"lng": -118.3406,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "air-motorsports-ca",
+"name": "AIR MotorSports",
+"city": "Van Nuys",
+"state": "CA",
+"lat": 34.1867,
+"lng": -118.449,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Interior",
+"Restoration"
+],
+"focus": "911, 356, 914",
+"verified": true
+},
+{
+"id": "osuna-auto-electric-ca",
+"name": "Osuna Auto Electric",
+"city": "Watsonville",
+"state": "CA",
+"lat": 36.9102,
+"lng": -121.7569,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Bosch / classic Porsche",
+"verified": false
+},
+{
+"id": "paras-autos-inc-ca",
+"name": "Paras Autos Inc.",
+"city": "Westminster",
+"state": "CA",
+"lat": 33.7592,
+"lng": -118.0067,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "356; early Porsche; 911",
+"verified": true
+},
+{
+"id": "simple-auto-solutions-co",
+"name": "Simple Auto Solutions",
+"city": "Boulder",
+"state": "CO",
+"lat": 40.015,
+"lng": -105.2706,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "the-machine-shop-martin-willis-co",
+"name": "The Machine Shop - Martin Willis",
+"city": "Colorado Springs",
+"state": "CO",
+"lat": 38.8339,
+"lng": -104.8214,
+"website": null,
+"phone": null,
+"services": [
+"Machine work"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "geigerworks-co",
+"name": "Geigerworks",
+"city": "Denver",
+"state": "CO",
+"lat": 39.7392,
+"lng": -104.9847,
+"website": "https://geigerworks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "storz-garage-co",
+"name": "Storz Garage",
+"city": "Denver",
+"state": "CO",
+"lat": 39.7392,
+"lng": -104.9847,
+"website": null,
+"phone": "303-333-1911",
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": false
+},
+{
+"id": "emegatronic-llc-ct",
+"name": "emegatronic LLC",
+"city": "Bridgeport",
+"state": "CT",
+"lat": 41.1792,
+"lng": -73.1894,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race"
+],
+"focus": "Air-cooled Porsche engines",
+"verified": true
+},
+{
+"id": "sst-auto-speedsport-tuning-ct",
+"name": "SST Auto & Speedsport Tuning",
+"city": "Danbury",
+"state": "CT",
+"lat": 41.3948,
+"lng": -73.454,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche; classic/air-cooled",
+"verified": true
+},
+{
+"id": "speedsport-tuning-ct",
+"name": "SpeedSport Tuning",
+"city": "Danbury",
+"state": "CT",
+"lat": 41.3948,
+"lng": -73.454,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356, vintage 911",
+"verified": true
+},
+{
+"id": "butzigear-the-porsche-shop-ct",
+"name": "BUTZIGEAR - The Porsche Shop",
+"city": "Milford",
+"state": "CT",
+"lat": 41.2223,
+"lng": -73.0565,
+"website": "https://butzigear.com/",
+"phone": "(203) 713-8089",
+"services": [
+"Restoration",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "Classic/air-cooled Porsche",
+"verified": true
+},
+{
+"id": "repasi-motorwerks-ct",
+"name": "Repasi Motorwerks",
+"city": "Stratford",
+"state": "CT",
+"lat": 41.1845,
+"lng": -73.1332,
+"website": "https://repasimotorwerks.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "All air-cooled 911; 964; 993",
+"verified": true
+},
+{
+"id": "bocars-fl",
+"name": "Bocars",
+"city": "Boca Raton",
+"state": "FL",
+"lat": 26.3587,
+"lng": -80.0831,
+"website": null,
+"phone": null,
+"services": [
+"Sales & Consignment"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": true
+},
+{
+"id": "nine-sport-motorwerks-fl",
+"name": "Nine Sport Motorwerks",
+"city": "Clermont",
+"state": "FL",
+"lat": 28.5494,
+"lng": -81.7729,
+"website": "https://ninesportmotorwerks.com/",
+"phone": "407-554-1046",
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356, 911, 914, 964, 993",
+"verified": true
+},
+{
+"id": "tuners-motorsports-fl",
+"name": "TuneRS Motorsports",
+"city": "Coral Springs",
+"state": "FL",
+"lat": 26.2712,
+"lng": -80.2706,
+"website": "https://tunersmotorsports.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled + water-cooled Porsche",
+"verified": true
+},
+{
+"id": "broadfoot-racing-fl",
+"name": "Broadfoot Racing",
+"city": "Jacksonville",
+"state": "FL",
+"lat": 30.3322,
+"lng": -81.6556,
+"website": "https://www.broadfootracing.net/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "356 through 996; air-cooled Porsche",
+"verified": true
+},
+{
+"id": "artcar-inc-restore-porsche-fl",
+"name": "ArtCar Inc. / Restore Porsche",
+"city": "Loxahatchee",
+"state": "FL",
+"lat": 26.7383,
+"lng": -80.276,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Interior",
+"Restoration",
+"Service & Repair"
+],
+"focus": "911; 912; 356; 914; 550",
+"verified": true
+},
+{
+"id": "restore-porsche-artcar-inc-fl",
+"name": "Restore Porsche / ArtCar Inc.",
+"city": "Loxahatchee",
+"state": "FL",
+"lat": 26.7383,
+"lng": -80.276,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Interior",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356, 550, 911, 912, 914",
+"verified": true
+},
+{
+"id": "the-werkshop-fl",
+"name": "The Werkshop",
+"city": "Melbourne",
+"state": "FL",
+"lat": 28.0836,
+"lng": -80.6081,
+"website": "https://werkshopmelbourne.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled + water-cooled Porsche",
+"verified": true
+},
+{
+"id": "havana911-fl",
+"name": "Havana911",
+"city": "Miami",
+"state": "FL",
+"lat": 25.7743,
+"lng": -80.1937,
+"website": "https://havana911.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Engine & Trans",
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "havana911-fl",
+"name": "Havana911",
+"city": "Miami",
+"state": "FL",
+"lat": 25.7743,
+"lng": -80.1937,
+"website": "https://havana911.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Engine & Trans",
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "9-auto-motion-fl",
+"name": "9 Auto Motion",
+"city": "Riviera Beach",
+"state": "FL",
+"lat": 26.7753,
+"lng": -80.0581,
+"website": "https://www.9automotion.com/",
+"phone": "561-990-2911",
+"services": [
+"Engine & Trans",
+"Restoration"
+],
+"focus": "Air-cooled 911",
+"verified": true
+},
+{
+"id": "analog-autohaus-fl",
+"name": "Analog Autohaus",
+"city": "Sarasota",
+"state": "FL",
+"lat": 27.3364,
+"lng": -82.5306,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "Analog/classic Porsche; air-cooled",
+"verified": true
+},
+{
+"id": "jesse-s-garage-fl",
+"name": "Jesse's Garage",
+"city": "Sarasota",
+"state": "FL",
+"lat": 27.3364,
+"lng": -82.5306,
+"website": "https://jessesgarage.com/",
+"phone": "941-207-9870",
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356, 911, 912, 914, 964, 993",
+"verified": true
+},
+{
+"id": "srq-motorsports-fl",
+"name": "SRQ Motorsports",
+"city": "Sarasota",
+"state": "FL",
+"lat": 27.3364,
+"lng": -82.5306,
+"website": "https://srqmotorsports.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Parts",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "356, 912, 911, 964, 993, 914",
+"verified": true
+},
+{
+"id": "european-performance-fl",
+"name": "European Performance",
+"city": "St. Petersburg",
+"state": "FL",
+"lat": 27.7709,
+"lng": -82.6793,
+"website": "https://europeanperformancefl.com/",
+"phone": "727-894-6124",
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "heights-auto-imports-fl",
+"name": "Heights Auto Imports",
+"city": "Tampa",
+"state": "FL",
+"lat": 27.9475,
+"lng": -82.4584,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "356; 911; 912; 914",
+"verified": true
+},
+{
+"id": "stokes-automotive-fl",
+"name": "Stokes Automotive",
+"city": "West Park",
+"state": "FL",
+"lat": 25.9845,
+"lng": -80.1989,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "912, 911, classic Porsche",
+"verified": true
+},
+{
+"id": "sport-motoring-ga",
+"name": "Sport Motoring",
+"city": "Decatur",
+"state": "GA",
+"lat": 33.7748,
+"lng": -84.2963,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "sam-smith-performance-ga",
+"name": "Sam Smith Performance",
+"city": "Fayetteville",
+"state": "GA",
+"lat": 33.4487,
+"lng": -84.4549,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "das-sport-classics-ga",
+"name": "DAS Sport Classics",
+"city": "Savannah",
+"state": "GA",
+"lat": 32.0835,
+"lng": -81.0998,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "Historic Porsche; race cars",
+"verified": true
+},
+{
+"id": "flyin-wrench-motorsports-ga",
+"name": "Flyin Wrench Motorsports",
+"city": "Woodstock",
+"state": "GA",
+"lat": 34.1015,
+"lng": -84.5194,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": false
+},
+{
+"id": "alpine-motor-cars-id",
+"name": "Alpine Motor Cars",
+"city": "Hayden Lake",
+"state": "ID",
+"lat": 47.7604,
+"lng": -116.7877,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": false
+},
+{
+"id": "g-design-racing-il",
+"name": "G Design Racing",
+"city": "Addison",
+"state": "IL",
+"lat": 41.9317,
+"lng": -87.989,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race"
+],
+"focus": "Porsche; air-cooled race cars",
+"verified": false
+},
+{
+"id": "pw-auto-clinic-il",
+"name": "PW Auto Clinic",
+"city": "Aurora",
+"state": "IL",
+"lat": 41.7606,
+"lng": -88.3201,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "barnaba-autosport-il",
+"name": "Barnaba Autosport",
+"city": "Batavia",
+"state": "IL",
+"lat": 41.85,
+"lng": -88.3126,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "356; 912; 914; 911; 930; 964; 993",
+"verified": true
+},
+{
+"id": "triple-c-automotive-inc-il",
+"name": "Triple C Automotive Inc.",
+"city": "Batavia",
+"state": "IL",
+"lat": 41.85,
+"lng": -88.3126,
+"website": "https://www.triplecautomotiveinc.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Parts",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche/VW; 911",
+"verified": true
+},
+{
+"id": "midwest-eurosport-il",
+"name": "Midwest Eurosport",
+"city": "Bensenville",
+"state": "IL",
+"lat": 41.955,
+"lng": -87.9401,
+"website": null,
+"phone": "630-595-5577",
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche; classic",
+"verified": false
+},
+{
+"id": "perfect-power-il",
+"name": "Perfect Power",
+"city": "Buffalo Grove",
+"state": "IL",
+"lat": 42.1514,
+"lng": -87.9598,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": false
+},
+{
+"id": "manfred-s-import-auto-inc-il",
+"name": "Manfred's Import Auto Inc.",
+"city": "Cary",
+"state": "IL",
+"lat": 42.212,
+"lng": -88.2381,
+"website": "https://www.manfredsimportauto.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": true
+},
+{
+"id": "autosport-il",
+"name": "Autosport",
+"city": "Elburn",
+"state": "IL",
+"lat": 41.8824,
+"lng": -88.4611,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": false
+},
+{
+"id": "be-aircooled-llc-il",
+"name": "Be Aircooled LLC",
+"city": "Glenview",
+"state": "IL",
+"lat": 42.0697,
+"lng": -87.7878,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 912; 911; 914",
+"verified": true
+},
+{
+"id": "chicago-performance-tuning-il",
+"name": "Chicago Performance & Tuning",
+"city": "Lombard",
+"state": "IL",
+"lat": 41.88,
+"lng": -88.0078,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race"
+],
+"focus": "Porsche; air-cooled race cars",
+"verified": false
+},
+{
+"id": "olsen-motorsport-il",
+"name": "Olsen Motorsport",
+"city": "Naperville",
+"state": "IL",
+"lat": 41.7859,
+"lng": -88.1473,
+"website": "https://www.olsenmotorsports.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": true
+},
+{
+"id": "wizard-werks-il",
+"name": "Wizard Werks",
+"city": "Palatine",
+"state": "IL",
+"lat": 42.1103,
+"lng": -88.0342,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "euro-mechanica-garage-il",
+"name": "Euro Mechanica Garage",
+"city": "Roselle",
+"state": "IL",
+"lat": 41.9847,
+"lng": -88.0798,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "midwest-performance-cars-il",
+"name": "Midwest Performance Cars",
+"city": "Westmont",
+"state": "IL",
+"lat": 41.7959,
+"lng": -87.9756,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "my-nine-eleven-shop-il",
+"name": "My Nine Eleven Shop",
+"city": "Woodstock",
+"state": "IL",
+"lat": 42.3147,
+"lng": -88.4487,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "911; air-cooled Porsche",
+"verified": false
+},
+{
+"id": "underground-autosports-il",
+"name": "Underground Autosports",
+"city": "Zion",
+"state": "IL",
+"lat": 42.4461,
+"lng": -87.8328,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race"
+],
+"focus": "Porsche; performance",
+"verified": false
+},
+{
+"id": "farmers-automotive-in",
+"name": "Farmers Automotive",
+"city": "Greenfield",
+"state": "IN",
+"lat": 39.785,
+"lng": -85.7694,
+"website": "https://www.farmersautomotive.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "911; 930; air-cooled Porsche",
+"verified": true
+},
+{
+"id": "farmers-automotive-for-air-cooled-porsches-only-in",
+"name": "Farmers Automotive For Air Cooled Porsches Only",
+"city": "Greenfield",
+"state": "IN",
+"lat": 39.785,
+"lng": -85.7694,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "911; 930; air-cooled Porsche",
+"verified": true
+},
+{
+"id": "a-c-s-racing-ma",
+"name": "A.C.S. Racing",
+"city": "Hanover",
+"state": "MA",
+"lat": 42.1132,
+"lng": -70.812,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Parts",
+"Performance & Race"
+],
+"focus": "356",
+"verified": true
+},
+{
+"id": "ssi-motorsports-md",
+"name": "SSI Motorsports",
+"city": "Parkville",
+"state": "MD",
+"lat": 39.3773,
+"lng": -76.5397,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche; classic/GT",
+"verified": true
+},
+{
+"id": "european-auto-restoration-mi",
+"name": "European Auto Restoration",
+"city": "Fennville",
+"state": "MI",
+"lat": 42.5777,
+"lng": -86.1249,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche; European cars",
+"verified": true
+},
+{
+"id": "original-customs-mi",
+"name": "Original Customs",
+"city": "Grand Rapids",
+"state": "MI",
+"lat": 42.9634,
+"lng": -85.6681,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration"
+],
+"focus": "914; classic Porsche",
+"verified": true
+},
+{
+"id": "vic-skirmants-356-enterprises-mi",
+"name": "Vic Skirmants / 356 Enterprises",
+"city": "North Branch",
+"state": "MI",
+"lat": 43.2069,
+"lng": -83.2267,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "bavarian-auto-restoration-customs-mi",
+"name": "Bavarian Auto Restoration & Customs",
+"city": "Roseville",
+"state": "MI",
+"lat": 42.4973,
+"lng": -82.9371,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Porsche; classic German cars",
+"verified": false
+},
+{
+"id": "hammer-dolly-automotive-restorations-mi",
+"name": "Hammer & Dolly Automotive Restorations",
+"city": "Traverse City",
+"state": "MI",
+"lat": 44.7631,
+"lng": -85.6206,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche",
+"verified": true
+},
+{
+"id": "rm-motorsports-inc-mi",
+"name": "RM Motorsports Inc.",
+"city": "Wixom",
+"state": "MI",
+"lat": 42.534,
+"lng": -83.5285,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Sales & Consignment"
+],
+"focus": "Vintage Porsche; race cars",
+"verified": false
+},
+{
+"id": "runge-cars-mn",
+"name": "Runge Cars",
+"city": "Bloomington",
+"state": "MN",
+"lat": 44.8408,
+"lng": -93.2983,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race"
+],
+"focus": "Air-cooled Porsche; custom engines",
+"verified": true
+},
+{
+"id": "foreign-affairs-automotive-mn",
+"name": "Foreign Affairs Automotive",
+"city": "Hopkins",
+"state": "MN",
+"lat": 44.925,
+"lng": -93.4627,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Air-cooled 911",
+"verified": false
+},
+{
+"id": "dj-foreign-auto-care-mn",
+"name": "DJ Foreign Auto Care",
+"city": "Minneapolis",
+"state": "MN",
+"lat": 44.98,
+"lng": -93.2638,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Air-cooled + modern Porsche",
+"verified": true
+},
+{
+"id": "jp-werks-mo",
+"name": "JP Werks",
+"city": "Kansas City",
+"state": "MO",
+"lat": 39.0997,
+"lng": -94.5786,
+"website": "https://www.jpwerks.com/",
+"phone": "913-369-0459",
+"services": [
+"Body & Paint",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "sonderwerks-porsche-repair-restoration-nc",
+"name": "Sonderwerks Porsche Repair & Restoration",
+"city": "Cornelius",
+"state": "NC",
+"lat": 35.4868,
+"lng": -80.8601,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche; air-cooled",
+"verified": true
+},
+{
+"id": "skin-bones-inc-nc",
+"name": "Skin & Bones Inc.",
+"city": "Denver",
+"state": "NC",
+"lat": 35.4837,
+"lng": -80.9898,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "road-scholars-nc",
+"name": "Road Scholars",
+"city": "Durham",
+"state": "NC",
+"lat": 35.994,
+"lng": -78.8986,
+"website": "https://roadscholars.com/",
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356; 911; classic Porsche",
+"verified": true
+},
+{
+"id": "touring-car-nc",
+"name": "Touring Car",
+"city": "Matthews",
+"state": "NC",
+"lat": 35.1168,
+"lng": -80.7237,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "zuffenhaus-nc",
+"name": "Zuffenhaus",
+"city": "Monroe",
+"state": "NC",
+"lat": 34.9854,
+"lng": -80.5495,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "Porsche; classic/air-cooled",
+"verified": false
+},
+{
+"id": "paterek-brothers-inc-nj",
+"name": "Paterek Brothers Inc",
+"city": "Chatham",
+"state": "NJ",
+"lat": 40.7305,
+"lng": -74.4017,
+"website": null,
+"phone": "(973) 635-5924",
+"services": [
+"Restoration"
+],
+"focus": "356; 912; classic Porsche",
+"verified": true
+},
+{
+"id": "rennsmith-llc-nj",
+"name": "Rennsmith LLC",
+"city": "Dover",
+"state": "NJ",
+"lat": 40.884,
+"lng": -74.5621,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "Air-cooled 911; 964; 993",
+"verified": true
+},
+{
+"id": "classic-coach-repair-inc-nj",
+"name": "Classic Coach Repair Inc",
+"city": "Elizabeth",
+"state": "NJ",
+"lat": 40.664,
+"lng": -74.2107,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Interior",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche",
+"verified": true
+},
+{
+"id": "gaswerks-garage-nj",
+"name": "Gaswerks Garage",
+"city": "Paramus",
+"state": "NJ",
+"lat": 40.9445,
+"lng": -74.0754,
+"website": "https://www.gaswerksgarage.com/",
+"phone": "(201) 266-3016",
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "holt-motorcars-nj",
+"name": "Holt Motorcars",
+"city": "Pennsauken",
+"state": "NJ",
+"lat": 39.9562,
+"lng": -75.058,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "911; classic Porsche",
+"verified": false
+},
+{
+"id": "holt-motorsports-nj",
+"name": "Holt Motorsports",
+"city": "Pennsauken",
+"state": "NJ",
+"lat": 39.9562,
+"lng": -75.058,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "Air-cooled 911",
+"verified": true
+},
+{
+"id": "protosport-inc-nj",
+"name": "Protosport Inc",
+"city": "Whippany",
+"state": "NJ",
+"lat": 40.8364,
+"lng": -74.4694,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "911; air-cooled Porsche",
+"verified": true
+},
+{
+"id": "rsr-auto-body-painting-restoration-nj",
+"name": "RSR Auto Body Painting & Restoration",
+"city": "Wyckoff",
+"state": "NJ",
+"lat": 41.0095,
+"lng": -74.1729,
+"website": null,
+"phone": "(201) 904-2239",
+"services": [
+"Body & Paint",
+"Performance & Race",
+"Restoration"
+],
+"focus": "Air-cooled 911; 993",
+"verified": true
+},
+{
+"id": "reno-rennsport-nv",
+"name": "Reno Rennsport",
+"city": "Reno",
+"state": "NV",
+"lat": 39.5296,
+"lng": -119.8138,
+"website": "https://renosport.com/",
+"phone": "775-331-4366",
+"services": [
+"Machine work",
+"Performance & Race"
+],
+"focus": "356, 911, 930",
+"verified": true
+},
+{
+"id": "motor-classic-competition-corp-ny",
+"name": "Motor Classic & Competition Corp.",
+"city": "Bedford Hills",
+"state": "NY",
+"lat": 41.2344,
+"lng": -73.6915,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "Classic Porsche; vintage race cars",
+"verified": true
+},
+{
+"id": "rennsport-automotive-inc-ny",
+"name": "Rennsport Automotive Inc",
+"city": "Bedford Hills",
+"state": "NY",
+"lat": 41.2344,
+"lng": -73.6915,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic/air-cooled Porsche",
+"verified": true
+},
+{
+"id": "rennwerke-porsche-technicians-ny",
+"name": "Rennwerke Porsche Technicians",
+"city": "Elmsford",
+"state": "NY",
+"lat": 41.0572,
+"lng": -73.8136,
+"website": "https://www.rennwerke.com/",
+"phone": "(914) 592-4006",
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "Classic/air-cooled Porsche",
+"verified": true
+},
+{
+"id": "partsklassik-ny",
+"name": "PartsKlassik",
+"city": "Hopewell Junction",
+"state": "NY",
+"lat": 41.5603,
+"lng": -73.7939,
+"website": "https://partsklassik.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "potzinger-rewerks-ny",
+"name": "Potzinger ReWerks",
+"city": "Huntington Station",
+"state": "NY",
+"lat": 40.8534,
+"lng": -73.4115,
+"website": "https://potzingerrewerks.com/",
+"phone": "(631) 549-9608",
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356 through 991",
+"verified": true
+},
+{
+"id": "porsche-gold-coast-classic-department-ny",
+"name": "Porsche Gold Coast Classic Department",
+"city": "Jericho",
+"state": "NY",
+"lat": 40.7901,
+"lng": -73.5365,
+"website": null,
+"phone": null,
+"services": [
+"Parts",
+"Restoration"
+],
+"focus": "356; classic Porsche",
+"verified": true
+},
+{
+"id": "formula-motorsports-ny",
+"name": "Formula Motorsports",
+"city": "Long Island City",
+"state": "NY",
+"lat": 40.7448,
+"lng": -73.9488,
+"website": "https://www.formulamotorsports.com/",
+"phone": "(718) 482-0515",
+"services": [
+"Engine & Trans",
+"Parts",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; air-cooled 911; 964; 993",
+"verified": true
+},
+{
+"id": "m-chanics-ny",
+"name": "M-chanics",
+"city": "Mineola",
+"state": "NY",
+"lat": 40.7493,
+"lng": -73.6407,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "r-r-automotive-restorations-ny",
+"name": "R&R Automotive Restorations",
+"city": "Mount Kisco",
+"state": "NY",
+"lat": 41.205,
+"lng": -73.7299,
+"website": "https://rrautomotiverestorations.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; early 911",
+"verified": true
+},
+{
+"id": "autobahn-motors-ny",
+"name": "Autobahn Motors",
+"city": "New Rochelle",
+"state": "NY",
+"lat": 40.9115,
+"lng": -73.7823,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "formula-motorsports-ny",
+"name": "Formula Motorsports",
+"city": "New York City",
+"state": "NY",
+"lat": 40.7143,
+"lng": -74.006,
+"website": "https://www.formulamotorsports.com/",
+"phone": "(718) 482-0515",
+"services": [
+"Engine & Trans",
+"Parts",
+"Restoration"
+],
+"focus": "356, 911, 964, 993",
+"verified": true
+},
+{
+"id": "speedwerk-ny-ny",
+"name": "SPEEDWERK NY",
+"city": "Nyack",
+"state": "NY",
+"lat": 41.0914,
+"lng": -73.9252,
+"website": "http://www.speedwerkny.com/",
+"phone": "(845) 512-8770",
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche; performance 911",
+"verified": true
+},
+{
+"id": "jvr-auto-ny",
+"name": "JVR Auto",
+"city": "Port Washington",
+"state": "NY",
+"lat": 40.8257,
+"lng": -73.6982,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "werks-1-inc-ny",
+"name": "Werks 1 Inc",
+"city": "Sea Cliff",
+"state": "NY",
+"lat": 40.846,
+"lng": -73.6436,
+"website": "http://www.werks1inc.com",
+"phone": "(516) 671-3220",
+"services": [
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche; classic 911",
+"verified": true
+},
+{
+"id": "autobahn-extremist-oh",
+"name": "Autobahn Extremist",
+"city": "Brooklyn Heights",
+"state": "OH",
+"lat": 41.4231,
+"lng": -81.6807,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 911; 914-6; 930",
+"verified": true
+},
+{
+"id": "autobahn-extremist-llc-oh",
+"name": "Autobahn Extremist LLC",
+"city": "Brooklyn Heights",
+"state": "OH",
+"lat": 41.4231,
+"lng": -81.6807,
+"website": "https://autobahnextremist.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 911; 914-6; 930",
+"verified": true
+},
+{
+"id": "p3-autokrafte-oh",
+"name": "P3 Autokrafte",
+"city": "Centerville",
+"state": "OH",
+"lat": 39.6284,
+"lng": -84.1594,
+"website": "https://p3autokrafte.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": true
+},
+{
+"id": "metalkraft-coachwerkes-oh",
+"name": "Metalkraft Coachwerkes",
+"city": "Cincinnati",
+"state": "OH",
+"lat": 39.1271,
+"lng": -84.5144,
+"website": null,
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": false
+},
+{
+"id": "specialty-motorwerks-oh",
+"name": "Specialty Motorwerks",
+"city": "Dayton",
+"state": "OH",
+"lat": 39.7589,
+"lng": -84.1916,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "driven-classics-oh",
+"name": "Driven Classics",
+"city": "Mansfield",
+"state": "OH",
+"lat": 40.7584,
+"lng": -82.5155,
+"website": null,
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": false
+},
+{
+"id": "kraftwerks-performance-oh",
+"name": "Kraftwerks Performance",
+"city": "Marengo",
+"state": "OH",
+"lat": 40.3895,
+"lng": -82.8121,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration"
+],
+"focus": "Air-cooled Porsche",
+"verified": false
+},
+{
+"id": "panelwerks-oh",
+"name": "Panelwerks",
+"city": "Mentor",
+"state": "OH",
+"lat": 41.6662,
+"lng": -81.3396,
+"website": "https://www.panelwerks.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "356; 911",
+"verified": true
+},
+{
+"id": "aircooled-auto-oh",
+"name": "Aircooled Auto",
+"city": "Montville",
+"state": "OH",
+"lat": 41.6034,
+"lng": -81.057,
+"website": "https://aircooledauto.net/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 912; early 911",
+"verified": true
+},
+{
+"id": "novel-motorsports-oh",
+"name": "Novel Motorsports",
+"city": "North Royalton",
+"state": "OH",
+"lat": 41.3137,
+"lng": -81.7246,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Classic/air-cooled Porsche; 911",
+"verified": true
+},
+{
+"id": "cascade-unlimited-llc-oh",
+"name": "Cascade Unlimited LLC",
+"city": "Painesville",
+"state": "OH",
+"lat": 41.7245,
+"lng": -81.2457,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "mmr-autosport-oh",
+"name": "MMr Autosport",
+"city": "Perrysburg",
+"state": "OH",
+"lat": 41.557,
+"lng": -83.6272,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic air-cooled + modern Porsche",
+"verified": true
+},
+{
+"id": "yokes-body-shop-oh",
+"name": "Yokes Body Shop",
+"city": "Powell",
+"state": "OH",
+"lat": 40.1834,
+"lng": -83.0912,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "steinel-s-autowerks-oh",
+"name": "Steinel's Autowerks",
+"city": "Twinsburg",
+"state": "OH",
+"lat": 41.3126,
+"lng": -81.4401,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche",
+"verified": false
+},
+{
+"id": "across-the-pond-restoration-oh",
+"name": "Across The Pond Restoration",
+"city": "Willoughby",
+"state": "OH",
+"lat": 41.6398,
+"lng": -81.4065,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic Porsche",
+"verified": true
+},
+{
+"id": "stoddard-imported-cars-oh",
+"name": "Stoddard Imported Cars",
+"city": "Willoughby",
+"state": "OH",
+"lat": 41.6398,
+"lng": -81.4065,
+"website": "https://www.stoddard.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; 911; 912; 914",
+"verified": true
+},
+{
+"id": "elite-motorcars-or",
+"name": "Elite Motorcars",
+"city": "Bend",
+"state": "OR",
+"lat": 44.0582,
+"lng": -121.3153,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled + water-cooled Porsche",
+"verified": true
+},
+{
+"id": "martin-mid-engine-or",
+"name": "Martin Mid Engine",
+"city": "Colton",
+"state": "OR",
+"lat": 45.1573,
+"lng": -122.4248,
+"website": "https://martinmidengine.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "914, 914-6",
+"verified": true
+},
+{
+"id": "stuttgart-autotech-or",
+"name": "Stuttgart AutoTech",
+"city": "Lake Oswego",
+"state": "OR",
+"lat": 45.4207,
+"lng": -122.6706,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "trafton-s-foreign-auto-or",
+"name": "Trafton's Foreign Auto",
+"city": "Oregon City",
+"state": "OR",
+"lat": 45.3573,
+"lng": -122.6068,
+"website": "https://traftonsforeignauto.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "356; 911; 912; 914",
+"verified": true
+},
+{
+"id": "heckmann-thiemann-motors-or",
+"name": "Heckmann & Thiemann Motors",
+"city": "Portland",
+"state": "OR",
+"lat": 45.5234,
+"lng": -122.6762,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "matrix-integrated-or",
+"name": "Matrix Integrated",
+"city": "Portland",
+"state": "OR",
+"lat": 45.5234,
+"lng": -122.6762,
+"website": "https://www.matrixintegrated.cc/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Vintage air-cooled Porsche",
+"verified": true
+},
+{
+"id": "trafton-s-foreign-auto-or",
+"name": "Trafton's Foreign Auto",
+"city": "Portland",
+"state": "OR",
+"lat": 45.5234,
+"lng": -122.6762,
+"website": "https://traftonsforeignauto.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": true
+},
+{
+"id": "specialty-cars-service-center-pa",
+"name": "Specialty Cars Service Center",
+"city": "Allentown",
+"state": "PA",
+"lat": 40.6084,
+"lng": -75.4902,
+"website": "https://specialtycarsservicecenter.com/",
+"phone": "(610) 437-9333",
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "thoroughbred-motorsports-llc-pa",
+"name": "Thoroughbred Motorsports LLC",
+"city": "Corry",
+"state": "PA",
+"lat": 41.9226,
+"lng": -79.6567,
+"website": "https://www.thoroughbredmotorsports.com/",
+"phone": "814-964-4180",
+"services": [
+"Engine & Trans",
+"Parts",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 911; 914-6; 930; 964; 993; RUF",
+"verified": true
+},
+{
+"id": "europa-macchina-inc-pa",
+"name": "Europa Macchina Inc.",
+"city": "Lewisberry",
+"state": "PA",
+"lat": 40.1463,
+"lng": -76.87,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; early 911; classic European",
+"verified": true
+},
+{
+"id": "356-unlimited-pa",
+"name": "356 Unlimited",
+"city": "Orefield",
+"state": "PA",
+"lat": 40.6248,
+"lng": -75.5974,
+"website": "https://356unlimited.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356",
+"verified": true
+},
+{
+"id": "longtail-engineering-sc",
+"name": "Longtail Engineering",
+"city": "Charleston",
+"state": "SC",
+"lat": 32.7763,
+"lng": -79.9327,
+"website": "https://longtailengineering.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 901; 912; 914; 911; 930; 964; 993",
+"verified": true
+},
+{
+"id": "j-3-restoration-tn",
+"name": "J-3 Restoration",
+"city": "Columbia",
+"state": "TN",
+"lat": 35.6151,
+"lng": -87.0353,
+"website": "https://j-3restoration.com/",
+"phone": null,
+"services": [],
+"focus": "356; 911; 912",
+"verified": true
+},
+{
+"id": "gunther-werks-dallas-earth-motorcars-tx",
+"name": "Gunther Werks Dallas / Earth MotorCars",
+"city": "Carrollton",
+"state": "TX",
+"lat": 32.9537,
+"lng": -96.8903,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "993; air-cooled 911",
+"verified": true
+},
+{
+"id": "pat-williams-racing-tx",
+"name": "Pat Williams Racing",
+"city": "Dallas",
+"state": "TX",
+"lat": 32.7831,
+"lng": -96.8067,
+"website": "https://www.patwilliamsracing.com/",
+"phone": "901-382-1337",
+"services": [
+"Engine & Trans",
+"Performance & Race"
+],
+"focus": "911, 356, 930",
+"verified": true
+},
+{
+"id": "swiss-garage-tx",
+"name": "Swiss Garage",
+"city": "Houston",
+"state": "TX",
+"lat": 29.7633,
+"lng": -95.3633,
+"website": "https://swissgarage.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "texas-aircooled-parts-service-tx",
+"name": "Texas Aircooled Parts & Service",
+"city": "Houston",
+"state": "TX",
+"lat": 29.7633,
+"lng": -95.3633,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Parts",
+"Service & Repair"
+],
+"focus": "356; 911; 912; 914",
+"verified": false
+},
+{
+"id": "vmc-autogroup-tx",
+"name": "VMC AutoGroup",
+"city": "Houston",
+"state": "TX",
+"lat": 29.7633,
+"lng": -95.3633,
+"website": "https://vmcautogroup.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Porsche 1955-1998",
+"verified": true
+},
+{
+"id": "mc-squared-autosport-tx",
+"name": "MC Squared Autosport",
+"city": "Lewisville",
+"state": "TX",
+"lat": 33.0462,
+"lng": -96.9942,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": true
+},
+{
+"id": "rennsport-porsche-works-tx",
+"name": "Rennsport Porsche Works",
+"city": "Sealy",
+"state": "TX",
+"lat": 29.7826,
+"lng": -96.1592,
+"website": "https://www.rennsportporscheworks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "550, 356, SWB, 911SC, G50, 964, 993",
+"verified": true
+},
+{
+"id": "flat-6-werks-tx",
+"name": "Flat 6 Werks",
+"city": "Stafford",
+"state": "TX",
+"lat": 29.6161,
+"lng": -95.5577,
+"website": "https://flat6werks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled + water-cooled Porsche",
+"verified": true
+},
+{
+"id": "flat-6-werks-tx",
+"name": "Flat 6 Werks",
+"city": "Sugar Land",
+"state": "TX",
+"lat": 29.6197,
+"lng": -95.635,
+"website": "https://flat6werks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled + water-cooled Porsche",
+"verified": true
+},
+{
+"id": "fuzion-autoworks-ut",
+"name": "Fuzion Autoworks",
+"city": "St. George",
+"state": "UT",
+"lat": 37.0965,
+"lng": -113.5684,
+"website": "https://www.fuzionautoworks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "356; 911; 914; 930; 964; 993",
+"verified": true
+},
+{
+"id": "fuzion-autoworks-ut",
+"name": "Fuzion Autoworks",
+"city": "Washington",
+"state": "UT",
+"lat": 37.1305,
+"lng": -113.5083,
+"website": "https://www.fuzionautoworks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Service & Repair"
+],
+"focus": "356, 911, 914, 930, 964, 993",
+"verified": true
+},
+{
+"id": "ima-motorwerke-va",
+"name": "IMA Motorwerke",
+"city": "Chantilly",
+"state": "VA",
+"lat": 38.8943,
+"lng": -77.4311,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Porsche; classic",
+"verified": true
+},
+{
+"id": "european-auto-repair-wa",
+"name": "European Auto Repair",
+"city": "Airway Heights",
+"state": "WA",
+"lat": 47.6438,
+"lng": -117.5921,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "european-autohaus-wa",
+"name": "European AutoHaus",
+"city": "Airway Heights",
+"state": "WA",
+"lat": 47.6438,
+"lng": -117.5921,
+"website": "https://europeanautohause.com/",
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Porsche",
+"verified": false
+},
+{
+"id": "jack-morris-llc-wa",
+"name": "Jack Morris LLC",
+"city": "Greenacres",
+"state": "WA",
+"lat": 47.6584,
+"lng": -117.1568,
+"website": null,
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "series4-wa",
+"name": "Series4",
+"city": "Snohomish",
+"state": "WA",
+"lat": 47.8876,
+"lng": -122.0712,
+"website": "https://series4.com/",
+"phone": null,
+"services": [
+"Performance & Race"
+],
+"focus": "Air-cooled Porsche",
+"verified": true
+},
+{
+"id": "u-s-chrome-wi",
+"name": "U.S. Chrome",
+"city": "Fond du Lac",
+"state": "WI",
+"lat": 43.775,
+"lng": -88.4388,
+"website": "https://www.uschrome.com/",
+"phone": null,
+"services": [],
+"focus": "Air-cooled Porsche cylinders",
+"verified": true
+},
+{
+"id": "edelweiss-autowerks-wi",
+"name": "Edelweiss Autowerks",
+"city": "Madison",
+"state": "WI",
+"lat": 43.0731,
+"lng": -89.4012,
+"website": "https://www.edelweissmadison.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Air-cooled 911; classic Porsche",
+"verified": true
+},
+{
+"id": "kelly-moss-road-and-race-wi",
+"name": "Kelly-Moss Road and Race",
+"city": "Madison",
+"state": "WI",
+"lat": 43.0731,
+"lng": -89.4012,
+"website": null,
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "Air-cooled 911; vintage Porsche",
+"verified": true
+},
+{
+"id": "zero-to-60-garage-wi",
+"name": "ZERO TO 60 GARAGE",
+"city": "Sherwood",
+"state": "WI",
+"lat": 44.1764,
+"lng": -88.2779,
+"website": null,
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Classic air-cooled Porsche",
+"verified": false
+},
+{
+"id": "356-enterprises-mi",
+"name": "356 Enterprises",
+"city": "North Branch",
+"state": "MI",
+"lat": 43.2069,
+"lng": -83.2267,
+"website": "https://www.356enterprises.com/",
+"phone": "810-688-2059",
+"services": [
+"Engine & Trans",
+"Parts",
+"Performance & Race"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "356-horn-restoration-fl",
+"name": "356 Horn Restoration",
+"city": "Naples",
+"state": "FL",
+"lat": 26.1423,
+"lng": -81.796,
+"website": "https://www.porschehorns.com/",
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "auto-werkstatt-ca",
+"name": "Auto Werkstatt",
+"city": "Manhattan Beach",
+"state": "CA",
+"lat": 33.8847,
+"lng": -118.4109,
+"website": "https://www.autowerkstatt.com/",
+"phone": "310-406-9869",
+"services": [
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "buildwerks-fl",
+"name": "Buildwerks",
+"city": "Sarasota",
+"state": "FL",
+"lat": 27.3364,
+"lng": -82.5306,
+"website": "https://www.facebook.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "european-motorsports-ma",
+"name": "European Motorsports",
+"city": "Lawrence",
+"state": "MA",
+"lat": 42.707,
+"lng": -71.1631,
+"website": "https://www.europeanmotorsports.co/",
+"phone": null,
+"services": [
+"Parts",
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "j-g-drum-relining-il",
+"name": "J&G Drum Relining",
+"city": "Chicago",
+"state": "IL",
+"lat": 41.85,
+"lng": -87.65,
+"website": "http://jgrelinings.com/",
+"phone": null,
+"services": [],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "jay-s-precision-machine-ca",
+"name": "Jay's Precision Machine",
+"city": "Santa Clara",
+"state": "CA",
+"lat": 37.3541,
+"lng": -121.9552,
+"website": "https://jaysprecisionmachine.com/",
+"phone": null,
+"services": [
+"Machine work"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "john-jenkins-bosch-distributor-restoration-ca",
+"name": "John Jenkins Bosch Distributor Restoration",
+"city": "San Diego",
+"state": "CA",
+"lat": 32.7157,
+"lng": -117.1647,
+"website": null,
+"phone": null,
+"services": [],
+"focus": "356; Bosch",
+"verified": false
+},
+{
+"id": "north-hollywood-speedometer-ca",
+"name": "North Hollywood Speedometer",
+"city": "North Hollywood",
+"state": "CA",
+"lat": 34.1722,
+"lng": -118.379,
+"website": "https://www.nhspeedometer.com/",
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356; 911",
+"verified": false
+},
+{
+"id": "palo-alto-speedometer-ca",
+"name": "Palo Alto Speedometer",
+"city": "Palo Alto",
+"state": "CA",
+"lat": 37.4419,
+"lng": -122.143,
+"website": "https://www.paspeedo.com/",
+"phone": null,
+"services": [],
+"focus": "356; 911",
+"verified": false
+},
+{
+"id": "rancho-transaxles-ca",
+"name": "Rancho Transaxles",
+"city": "Fullerton",
+"state": "CA",
+"lat": 33.8703,
+"lng": -117.9253,
+"website": "https://ranchotransaxles.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "356; 901; 914; 915; G50",
+"verified": true
+},
+{
+"id": "rennwagon-motor-company-ca",
+"name": "Rennwagon Motor Company",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://www.honesteng.com/",
+"phone": null,
+"services": [],
+"focus": "356 Carrera; four-cam",
+"verified": false
+},
+{
+"id": "think-small-air-cooled-performance-id",
+"name": "Think Small Air-Cooled Performance",
+"city": "Caldwell",
+"state": "ID",
+"lat": 43.6629,
+"lng": -116.6874,
+"website": null,
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "Air-cooled Porsche/VW",
+"verified": false
+},
+{
+"id": "victor-miles-concours-refinishing-ca",
+"name": "Victor Miles Concours Refinishing",
+"city": "Ventura",
+"state": "CA",
+"lat": 34.2783,
+"lng": -119.2932,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "zims-autotechnik-tx",
+"name": "Zims' Autotechnik",
+"city": "Fort Worth",
+"state": "TX",
+"lat": 32.7254,
+"lng": -97.3208,
+"website": "https://www.allzim.com/",
+"phone": null,
+"services": [
+"Parts",
+"Service & Repair"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "artcar-inc-fl",
+"name": "ArtCar Inc.",
+"city": "Loxahatchee",
+"state": "FL",
+"lat": 26.7383,
+"lng": -80.276,
+"website": "https://www.restoreporsche.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 550; 911; 912; 914",
+"verified": true
+},
+{
+"id": "better-body-s-fl",
+"name": "Better Body's",
+"city": "Edgewater",
+"state": "FL",
+"lat": 28.9889,
+"lng": -80.9023,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "empire-restoration-ca",
+"name": "Empire Restoration",
+"city": "Sand City",
+"state": "CA",
+"lat": 36.6169,
+"lng": -121.848,
+"website": null,
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "maap-madison-automotive-apprentices-wi",
+"name": "MAAP / Madison Automotive Apprentices",
+"city": "Madison",
+"state": "WI",
+"lat": 43.0731,
+"lng": -89.4012,
+"website": "https://madisonauto.org/",
+"phone": null,
+"services": [
+"Restoration"
+],
+"focus": "356",
+"verified": false
+},
+{
+"id": "the-metal-surgeon-co",
+"name": "The Metal Surgeon",
+"city": "Denver",
+"state": "CO",
+"lat": 39.7392,
+"lng": -104.9847,
+"website": "https://www.themetalsurgeon.com/",
+"phone": null,
+"services": [
+"Performance & Race"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "aase-sales-ca",
+"name": "Aase Sales",
+"city": "Fullerton",
+"state": "CA",
+"lat": 33.8703,
+"lng": -117.9253,
+"website": "https://www.aasesales.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; Porsche",
+"verified": false
+},
+{
+"id": "autoatlanta-ga",
+"name": "AutoAtlanta",
+"city": "Atlanta",
+"state": "GA",
+"lat": 33.749,
+"lng": -84.388,
+"website": "https://www.autoatlanta.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; 914; Porsche",
+"verified": false
+},
+{
+"id": "coker-tire-tn",
+"name": "Coker Tire",
+"city": "Chattanooga",
+"state": "TN",
+"lat": 35.0456,
+"lng": -85.3097,
+"website": "https://www.cokertire.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "international-mercantile-ca",
+"name": "International Mercantile",
+"city": "Del Mar",
+"state": "CA",
+"lat": 32.9665,
+"lng": -117.249,
+"website": "https://im356-911.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; 911",
+"verified": false
+},
+{
+"id": "pelican-parts-ca",
+"name": "Pelican Parts",
+"city": "Torrance",
+"state": "CA",
+"lat": 33.8359,
+"lng": -118.3406,
+"website": "https://www.pelicanparts.com/",
+"phone": null,
+"services": [
+"Parts"
+],
+"focus": "356; 911; Porsche",
+"verified": false
+},
+{
+"id": "beverly-hills-car-club-ca",
+"name": "Beverly Hills Car Club",
+"city": "Beverly Hills",
+"state": "CA",
+"lat": 34.0736,
+"lng": -118.4004,
+"website": "https://www.beverlyhillscarclub.com/",
+"phone": null,
+"services": [
+"Sales & Consignment"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "daniel-schmitt-co-mo",
+"name": "Daniel Schmitt & Co.",
+"city": "St. Louis",
+"state": "MO",
+"lat": 38.6273,
+"lng": -90.1979,
+"website": "https://www.schmitt.com/",
+"phone": null,
+"services": [
+"Sales & Consignment"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "driversource-ga",
+"name": "DriverSource",
+"city": "Atlanta",
+"state": "GA",
+"lat": 33.749,
+"lng": -84.388,
+"website": "https://www.driversource.com/",
+"phone": null,
+"services": [
+"Sales & Consignment"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "grand-prix-classics-ca",
+"name": "Grand Prix Classics",
+"city": "La Jolla",
+"state": "CA",
+"lat": 32.8473,
+"lng": -117.2742,
+"website": "https://grandprixclassics.com/",
+"phone": null,
+"services": [
+"Sales & Consignment",
+"Service & Repair"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "gullwing-motorcars-ny",
+"name": "Gullwing Motorcars",
+"city": "Astoria",
+"state": "NY",
+"lat": 40.7721,
+"lng": -73.9301,
+"website": "https://www.gullwingmotorcars.com/",
+"phone": null,
+"services": [
+"Sales & Consignment"
+],
+"focus": "356; classic Porsche",
+"verified": false
+},
+{
+"id": "auto-kennel-ca",
+"name": "Auto Kennel",
+"city": "Costa Mesa",
+"state": "CA",
+"lat": 33.6411,
+"lng": -117.9187,
+"website": "https://autokennel.com/",
+"phone": "714-335-4911",
+"services": [
+"Sales & Consignment"
+],
+"focus": "356; 911; classic Porsche",
+"verified": false
+},
+{
+"id": "california-sportscars-ca",
+"name": "California Sportscars",
+"city": "San Luis Obispo",
+"state": "CA",
+"lat": 35.2828,
+"lng": -120.6596,
+"website": "https://www.californiasportscars.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 911",
+"verified": true
+},
+{
+"id": "dna-motorsports-ca",
+"name": "DNA Motorsports",
+"city": "San Diego",
+"state": "CA",
+"lat": 32.7157,
+"lng": -117.1647,
+"website": "https://dirtnasphalt.com/",
+"phone": "858-368-9841",
+"services": [
+"Parts",
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 911",
+"verified": true
+},
+{
+"id": "performance-independent-porsche-ca",
+"name": "Performance Independent Porsche",
+"city": "San Diego",
+"state": "CA",
+"lat": 32.7157,
+"lng": -117.1647,
+"website": "https://www.performanceindependent.com/",
+"phone": null,
+"services": [
+"Service & Repair"
+],
+"focus": "Air-cooled + water-cooled Porsche",
+"verified": true
+},
+{
+"id": "kraska-llc-ca",
+"name": "Kraska LLC",
+"city": "San Clemente",
+"state": "CA",
+"lat": 33.427,
+"lng": -117.612,
+"website": "https://classiccarrestorationsc.com/",
+"phone": null,
+"services": [
+"Body & Paint",
+"Restoration"
+],
+"focus": "356; 911",
+"verified": true
+},
+{
+"id": "classic-interiors-by-stitch-or",
+"name": "Classic Interiors by Stitch",
+"city": "Gold Hill",
+"state": "OR",
+"lat": 42.4244,
+"lng": -123.0854,
+"website": "https://classicinteriorsbystitch.com/",
+"phone": null,
+"services": [
+"Interior",
+"Restoration"
+],
+"focus": "356; classic Porsche",
+"verified": true
+},
+{
+"id": "vintage-car-works-co",
+"name": "Vintage Car Works",
+"city": "Denver",
+"state": "CO",
+"lat": 39.7392,
+"lng": -104.9847,
+"website": "https://www.vintagecarworks.com/",
+"phone": null,
+"services": [
+"Engine & Trans",
+"Performance & Race",
+"Restoration"
+],
+"focus": "356; vintage race Porsche",
+"verified": true
+},
+{
+"id": "motus-motorsports-ca",
+"name": "Motus Motorsports",
+"city": "Colfax",
+"state": "CA",
+"lat": 39.0783,
+"lng": -120.9549,
+"website": "https://www.motusmotorsports.com/",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "356; 911; air-cooled Porsche",
+"verified": true
+}
+]
