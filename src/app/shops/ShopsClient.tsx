@@ -10,6 +10,7 @@ type LatLng = { lat: number; lng: number };
 type UserLoc = LatLng & { label: string };
 
 const US_CENTER: [number, number] = [39.5, -98.35];
+const PAGE_SIZE = 12;
 
 // Haversine great-circle distance in miles.
 function distMiles(a: LatLng, b: LatLng): number {
@@ -36,10 +37,14 @@ export function ShopsClient() {
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const userMarkerRef = useRef<L.Marker | null>(null);
 
+  const autoTriedRef = useRef(false);
+
   const [zip, setZip] = useState("");
   const [userLoc, setUserLoc] = useState<UserLoc | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [stateFilter, setStateFilter] = useState("");
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   // Sorted list: by distance when we have a location, else grouped by state.
   const sorted = useMemo<(Shop & { miles?: number })[]>(() => {
@@ -52,6 +57,54 @@ export function ShopsClient() {
       (a, b) => a.miles! - b.miles!
     );
   }, [userLoc]);
+
+  // States present in the data, for the filter dropdown.
+  const states = useMemo(
+    () => Array.from(new Set(SHOPS.map((s) => s.state))).sort(),
+    []
+  );
+
+  // Apply the state filter, then page the result with a "Load more" cap so the
+  // list stays manageable as the directory grows into the hundreds.
+  const filtered = useMemo(
+    () => (stateFilter ? sorted.filter((s) => s.state === stateFilter) : sorted),
+    [sorted, stateFilter]
+  );
+  const shown = filtered.slice(0, visible);
+
+  // Any change to what/how we're showing resets paging back to the first page.
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [stateFilter, userLoc]);
+
+  // Default to the visitor's location: try geolocation once on mount. Silent on
+  // denial — the list simply falls back to the by-state view + ZIP search.
+  useEffect(() => {
+    if (autoTriedRef.current || typeof navigator === "undefined" || !navigator.geolocation)
+      return;
+    autoTriedRef.current = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setUserLoc({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          label: "Your location",
+        }),
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+    );
+  }, []);
+
+  // Frame the map to a state when one is picked from the filter.
+  useEffect(() => {
+    const map = mapRef.current;
+    const leaflet = LRef.current;
+    if (!map || !leaflet || !stateFilter) return;
+    const pts = SHOPS.filter((s) => s.state === stateFilter).map(
+      (s) => [s.lat, s.lng] as [number, number]
+    );
+    if (pts.length) map.fitBounds(leaflet.latLngBounds(pts), { padding: [50, 50], maxZoom: 8 });
+  }, [stateFilter]);
 
   // Init the map once, plot every shop.
   useEffect(() => {
@@ -288,22 +341,43 @@ export function ShopsClient() {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "baseline",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap",
             borderBottom: "2px solid #0d0d0d",
             paddingBottom: 12,
             marginBottom: 8,
           }}
         >
           <div className="lbl" style={{ color: "#0d0d0d", fontSize: 12, letterSpacing: "0.14em" }}>
-            {SHOPS.length} shops listed
+            {filtered.length} shop{filtered.length === 1 ? "" : "s"}
+            {stateFilter ? ` in ${stateFilter}` : ""} · {userLoc ? "nearest first" : "by state"}
           </div>
-          <div className="lbl" style={{ color: "#8a8a85", fontSize: 12 }}>
-            {userLoc ? "Nearest first" : "By state"}
-          </div>
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            aria-label="Filter by state"
+            style={{
+              border: "1px solid #e6e5e2",
+              background: "#fafafa",
+              padding: "8px 12px",
+              color: "#0d0d0d",
+              fontFamily: "var(--font-jetbrains-mono), monospace",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            <option value="">All states</option>
+            {states.map((st) => (
+              <option key={st} value={st}>
+                {st}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="luft-grid-2" style={{ gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-          {sorted.map((s) => (
+          {shown.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -369,6 +443,26 @@ export function ShopsClient() {
             </button>
           ))}
         </div>
+
+        {shown.length < filtered.length && (
+          <div style={{ marginTop: 22, textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={() => setVisible((v) => v + PAGE_SIZE)}
+              style={{
+                background: "#fff",
+                color: "#0d0d0d",
+                fontWeight: 600,
+                fontSize: 14,
+                padding: "13px 26px",
+                border: "1px solid #0d0d0d",
+                cursor: "pointer",
+              }}
+            >
+              Load more ({filtered.length - shown.length} more)
+            </button>
+          </div>
+        )}
 
         <div style={{ marginTop: 28, fontSize: 14, color: "#5e5e5a", lineHeight: 1.6 }}>
           Know an air-cooled shop we're missing, or own one?{" "}
