@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import { SHOPS, SERVICES, type Shop } from "@/data/shops";
 import { FooterSimple } from "@/components/luft/Footer";
 
@@ -51,7 +53,7 @@ export function ShopsClient() {
   const mapDiv = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const LRef = useRef<typeof L | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
+  const clusterRef = useRef<L.MarkerClusterGroup | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const userMarkerRef = useRef<L.Marker | null>(null);
   const readyRef = useRef(false);
@@ -125,7 +127,32 @@ export function ShopsClient() {
           maxZoom: 19,
         })
         .addTo(map);
-      layerRef.current = leaflet.layerGroup().addTo(map);
+      // Cluster overlapping/coincident pins (many shops share a city-center
+      // coordinate) — clicking a cluster spiderfies them so each is clickable.
+      // The plugin augments Leaflet's module/default export, not the ESM
+      // namespace object, so read the factory off whichever carries it.
+      await import("leaflet.markercluster");
+      const lany = leaflet as unknown as {
+        markerClusterGroup?: typeof leaflet.markerClusterGroup;
+        default?: { markerClusterGroup?: typeof leaflet.markerClusterGroup };
+      };
+      const makeCluster = lany.markerClusterGroup ?? lany.default?.markerClusterGroup;
+      const cluster = makeCluster
+        ? makeCluster({
+            maxClusterRadius: 44,
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            spiderLegPolylineOptions: { weight: 1.5, color: "#0d0d0d", opacity: 0.5 },
+            iconCreateFunction: (c: L.MarkerCluster) =>
+              leaflet.divIcon({
+                html: `<div class="luft-cluster">${c.getChildCount()}</div>`,
+                className: "luft-cluster-wrap",
+                iconSize: leaflet.point(38, 38),
+              }),
+          })
+        : (leaflet.layerGroup() as unknown as L.MarkerClusterGroup);
+      cluster.addTo(map);
+      clusterRef.current = cluster;
       mapRef.current = map;
       readyRef.current = true;
       setMapReady(true);
@@ -145,11 +172,12 @@ export function ShopsClient() {
   useEffect(() => {
     const map = mapRef.current;
     const leaflet = LRef.current;
-    const layer = layerRef.current;
-    if (!mapReady || !map || !leaflet || !layer) return;
-    layer.clearLayers();
+    const cluster = clusterRef.current;
+    if (!mapReady || !map || !leaflet || !cluster) return;
+    cluster.clearLayers();
     markersRef.current.clear();
     const icon = dotIcon(leaflet, false);
+    const batch: L.Marker[] = [];
     for (const s of filtered) {
       const services = s.services.length ? s.services.join(" · ") : "";
       const actions =
@@ -168,9 +196,11 @@ export function ShopsClient() {
         closeButton: true,
         offset: [0, -2],
       });
-      m.addTo(layer);
+      batch.push(m);
       markersRef.current.set(s.id, m);
     }
+    if (typeof cluster.addLayers === "function") cluster.addLayers(batch);
+    else batch.forEach((m) => cluster.addLayer(m));
 
     if (userLoc && !stateFilter && !serviceFilter) {
       if (userMarkerRef.current) userMarkerRef.current.remove();
@@ -206,11 +236,17 @@ export function ShopsClient() {
 
   function focusShop(s: Shop) {
     const map = mapRef.current;
+    const cluster = clusterRef.current;
     const m = markersRef.current.get(s.id);
     if (!map || !m) return;
-    map.flyTo([s.lat, s.lng], 11, { duration: 0.6 });
-    m.openPopup();
     mapDiv.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Reveal the marker if it's inside a cluster, then open its popup.
+    if (cluster && typeof cluster.zoomToShowLayer === "function") {
+      cluster.zoomToShowLayer(m, () => m.openPopup());
+    } else {
+      map.flyTo([s.lat, s.lng], 11, { duration: 0.6 });
+      m.openPopup();
+    }
   }
 
   async function searchZip(e: React.FormEvent) {
@@ -295,6 +331,8 @@ export function ShopsClient() {
         .luft-pop-actions{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
         .luft-pop-btn{font-size:12px;font-weight:700;color:#0d0d0d !important;text-decoration:none;border:1px solid #d9d6cf;border-radius:999px;padding:6px 13px}
         .luft-pop-btn:hover{background:#f2f1ef}
+        .luft-cluster-wrap{background:transparent}
+        .luft-cluster{width:38px;height:38px;border-radius:50%;background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-jetbrains-mono),monospace;font-size:13px;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
       `}</style>
 
       <section className="luft-container" style={{ padding: "48px 40px 0" }}>
