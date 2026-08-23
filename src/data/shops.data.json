@@ -3872,5 +3872,87 @@
 ],
 "focus": "356; 911; air-cooled Porsche",
 "verified": true
+},
+{
+"id": "tpws-inc-tx",
+"name": "TPWS Inc.",
+"city": "Austin",
+"state": "TX",
+"lat": 30.2672,
+"lng": -97.7431,
+"website": "https://www.tpwsinc.com/",
+"phone": "(512) 836-5949",
+"services": [
+"Engine & Trans",
+"Restoration",
+"Service & Repair"
+],
+"focus": "Porsche-only shop since 1970; 356 through modern.",
+"verified": true
+},
+{
+"id": "auto-edge-mn",
+"name": "Auto Edge",
+"city": "Mahtomedi",
+"state": "MN",
+"lat": 45.07,
+"lng": -92.9516,
+"website": "https://autoedgemn.com/porsche/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "European specialist since 1994; PCA club-racing prep and 911 builds.",
+"verified": true
+},
+{
+"id": "imola-motorsports-mn",
+"name": "Imola Motorsports",
+"city": "Plymouth",
+"state": "MN",
+"lat": 45.0105,
+"lng": -93.4555,
+"website": "https://imolamotorsports.com/",
+"phone": null,
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "European & exotic specialist servicing Porsche; diagnostics, repair and performance.",
+"verified": true
+},
+{
+"id": "further-performance-mn",
+"name": "Further Performance",
+"city": "Minneapolis",
+"state": "MN",
+"lat": 44.98,
+"lng": -93.2638,
+"website": "https://www.fptuned.com/",
+"phone": "(612) 374-2604",
+"services": [
+"Performance & Race",
+"Restoration",
+"Service & Repair"
+],
+"focus": "European repair, restoration and performance specialist.",
+"verified": true
+},
+{
+"id": "provost-motorsports-nj",
+"name": "Provost Motorsports",
+"city": "Bordentown",
+"state": "NJ",
+"lat": 40.1431,
+"lng": -74.7032,
+"website": null,
+"phone": "(609) 298-3555",
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "South-Jersey shop working on classic air-cooled and modern Porsche.",
+"verified": true
 }
 ]
