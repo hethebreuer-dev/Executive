@@ -10,12 +10,10 @@ import { ventures } from "@/data/ventures";
 import { clients, site } from "@/data/site";
 import { IMG } from "@/data/media";
 
-// Homepage hero. The intended "strongest campaign shot" (uploads/hero.jpeg in
-// the handoff) is still to be supplied; this is a landscape stand-in — swap
-// `IMG.hero` for the real wide hero when it arrives.
+// Homepage hero.
 const heroImage: { src: string; alt: string } | undefined = {
   src: IMG.hero.src,
-  alt: "Selected campaign work",
+  alt: "Sketching a fashion croquis at the drafting table",
 };
 
 const pillBase: React.CSSProperties = {
