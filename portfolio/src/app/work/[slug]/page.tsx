@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ProjectHeader } from "@/components/Header";
 import { MediaFrame } from "@/components/MediaFrame";
@@ -56,7 +57,7 @@ function BlockView({ block }: { block: Block }) {
       </p>
     );
   }
-  if (block.type === "pair") {
+  if (block.type === "pair" || block.type === "duo") {
     return (
       <div className="pair-grid">
         {block.items.map((m, i) => (
@@ -70,6 +71,40 @@ function BlockView({ block }: { block: Block }) {
           />
         ))}
       </div>
+    );
+  }
+  if (block.type === "plate") {
+    // One image at its natural aspect — no crop. Optionally width-capped and
+    // centered for very tall boards.
+    const m = block.media;
+    if (m.src && m.w && m.h) {
+      return (
+        <Image
+          src={m.src}
+          alt={m.alt ?? ""}
+          width={m.w}
+          height={m.h}
+          sizes={block.maxW ? `${block.maxW}px` : WIDE_SIZES}
+          style={{
+            width: "100%",
+            height: "auto",
+            maxWidth: block.maxW,
+            margin: block.maxW ? "0 auto" : undefined,
+            borderRadius: 8,
+            display: "block",
+          }}
+        />
+      );
+    }
+    // Placeholder fallback keeps a sensible frame.
+    return (
+      <MediaFrame
+        media={m}
+        radius={8}
+        padding={16}
+        sizes={WIDE_SIZES}
+        style={{ aspectRatio: "16 / 9", maxWidth: block.maxW, margin: block.maxW ? "0 auto" : undefined }}
+      />
     );
   }
   const ratio = block.type === "wide" ? "16 / 9" : "21 / 9";

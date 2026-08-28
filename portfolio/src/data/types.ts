@@ -15,6 +15,9 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 export type Media = {
   /** Public path, e.g. "/projects/cc-16.avif". Omit for the placeholder state. */
   src?: string;
+  /** Intrinsic dimensions (for natural-aspect plate blocks). */
+  w?: number;
+  h?: number;
   /** object-position override; defaults to center. */
   position?: string;
   /** Mono slot label shown in the placeholder state. */
@@ -23,11 +26,18 @@ export type Media = {
   alt?: string;
 };
 
-/** Repeatable block vocabulary for a project page — sequence varies per project. */
+/**
+ * Repeatable block vocabulary for a project page — sequence varies per project.
+ * `wide`/`pair`/`ultrawide` are fixed-ratio cover frames (good for photography);
+ * `plate` shows one image at its natural aspect with no crop (good for design
+ * boards, tech flats and packaging); `duo` is two cover-cropped 4:5 images.
+ */
 export type Block =
   | { type: "wide"; media: Media } // 16:9 key image
   | { type: "pair"; items: [Media, Media] } // two 4:5 images
   | { type: "ultrawide"; media: Media } // 21:9 band
+  | { type: "duo"; items: [Media, Media] } // two 4:5 images (alias of pair)
+  | { type: "plate"; media: Media; maxW?: number } // one image, natural aspect
   | { type: "caption"; text: string };
 
 export type Project = {
