@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The `portfolio/` directory is a separate, self-contained project with its
+    // own tsconfig/eslint/build. Keep root-level builds (e.g. DriveLuft) from
+    // type-checking or linting it.
+    "portfolio/**",
   ]),
 ]);
 
