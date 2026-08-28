@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProjectHeader } from "@/components/Header";
 import { DetailBody, NextFooter } from "@/components/DetailBody";
-import { getProject, nextProject, projects } from "@/data/projects";
+import { autoBlocks } from "@/data/gallery";
+import { getVenture, nextVenture, ventures } from "@/data/ventures";
 
 export function generateStaticParams() {
-  return projects.map((p) => ({ slug: p.slug }));
+  return ventures.map((v) => ({ slug: v.slug }));
 }
 
 export async function generateMetadata({
@@ -14,25 +15,30 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProject(slug);
-  if (!project) return {};
-  return { title: project.name, description: project.result };
+  const venture = getVenture(slug);
+  if (!venture) return {};
+  return { title: venture.name, description: venture.role };
 }
 
-export default async function ProjectPage({
+export default async function VenturePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const project = getProject(slug);
-  if (!project) notFound();
+  const venture = getVenture(slug);
+  if (!venture) notFound();
 
-  const next = nextProject(project.slug);
+  const next = nextVenture(venture.slug);
 
   return (
     <>
-      <ProjectHeader nextName={next.name} nextHref={`/work/${next.slug}`} />
+      <ProjectHeader
+        backHref="/ventures"
+        backLabel="← Ventures"
+        nextName={next.name}
+        nextHref={`/ventures/${next.slug}`}
+      />
       <main>
         <div style={{ padding: "64px var(--gutter) 40px" }}>
           <h1
@@ -43,7 +49,7 @@ export default async function ProjectPage({
               margin: 0,
             }}
           >
-            {project.name}
+            {venture.name}
           </h1>
           <p
             style={{
@@ -54,25 +60,24 @@ export default async function ProjectPage({
               color: "var(--text-muted)",
             }}
           >
-            {project.intro}
+            {venture.intro}
           </p>
         </div>
 
         <DetailBody
           rail={[
-            { label: "ROLE", value: project.rail.role },
-            { label: "CLIENT", value: project.rail.client },
-            { label: "SCOPE", value: project.rail.scope },
-            { label: "YEAR", value: project.rail.year },
+            { label: "ROLE", value: venture.rail.role },
+            { label: "FOCUS", value: venture.rail.focus },
+            { label: "YEAR", value: venture.rail.year },
           ]}
-          blocks={project.blocks}
+          blocks={autoBlocks(venture.slug, venture.name, venture.caption)}
         />
 
         <NextFooter
-          label="NEXT PROJECT"
+          label="NEXT VENTURE"
           name={next.name}
-          href={`/work/${next.slug}`}
-          card={next.card}
+          href={`/ventures/${next.slug}`}
+          card={next.media}
         />
       </main>
     </>

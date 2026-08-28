@@ -67,10 +67,20 @@ export type Project = {
 };
 
 export type Venture = {
+  slug: string;
   name: string;
+  /** One-line role summary shown on the tile. */
   role: string;
   slot: string;
   media?: Media;
+  // Detail page ------------------------------------------------------------
+  intro: string;
+  rail: {
+    role: string;
+    focus: string;
+    year: string;
+  };
+  caption: string;
 };
 
 export type Job = {

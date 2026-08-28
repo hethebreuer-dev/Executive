@@ -55,13 +55,18 @@ export function Header({ active }: { active?: string }) {
   );
 }
 
-// Project-page header — back link, centered wordmark, next-project link.
+// Detail-page header — back link, centered wordmark, next link. Used by both
+// project and venture pages.
 export function ProjectHeader({
   nextName,
   nextHref,
+  backHref = "/#work",
+  backLabel = "← Work",
 }: {
   nextName: string;
   nextHref: string;
+  backHref?: string;
+  backLabel?: string;
 }) {
   const side: React.CSSProperties = {
     fontSize: 14,
@@ -71,8 +76,8 @@ export function ProjectHeader({
   };
   return (
     <header style={shell}>
-      <Link href="/#work" style={{ ...side, textAlign: "left" }}>
-        ← Work
+      <Link href={backHref} style={{ ...side, textAlign: "left" }}>
+        {backLabel}
       </Link>
       <Link href="/" style={{ ...wordmark, flex: "0 0 auto", textAlign: "center" }}>
         {site.wordmark}

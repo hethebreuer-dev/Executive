@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Venture } from "@/data/types";
 import { MediaFrame } from "./MediaFrame";
 
@@ -14,14 +15,17 @@ export function VenturesGrid({ ventures }: { ventures: Venture[] }) {
       }}
     >
       {ventures.map((v) => (
-        <div
-          key={v.name}
+        <Link
+          key={v.slug}
+          href={`/ventures/${v.slug}`}
+          className="group-card"
           style={{ display: "flex", flexDirection: "column", gap: 12 }}
         >
           <MediaFrame
             media={v.media}
             slot={v.slot}
             sizes={VENTURE_SIZES}
+            zoom
             style={{
               height: 280,
               backgroundColor: "var(--bg-placeholder-alt)",
@@ -31,7 +35,7 @@ export function VenturesGrid({ ventures }: { ventures: Venture[] }) {
           <div style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text-dim)" }}>
             {v.role}
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );

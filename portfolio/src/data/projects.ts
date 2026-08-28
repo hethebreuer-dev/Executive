@@ -1,63 +1,8 @@
-import { GALLERY, type Img } from "./media";
-import type { Block, Media, Project } from "./types";
+import type { Project } from "./types";
+import { autoBlocks, galleryCard } from "./gallery";
 
-// Every project detail page showcases its ENTIRE folder (see _encode.mjs, which
-// re-encodes each source folder to web AVIF and floats the hero frame first in
-// GALLERY[slug]). Blocks are laid out automatically from that gallery:
-//   • portraits pair into 4:5 "duo" rows
-//   • landscape images render full-width at natural aspect ("plate")
-//   • very tall boards/infographics render width-capped and centered
-// so a project with 4 images and one with 21 both read well without a fixed
-// template.
-
-const M = (o: Img, alt: string, position?: string): Media => ({
-  src: o.src,
-  w: o.w,
-  h: o.h,
-  alt,
-  position,
-  slot: "",
-});
-
-const cap = (text: string): Block => ({ type: "caption", text });
-const duo = (a: Media, b: Media): Block => ({ type: "duo", items: [a, b] });
-const plate = (media: Media, maxW?: number): Block => ({
-  type: "plate",
-  media,
-  maxW,
-});
-
-const isWide = (o: Img) => o.w / o.h >= 1.15;
-const isTall = (o: Img) => o.h / o.w >= 1.6;
-
-function autoBlocks(slug: string, name: string, caption: string): Block[] {
-  const items = GALLERY[slug] ?? [];
-  const blocks: Block[] = [];
-  let i = 0;
-  while (i < items.length) {
-    const a = items[i];
-    if (isWide(a)) {
-      blocks.push(plate(M(a, name)));
-      i += 1;
-    } else if (isTall(a)) {
-      blocks.push(plate(M(a, name), 620));
-      i += 1;
-    } else {
-      const b = items[i + 1];
-      if (b && !isWide(b) && !isTall(b)) {
-        blocks.push(duo(M(a, name), M(b, name)));
-        i += 2;
-      } else {
-        // A lone portrait reads best contained and centered, not full-bleed.
-        blocks.push(plate(M(a, name), 620));
-        i += 1;
-      }
-    }
-  }
-  // Caption sits just under the opening image(s).
-  if (caption) blocks.splice(blocks.length > 1 ? 1 : blocks.length, 0, cap(caption));
-  return blocks;
-}
+// Every project detail page showcases its ENTIRE folder; card + blocks are
+// generated from GALLERY[slug] by the shared layout in ./gallery.
 
 type Meta = Omit<Project, "card" | "blocks"> & { caption: string };
 
@@ -378,13 +323,10 @@ const meta: Meta[] = [
 ];
 
 export const projects: Project[] = meta.map((m) => {
-  const gallery = GALLERY[m.slug] ?? [];
   const { caption, ...rest } = m;
   return {
     ...rest,
-    card: gallery[0]
-      ? M(gallery[0], m.name)
-      : undefined,
+    card: galleryCard(m.slug, m.name),
     blocks: autoBlocks(m.slug, m.name, caption),
   };
 });
