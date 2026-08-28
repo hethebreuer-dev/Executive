@@ -65,19 +65,11 @@ function Hero() {
         </>
       )}
 
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          padding: "60px var(--gutter)",
-          background:
-            "linear-gradient(to top, var(--bg) 10%, transparent)",
-        }}
-      >
+      <div className="hero-overlay">
         <h1
           style={{
             maxWidth: 900,
-            fontSize: "clamp(32px, 6vw, 60px)",
+            fontSize: "clamp(30px, 6vw, 60px)",
             lineHeight: 1.06,
             fontWeight: 500,
             letterSpacing: "-0.02em",
@@ -88,10 +80,10 @@ function Hero() {
           Design director. Twenty years of product that moved on the floor.
         </h1>
         <p
+          className="hero-sub"
           style={{
-            marginTop: 26,
             maxWidth: 660,
-            fontSize: 19,
+            fontSize: "clamp(15px, 2.6vw, 19px)",
             lineHeight: 1.5,
             color: "var(--text-muted)",
           }}
@@ -100,7 +92,7 @@ function Hero() {
           Lauren, American Eagle, PacSun, Kellwood — and private label for US and
           UK retailers. Teams of six, ten-season brands, 40% category growth.
         </p>
-        <div style={{ marginTop: 36, display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div className="hero-cta" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
           <Link
             href="/#work"
             style={{

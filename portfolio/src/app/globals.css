@@ -152,9 +152,38 @@ a {
     height: 520px;
   }
 }
+/* On small screens let the hero grow with its content (min-height floor)
+   instead of a fixed height, so the copy never pushes the headline out of the
+   frame. Tighten the overlay so the title stays anchored near the bottom. */
 @media (max-width: 640px) {
   .hero {
-    height: 460px;
+    height: auto;
+    min-height: 460px;
+  }
+}
+
+.hero-overlay {
+  position: relative;
+  width: 100%;
+  padding: 60px var(--gutter);
+  background: linear-gradient(to top, var(--bg) 10%, transparent);
+}
+.hero-sub {
+  margin-top: 24px;
+}
+.hero-cta {
+  margin-top: 34px;
+}
+@media (max-width: 640px) {
+  .hero-overlay {
+    padding: 40px var(--gutter) 32px;
+    background: linear-gradient(to top, var(--bg) 30%, transparent);
+  }
+  .hero-sub {
+    margin-top: 14px;
+  }
+  .hero-cta {
+    margin-top: 22px;
   }
 }
 

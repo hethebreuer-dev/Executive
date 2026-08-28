@@ -1,4 +1,4 @@
-import { GALLERY, type Img } from "./media";
+import { CARD, GALLERY, type Img } from "./media";
 import type { Block, Media } from "./types";
 
 // Shared gallery layout used by both project and venture detail pages. Each
@@ -33,10 +33,10 @@ export function galleryOf(slug: string): Img[] {
   return GALLERY[slug] ?? [];
 }
 
-/** Hero/card frame for a slug (first gallery image), or undefined if empty. */
+/** Grid/thumbnail frame for a slug (may differ from the page's first image). */
 export function galleryCard(slug: string, alt: string, position?: string) {
-  const first = galleryOf(slug)[0];
-  return first ? mediaFrom(first, alt, position) : undefined;
+  const c = CARD[slug] ?? galleryOf(slug)[0];
+  return c ? mediaFrom(c, alt, position) : undefined;
 }
 
 export function autoBlocks(slug: string, name: string, caption: string): Block[] {
