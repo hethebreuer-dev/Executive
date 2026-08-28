@@ -6,7 +6,7 @@
 export type Img = { src: string; w: number; h: number };
 
 export const IMG = {
-  "hero": { src: "/projects/hero.avif", w: 1537, h: 1023 },
+  "hero": { src: "/projects/hero.avif", w: 1800, h: 969 },
 } as const;
 
 export const CARD: Record<string, Img> = {
