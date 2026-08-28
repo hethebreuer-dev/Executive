@@ -88,5 +88,5 @@ export type Job = {
   company: string;
   title: string;
   place: string;
-  summary: string;
+  bullets: string[];
 };

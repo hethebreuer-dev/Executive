@@ -142,16 +142,41 @@ export default function ResumePage() {
                   <div style={{ fontSize: 15, color: "var(--text-dim)" }}>
                     {j.title} — {j.place}
                   </div>
-                  <div
+                  <ul
                     style={{
-                      fontSize: 15,
-                      lineHeight: 1.6,
-                      color: "var(--text-strong-body)",
+                      margin: "2px 0 0",
+                      paddingLeft: 20,
                       maxWidth: 720,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      listStyle: "none",
                     }}
                   >
-                    {j.summary}
-                  </div>
+                    {j.bullets.map((b, k) => (
+                      <li
+                        key={k}
+                        style={{
+                          position: "relative",
+                          fontSize: 15,
+                          lineHeight: 1.6,
+                          color: "var(--text-strong-body)",
+                        }}
+                      >
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            left: -20,
+                            color: "var(--text-faint)",
+                          }}
+                        >
+                          —
+                        </span>
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             ))}
