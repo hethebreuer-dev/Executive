@@ -1,23 +1,22 @@
-import { IMG, type ImgKey } from "./media";
+import { GALLERY, type Img } from "./media";
 import type { Block, Media, Project } from "./types";
 
-// Photography wired from Hethe's supplied source folders, re-encoded to web
-// AVIF (see _encode.mjs). `im` pulls the optimized file + intrinsic dimensions
-// from the generated media map; `imgLegacy` references the design's own
-// crop-checked frames for Craft & Commerce and Lamb & Flag.
-const im = (key: ImgKey, alt: string, position?: string): Media => ({
-  src: IMG[key].src,
-  w: IMG[key].w,
-  h: IMG[key].h,
+// Every project detail page showcases its ENTIRE folder (see _encode.mjs, which
+// re-encodes each source folder to web AVIF and floats the hero frame first in
+// GALLERY[slug]). Blocks are laid out automatically from that gallery:
+//   • portraits pair into 4:5 "duo" rows
+//   • landscape images render full-width at natural aspect ("plate")
+//   • very tall boards/infographics render width-capped and centered
+// so a project with 4 images and one with 21 both read well without a fixed
+// template.
+
+const M = (o: Img, alt: string, position?: string): Media => ({
+  src: o.src,
+  w: o.w,
+  h: o.h,
   alt,
   position,
   slot: "",
-});
-const imgLegacy = (file: string, alt: string, position?: string): Media => ({
-  src: `/projects/${file}`,
-  alt,
-  slot: "",
-  position,
 });
 
 const cap = (text: string): Block => ({ type: "caption", text });
@@ -27,12 +26,42 @@ const plate = (media: Media, maxW?: number): Block => ({
   media,
   maxW,
 });
-const wide = (media: Media): Block => ({ type: "wide", media });
-const ultra = (media: Media): Block => ({ type: "ultrawide", media });
 
-// Order follows the design's `order` array: this drives the homepage grid and
-// the "Next project →" sequence (wrapping at the end).
-export const projects: Project[] = [
+const isWide = (o: Img) => o.w / o.h >= 1.15;
+const isTall = (o: Img) => o.h / o.w >= 1.6;
+
+function autoBlocks(slug: string, name: string, caption: string): Block[] {
+  const items = GALLERY[slug] ?? [];
+  const blocks: Block[] = [];
+  let i = 0;
+  while (i < items.length) {
+    const a = items[i];
+    if (isWide(a)) {
+      blocks.push(plate(M(a, name)));
+      i += 1;
+    } else if (isTall(a)) {
+      blocks.push(plate(M(a, name), 620));
+      i += 1;
+    } else {
+      const b = items[i + 1];
+      if (b && !isWide(b) && !isTall(b)) {
+        blocks.push(duo(M(a, name), M(b, name)));
+        i += 2;
+      } else {
+        // A lone portrait reads best contained and centered, not full-bleed.
+        blocks.push(plate(M(a, name), 620));
+        i += 1;
+      }
+    }
+  }
+  // Caption sits just under the opening image(s).
+  if (caption) blocks.splice(blocks.length > 1 ? 1 : blocks.length, 0, cap(caption));
+  return blocks;
+}
+
+type Meta = Omit<Project, "card" | "blocks"> & { caption: string };
+
+const meta: Meta[] = [
   {
     slug: "turn-apparel",
     name: "Turn Apparel",
@@ -43,7 +72,6 @@ export const projects: Project[] = [
       "Managed the apparel category A–Z, capsule collections through to the storefront.",
     year: "2022–",
     slot: "CAPSULE / SITE — 1600×2000",
-    card: im("turn-card", "Turn Apparel retrovision campaign"),
     intro:
       "An apparel label owned end to end — concept and design through production, and the storefront that sells it. Capsule collections built A–Z.",
     rail: {
@@ -52,16 +80,7 @@ export const projects: Project[] = [
       scope: "Capsule collections, production, e-commerce",
       year: "2022 — present",
     },
-    blocks: [
-      plate(im("turn-1", "Turn retrovision campaign")),
-      duo(
-        im("turn-2", "Turn hoodie front"),
-        im("turn-3", "Turn hoodie back"),
-      ),
-      cap("Concept to storefront — capsules and the retrovision line."),
-      duo(im("turn-4", "Turn cap"), im("turn-5", "Turn cap")),
-      plate(im("turn-6", "Turn storefront"), 560),
-    ],
+    caption: "Concept to storefront — capsules and the retrovision line.",
   },
   {
     slug: "daily-driven-exotics",
@@ -72,7 +91,6 @@ export const projects: Project[] = [
     result: "Seasonal drop program for a global automotive media audience.",
     year: "2022–",
     slot: "APPAREL / GRAPHICS — 1600×2000",
-    card: im("dde-card", "Daily Driven Exotics founder in DDE apparel"),
     intro:
       "Apparel and graphic program for an automotive media brand with a global audience, extended into web and email.",
     rail: {
@@ -81,13 +99,7 @@ export const projects: Project[] = [
       scope: "Seasonal drops, brand graphics, e-commerce, campaign creative",
       year: "2022 — present",
     },
-    blocks: [
-      duo(im("dde-1", "DDE campaign"), im("dde-2", "DDE jacket graphic")),
-      cap("Apparel and brand graphics for a global automotive audience."),
-      duo(im("dde-3", "DDE racing hoodie"), im("dde-4", "DDE racing hoodie")),
-      duo(im("dde-5", "DDE Compton Racing tee"), im("dde-6", "DDE jacket lineup")),
-      plate(im("dde-7", "DDE e-commerce storefront")),
-    ],
+    caption: "Apparel and brand graphics for a global automotive audience.",
   },
   {
     slug: "design-direction-mens",
@@ -98,7 +110,6 @@ export const projects: Project[] = [
     result: "Seasonal men's direction from concept through production.",
     year: "2013–22",
     slot: "LINE BOARDS — 1600×2000",
-    card: im("ddm-card", "Men's design direction"),
     intro:
       "Seasonal men's design direction for private-label programs, carried from concept and line boards through to production.",
     rail: {
@@ -107,13 +118,7 @@ export const projects: Project[] = [
       scope: "Trend, line boards, range planning, production",
       year: "2013 — 2022",
     },
-    blocks: [
-      plate(im("ddm-1", "Men's mood board")),
-      plate(im("ddm-2", "Men's line board")),
-      cap("Seasonal men's direction — mood, line boards, range plans."),
-      plate(im("ddm-3", "Men's range board")),
-      plate(im("ddm-4", "Men's direction")),
-    ],
+    caption: "Seasonal men's direction — mood, line boards, range plans.",
   },
   {
     slug: "craft-and-commerce",
@@ -125,7 +130,6 @@ export const projects: Project[] = [
       "Ten seasons; wholesale into Revolve and boutique retail, then adopted into private label.",
     year: "2013–22",
     slot: "LOOKBOOK / ON-FIGURE — 1600×2000",
-    card: imgLegacy("cc-16.avif", "Craft & Commerce lookbook"),
     intro:
       "A men's and women's label founded and directed across ten seasons — sold wholesale into Revolve and boutique retail, then adopted into private label after it proved on the floor.",
     rail: {
@@ -134,25 +138,7 @@ export const projects: Project[] = [
       scope: "Ten-season men's and women's collections, wholesale, lookbook",
       year: "2013 — 2022",
     },
-    blocks: [
-      wide(imgLegacy("cc-01.avif", "Craft & Commerce campaign")),
-      {
-        type: "pair",
-        items: [
-          imgLegacy("cc-2.avif", "Craft & Commerce on-figure"),
-          imgLegacy("cc-48.avif", "Craft & Commerce detail"),
-        ],
-      },
-      cap("Lookbook and on-figure — ten seasons of men's and women's."),
-      ultra(imgLegacy("cc-0807.avif", "Craft & Commerce collection band")),
-      {
-        type: "pair",
-        items: [
-          imgLegacy("cc-52.avif", "Craft & Commerce look"),
-          imgLegacy("cc-16.avif", "Craft & Commerce look"),
-        ],
-      },
-    ],
+    caption: "Lookbook and on-figure — ten seasons of men's and women's.",
   },
   {
     slug: "design-direction-womens",
@@ -164,7 +150,6 @@ export const projects: Project[] = [
       "Full lifecycle from trend boards to production tech packs; team of six.",
     year: "2013–22",
     slot: "BOARDS / RANGE PLAN — 1600×2000",
-    card: im("ddw-card", "Women's design direction"),
     intro:
       "Private-label women's design direction for US and UK retailers — the full lifecycle from trend boards to production tech packs, leading a team of six.",
     rail: {
@@ -173,12 +158,7 @@ export const projects: Project[] = [
       scope: "Trend, range planning, tech packs, team of six",
       year: "2013 — 2022",
     },
-    blocks: [
-      plate(im("ddw-1", "Women's mood board")),
-      cap("Trend boards to production tech packs — a team of six."),
-      plate(im("ddw-2", "Women's mood board")),
-      plate(im("ddw-3", "Women's range board")),
-    ],
+    caption: "Trend boards to production tech packs — a team of six.",
   },
   {
     slug: "monstermax",
@@ -189,7 +169,6 @@ export const projects: Project[] = [
     result: "Merch program for Whistlin Diesel's Monstermax build.",
     year: "2023",
     slot: "MERCH / CAMPAIGN — 1600×2000",
-    card: im("mmx-card", "Monstermax BESTROY hoodie"),
     intro:
       "Merch program for Whistlin Diesel's Monstermax build — apparel and graphics through to the storefront.",
     rail: {
@@ -198,12 +177,7 @@ export const projects: Project[] = [
       scope: "Merch line, brand graphics, e-commerce",
       year: "2023",
     },
-    blocks: [
-      duo(im("mmx-1", "Monstermax campaign"), im("mmx-2", "Monstermax tee back")),
-      cap("Merch and campaign for Whistlin Diesel's Monstermax build."),
-      duo(im("mmx-3", "Monstermax campaign"), im("mmx-4", "Monstermax hoodie")),
-      plate(im("mmx-5", "Monstermax storefront")),
-    ],
+    caption: "Merch and campaign for Whistlin Diesel's Monstermax build.",
   },
   {
     slug: "courtney-burke",
@@ -214,7 +188,6 @@ export const projects: Project[] = [
     result: "Identity and digital storefront for a founder-led label.",
     year: "2023",
     slot: "IDENTITY / SITE — 1600×2000",
-    card: im("cb-card", "Courtney Burke campaign"),
     intro:
       "Identity and digital storefront for a founder-led label — design direction from the logo out to the site.",
     rail: {
@@ -223,12 +196,7 @@ export const projects: Project[] = [
       scope: "Identity, art direction, e-commerce",
       year: "2023",
     },
-    blocks: [
-      duo(im("cb-1", "Courtney Burke look"), im("cb-2", "Courtney Burke look")),
-      cap("Design direction and identity for a founder-led label."),
-      duo(im("cb-3", "Courtney Burke look"), im("cb-4", "Courtney Burke look")),
-      duo(im("cb-5", "Courtney Burke site"), im("cb-6", "Courtney Burke identity")),
-    ],
+    caption: "Design direction and identity for a founder-led label.",
   },
   {
     slug: "iiko-clothing",
@@ -240,7 +208,6 @@ export const projects: Project[] = [
       "100% recycled cotton and PET plastics — 640 gallons of water saved per t-shirt produced.",
     year: "",
     slot: "COLLECTION / PROCESS — 1600×2000",
-    card: im("iiko-card", "IIKO recycled-material process", "top"),
     intro:
       "A sustainability capsule made from 100% recycled cotton and PET plastics — 640 gallons of water saved per t-shirt produced.",
     rail: {
@@ -249,10 +216,7 @@ export const projects: Project[] = [
       scope: "Recycled-material collection, process, direction",
       year: "—",
     },
-    blocks: [
-      cap("From plastic bottles and cotton scraps to new yarn, fabric and finished garments — 640 gallons of water saved per t-shirt."),
-      plate(im("iiko-card", "IIKO recycled-material process, bottle to garment"), 620),
-    ],
+    caption: "100% recycled cotton and PET — 640 gallons of water saved per t-shirt.",
   },
   {
     slug: "craft-and-commerce-womens",
@@ -264,7 +228,6 @@ export const projects: Project[] = [
       "Sold into boutique retail including Revolve; market proof led private label to outgrow the standalone brand.",
     year: "2013–22",
     slot: "LOOKBOOK — 1600×2000",
-    card: im("ccw-card", "Craft & Commerce Women's lookbook"),
     intro:
       "The women's side of Craft & Commerce — founded, directed and photographed. Sold into boutique retail including Revolve, with market proof that led private label to outgrow the standalone brand.",
     rail: {
@@ -273,12 +236,7 @@ export const projects: Project[] = [
       scope: "Women's collections, lookbook, photography, wholesale",
       year: "2013 — 2022",
     },
-    blocks: [
-      duo(im("ccw-1", "C&C Women's look"), im("ccw-2", "C&C Women's look")),
-      cap("Studio lookbook — sold into boutique retail including Revolve."),
-      duo(im("ccw-3", "C&C Women's look"), im("ccw-4", "C&C Women's look")),
-      duo(im("ccw-5", "C&C Women's look"), im("ccw-6", "C&C Women's look")),
-    ],
+    caption: "Studio lookbook — sold into boutique retail including Revolve.",
   },
   {
     slug: "lamb-and-flag",
@@ -290,7 +248,6 @@ export const projects: Project[] = [
       "Three retail stores and e-commerce launched; 35% sell-through increase in key categories.",
     year: "2011–13",
     slot: "RETAIL + COLLECTION — 1600×2000",
-    card: imgLegacy("lf-c.avif", "Lamb & Flag collection"),
     intro:
       "Men's and women's collections plus the retail concept for Lamb & Flag — three stores and e-commerce launched, with a 35% sell-through increase in key categories.",
     rail: {
@@ -299,25 +256,7 @@ export const projects: Project[] = [
       scope: "Collections, retail concept, e-commerce, brand development",
       year: "2011 — 2013",
     },
-    blocks: [
-      wide(imgLegacy("lf-2070.avif", "Lamb & Flag collection")),
-      {
-        type: "pair",
-        items: [
-          imgLegacy("lf-a.avif", "Lamb & Flag look"),
-          imgLegacy("lf-f.avif", "Lamb & Flag look"),
-        ],
-      },
-      cap("Retail concept and collection — three stores and e-commerce."),
-      ultra(imgLegacy("lf-720.avif", "Lamb & Flag retail band")),
-      {
-        type: "pair",
-        items: [
-          imgLegacy("lf-0504.avif", "Lamb & Flag detail"),
-          imgLegacy("lf-c.avif", "Lamb & Flag collection"),
-        ],
-      },
-    ],
+    caption: "Retail concept and collection — three stores and e-commerce.",
   },
   {
     slug: "american-eagle-outfitters",
@@ -328,7 +267,6 @@ export const projects: Project[] = [
     result: "Cads and tech packs for seasonal men's knit collections.",
     year: "2004–07",
     slot: "CADS / TECH PACK — 1600×2000",
-    card: im("aeo-card", "American Eagle Outfitters campaign"),
     intro:
       "Seasonal men's knit collections for a national specialty retailer — cads and tech packs from concept through production handoff.",
     rail: {
@@ -337,13 +275,8 @@ export const projects: Project[] = [
       scope: "Seasonal men's knits, cads, tech packs",
       year: "2004 — 2007",
     },
-    blocks: [
-      plate(im("aeo-1", "AEO men's knits line board")),
-      plate(im("aeo-2", "AEO men's knits line board")),
-      cap("Seasonal men's knits — cads and tech packs, concept through production."),
-      duo(im("aeo-3", "AEO men's knit"), im("aeo-4", "AEO men's knit")),
-      plate(im("aeo-5", "AEO men's knits line board")),
-    ],
+    caption:
+      "Seasonal men's knits — cads and tech packs, concept through production.",
   },
   {
     slug: "prepschool",
@@ -355,7 +288,6 @@ export const projects: Project[] = [
       "Ralph Lauren and American Eagle inspired capsule, drawn and painted by hand.",
     year: "—",
     slot: "HAND-PAINTED ARTWORK — 1600×2000",
-    card: im("prep-card", "PrepSchool hand-painted artwork"),
     intro:
       "A personal concept capsule drawn and painted by hand — a study in the Ralph Lauren and American Eagle heritage aesthetic.",
     rail: {
@@ -364,12 +296,7 @@ export const projects: Project[] = [
       scope: "Hand-drawn and hand-painted artwork, concept capsule",
       year: "—",
     },
-    blocks: [
-      duo(im("prep-1", "PrepSchool artwork"), im("prep-2", "PrepSchool artwork")),
-      cap("Hand-drawn and hand-painted concept capsule."),
-      duo(im("prep-3", "PrepSchool artwork"), im("prep-4", "PrepSchool artwork")),
-      duo(im("prep-5", "PrepSchool artwork"), im("prep-6", "PrepSchool artwork")),
-    ],
+    caption: "Hand-drawn and hand-painted concept capsule.",
   },
   {
     slug: "ralph-lauren-kids",
@@ -380,7 +307,6 @@ export const projects: Project[] = [
     result: "Design capsules and presentation rigging within the Boy's division.",
     year: "2000–03",
     slot: "CAPSULE BOARDS / RIGGING — 1600×2000",
-    card: im("rlk-card", "Polo Ralph Lauren Boy's rugby"),
     intro:
       "Seasonal top collections within Ralph Lauren's Boy's division — design capsules and presentation rigging, holding the brand's signature aesthetic across delivery cycles.",
     rail: {
@@ -389,12 +315,7 @@ export const projects: Project[] = [
       scope: "Seasonal capsules, presentation rigging",
       year: "2000 — 2003",
     },
-    blocks: [
-      plate(im("rlk-1", "Polo Ralph Lauren Boy's campaign")),
-      cap("Design capsules and presentation rigging within the Boy's division."),
-      plate(im("rlk-2", "Boy's division presentation rigging")),
-      plate(im("rlk-3", "Boy's division merchandising")),
-    ],
+    caption: "Design capsules and presentation rigging within the Boy's division.",
   },
   {
     slug: "refuse",
@@ -406,7 +327,6 @@ export const projects: Project[] = [
       "A capsule of renewed and re-used garments — reclaimed denim and jersey pieced into new bodies.",
     year: "",
     slot: "CAPSULE BOARDS — 1600×2000",
-    card: im("ref-card", "Refuse capsule board", "left"),
     intro:
       "A capsule of renewed and re-used garments — reclaimed denim and jersey pieced into new bodies. Concept, design and development.",
     rail: {
@@ -415,13 +335,7 @@ export const projects: Project[] = [
       scope: "Reclaimed-material capsule, pattern, construction",
       year: "—",
     },
-    blocks: [
-      plate(im("ref-1", "Refuse capsule board")),
-      cap("Reclaimed denim and jersey pieced into new bodies."),
-      plate(im("ref-2", "Refuse capsule board")),
-      plate(im("ref-3", "Refuse capsule board")),
-      plate(im("ref-4", "Refuse capsule board")),
-    ],
+    caption: "Reclaimed denim and jersey pieced into new bodies.",
   },
   {
     slug: "seven-days-cocktail-co",
@@ -432,7 +346,6 @@ export const projects: Project[] = [
     result: "Packaging system and direct-to-consumer storefront.",
     year: "2021",
     slot: "PACKAGING / SITE — 1600×2000",
-    card: im("seven-card", "Seven Days Cocktail Co. packaging"),
     intro:
       "A packaging system and direct-to-consumer storefront for a cocktail brand — identity through to the site build.",
     rail: {
@@ -441,11 +354,7 @@ export const projects: Project[] = [
       scope: "Packaging system, brand, e-commerce build",
       year: "2021",
     },
-    blocks: [
-      plate(im("seven-1", "Seven Days packaging")),
-      cap("Packaging system and direct-to-consumer storefront."),
-      plate(im("seven-2", "Seven Days storefront")),
-    ],
+    caption: "Packaging system and direct-to-consumer storefront.",
   },
   {
     slug: "lemonade-tv",
@@ -456,7 +365,6 @@ export const projects: Project[] = [
     result: "Brand and creative direction from launch.",
     year: "—",
     slot: "BRAND / PLATFORM — 1600×2000",
-    card: im("lem-card", "Lemonade.tv app"),
     intro:
       "Brand and creative direction for a media platform from launch, as co-founder.",
     rail: {
@@ -465,13 +373,21 @@ export const projects: Project[] = [
       scope: "Brand, creative direction, platform",
       year: "—",
     },
-    blocks: [
-      duo(im("lem-1", "Lemonade.tv app"), im("lem-2", "Lemonade.tv app")),
-      cap("Brand and creative direction for a media platform, from launch."),
-      plate(im("lem-3", "Lemonade.tv platform UI")),
-    ],
+    caption: "Brand and creative direction for a media platform, from launch.",
   },
 ];
+
+export const projects: Project[] = meta.map((m) => {
+  const gallery = GALLERY[m.slug] ?? [];
+  const { caption, ...rest } = m;
+  return {
+    ...rest,
+    card: gallery[0]
+      ? M(gallery[0], m.name)
+      : undefined,
+    blocks: autoBlocks(m.slug, m.name, caption),
+  };
+});
 
 // Homepage grid order.
 export const projectsInOrder = [...projects].sort((a, b) => a.order - b.order);
