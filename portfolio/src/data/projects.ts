@@ -8,6 +8,27 @@ type Meta = Omit<Project, "card" | "blocks"> & { caption: string };
 
 const meta: Meta[] = [
   {
+    slug: "la28-prep",
+    name: "LA28 Prep",
+    order: 0,
+    categories: ["apparel", "brand"],
+    role: "Concept, design direction, collection design",
+    result:
+      "A heritage-driven capsule concept for the Los Angeles 2028 Olympics — archival Games references reworked into a modern prep collection.",
+    year: "2028",
+    slot: "CASE STUDY — 1600×2000",
+    intro:
+      "A case study: a heritage-driven capsule program for the Los Angeles 2028 Olympics. Archival Games imagery reworked into a modern prep collection — rugby polos, track jackets, hoodies and sweats across a cohesive USA / LA / Olympic identity system.",
+    rail: {
+      role: "Concept, design direction, collection design",
+      client: "Case study",
+      scope: "Heritage research, range board, apparel line, brand identity",
+      year: "2028",
+    },
+    caption:
+      "Los Angeles 2028 — an Olympic heritage collection: rugby polos, track jackets, hoodies and sweats.",
+  },
+  {
     slug: "turn-apparel",
     name: "Turn Apparel",
     order: 1,

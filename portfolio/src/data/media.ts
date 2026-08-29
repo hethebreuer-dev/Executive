@@ -10,6 +10,7 @@ export const IMG = {
 } as const;
 
 export const CARD: Record<string, Img> = {
+  "la28-prep": { src: "/projects/la28-prep-card.avif", w: 1122, h: 1402 },
   "american-eagle-outfitters": { src: "/projects/american-eagle-outfitters-00.avif", w: 584, h: 579 },
   "courtney-burke": { src: "/projects/courtney-burke-00.avif", w: 800, h: 929 },
   "craft-and-commerce-womens": { src: "/projects/craft-and-commerce-womens-00.avif", w: 689, h: 800 },
@@ -32,6 +33,18 @@ export const CARD: Record<string, Img> = {
 };
 
 export const GALLERY: Record<string, Img[]> = {
+  "la28-prep": [
+    { src: "/projects/la28-prep-00.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-01.avif", w: 1800, h: 1244 },
+    { src: "/projects/la28-prep-02.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-03.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-04.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-05.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-06.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-07.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-08.avif", w: 1800, h: 1200 },
+    { src: "/projects/la28-prep-09.avif", w: 1800, h: 1200 },
+  ],
   "american-eagle-outfitters": [
     { src: "/projects/american-eagle-outfitters-00.avif", w: 584, h: 579 },
     { src: "/projects/american-eagle-outfitters-01.avif", w: 716, h: 919 },
