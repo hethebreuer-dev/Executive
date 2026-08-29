@@ -29,6 +29,27 @@ const meta: Meta[] = [
       "Los Angeles 2028 — an Olympic heritage collection: rugby polos, track jackets, hoodies and sweats.",
   },
   {
+    slug: "anduril-case-study",
+    name: "Anduril",
+    order: 0.5,
+    categories: ["apparel", "brand"],
+    role: "Concept, design direction, collection design",
+    result:
+      "Two capsule collections for Anduril — a lifestyle line and a tactical line — built from one brand system.",
+    year: "2025",
+    slot: "CASE STUDY — 1600×2000",
+    intro:
+      "A case study: two capsule collections for Anduril off a single brand system. A lifestyle line — Build Fun, Build Freedom — of graphic tees, floral hoodies and run shorts, and a tactical apparel line — Built for Advantage — of base layers, technical outerwear, functional pants and a desert camp shirt. Two moods, one identity.",
+    rail: {
+      role: "Concept, design direction, collection design",
+      client: "Case study",
+      scope: "Brand system, lifestyle capsule, tactical capsule, line sheets",
+      year: "2025",
+    },
+    caption:
+      "Two capsules off one system — a lifestyle line, Build Fun Build Freedom, and a tactical line, Built for Advantage.",
+  },
+  {
     slug: "turn-apparel",
     name: "Turn Apparel",
     order: 1,

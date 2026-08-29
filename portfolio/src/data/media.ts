@@ -10,6 +10,7 @@ export const IMG = {
 } as const;
 
 export const CARD: Record<string, Img> = {
+  "anduril-case-study": { src: "/projects/anduril-case-study-card.avif", w: 1122, h: 1402 },
   "la28-prep": { src: "/projects/la28-prep-card.avif", w: 1122, h: 1402 },
   "american-eagle-outfitters": { src: "/projects/american-eagle-outfitters-00.avif", w: 584, h: 579 },
   "courtney-burke": { src: "/projects/courtney-burke-00.avif", w: 800, h: 929 },
@@ -33,6 +34,14 @@ export const CARD: Record<string, Img> = {
 };
 
 export const GALLERY: Record<string, Img[]> = {
+  "anduril-case-study": [
+    { src: "/projects/anduril-case-study-00.avif", w: 1800, h: 1200 },
+    { src: "/projects/anduril-case-study-01.avif", w: 1800, h: 1200 },
+    { src: "/projects/anduril-case-study-02.avif", w: 1800, h: 1200 },
+    { src: "/projects/anduril-case-study-03.avif", w: 1800, h: 1200 },
+    { src: "/projects/anduril-case-study-04.avif", w: 1800, h: 1200 },
+    { src: "/projects/anduril-case-study-05.avif", w: 1800, h: 1200 },
+  ],
   "la28-prep": [
     { src: "/projects/la28-prep-00.avif", w: 1800, h: 1200 },
     { src: "/projects/la28-prep-01.avif", w: 1800, h: 1244 },
