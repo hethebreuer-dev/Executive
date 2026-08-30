@@ -1,0 +1,393 @@
+/* Anduril soft-goods pitch microsite — self-contained, mirrors anduril.com:
+   heavy black, cinematic, typography-forward, high contrast, negative space.
+   Lifestyle section runs light; tactical runs dark + desert beige. The tonal
+   shift between the two capsules IS the "two moods, one identity" story. */
+
+.page {
+  --ink: #0a0a0a;
+  --paper: #f4f4f2;
+  --volt: #c6f000;
+  --beige: #c3a57c;
+  --dim: #8a8a86;
+  --line: rgba(244, 244, 242, 0.14);
+
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-geist), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+.display {
+  font-family: var(--font-archivo), var(--font-geist), sans-serif;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+}
+
+/* ---- reveal-on-scroll ---- */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal[data-in="true"] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---- layout ---- */
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+.section {
+  padding: clamp(90px, 14vh, 170px) 0;
+}
+
+/* ========================= HERO ========================= */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.heroImg {
+  object-fit: cover;
+  object-position: 50% 35%;
+  z-index: 0;
+}
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0.55) 0%,
+      rgba(10, 10, 10, 0.15) 34%,
+      rgba(10, 10, 10, 0.55) 72%,
+      rgba(10, 10, 10, 0.96) 100%
+    ),
+    linear-gradient(90deg, rgba(10, 10, 10, 0.6) 0%, rgba(10, 10, 10, 0) 60%);
+}
+.heroInner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding-bottom: clamp(48px, 8vh, 96px);
+}
+.heroEyebrow {
+  color: var(--volt);
+  margin: 0 0 26px;
+}
+.h1 {
+  margin: 0;
+  font-size: clamp(44px, 8.2vw, 132px);
+  max-width: 15ch;
+}
+.heroSub {
+  margin: 30px 0 0;
+  max-width: 46ch;
+  font-size: clamp(16px, 1.5vw, 21px);
+  line-height: 1.5;
+  color: rgba(244, 244, 242, 0.82);
+}
+.fine {
+  margin: 34px 0 0;
+  color: var(--dim);
+  letter-spacing: 0.16em;
+}
+.scrollCue {
+  position: absolute;
+  right: 32px;
+  bottom: clamp(48px, 8vh, 96px);
+  z-index: 2;
+  color: var(--dim);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.28em;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.scrollLine {
+  width: 1px;
+  height: 54px;
+  background: linear-gradient(var(--dim), transparent);
+}
+
+/* ========================= MANIFESTO ========================= */
+.manifesto {
+  border-top: 1px solid var(--line);
+}
+.manifestoGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+.manifestoH {
+  margin: 0;
+  font-size: clamp(30px, 4.4vw, 62px);
+  max-width: 18ch;
+}
+.manifestoBody {
+  margin: 0;
+  max-width: 62ch;
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.65;
+  color: rgba(244, 244, 242, 0.74);
+}
+.rule {
+  width: 64px;
+  height: 3px;
+  background: var(--volt);
+  margin-bottom: 4px;
+}
+
+/* ========================= CAPSULE SECTIONS ========================= */
+.capLight {
+  background: var(--paper);
+  color: var(--ink);
+}
+.capDark {
+  background: var(--ink);
+  color: var(--paper);
+}
+.capHead {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px clamp(48px, 7vh, 84px);
+}
+.capNum {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 30px;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--volt);
+}
+.dotBeige {
+  background: var(--beige);
+}
+.capLabel {
+  color: inherit;
+  opacity: 0.72;
+}
+.capH {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 76px);
+  max-width: 16ch;
+}
+.capBody {
+  margin: 28px 0 0;
+  max-width: 54ch;
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.6;
+}
+.capLight .capBody {
+  color: #3a3a37;
+}
+.capDark .capBody {
+  color: rgba(244, 244, 242, 0.76);
+}
+
+/* full-bleed band */
+.band {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+.bandTall {
+  aspect-ratio: 4 / 5;
+  max-height: 96svh;
+}
+.bandImg {
+  object-fit: cover;
+}
+
+/* two-up grid */
+.twoUp {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(10px, 1.4vw, 20px);
+}
+.figure {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+}
+.figFlatLight {
+  background: #fff;
+}
+.figFlatDark {
+  background: #101010;
+}
+.figImg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.figImgCover {
+  object-fit: cover;
+}
+.figCap {
+  margin: 14px 2px 0;
+  color: inherit;
+  opacity: 0.55;
+  font-size: 11px;
+}
+
+/* mockup framing */
+.mockWrap {
+  margin-top: clamp(10px, 1.4vw, 20px);
+}
+.mockCap {
+  margin: 16px 2px 0;
+  opacity: 0.55;
+  font-size: 11px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.4vw, 20px);
+}
+.mt {
+  margin-top: clamp(10px, 1.4vw, 20px);
+}
+
+/* ========================= WHY ME ========================= */
+.why {
+  border-top: 1px solid var(--line);
+}
+.whyH {
+  margin: 0 0 30px;
+  font-size: clamp(30px, 4.4vw, 62px);
+}
+.whyBody {
+  margin: 0;
+  max-width: 66ch;
+  font-size: clamp(16px, 1.6vw, 21px);
+  line-height: 1.65;
+  color: rgba(244, 244, 242, 0.8);
+}
+
+/* ========================= CTA ========================= */
+.cta {
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.ctaH {
+  margin: 0 auto;
+  font-size: clamp(38px, 7vw, 104px);
+}
+.ctaBody {
+  margin: 26px auto 44px;
+  max-width: 40ch;
+  font-size: clamp(16px, 1.6vw, 20px);
+  line-height: 1.55;
+  color: rgba(244, 244, 242, 0.74);
+}
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--volt);
+  color: var(--ink);
+  font-family: var(--font-geist-mono), monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 14px;
+  padding: 20px 34px;
+  border-radius: 2px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.ctaBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 40px rgba(198, 240, 0, 0.22);
+}
+
+/* ========================= FOOTER ========================= */
+.footer {
+  border-top: 1px solid var(--line);
+  padding: 56px 0 64px;
+}
+.footerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+}
+.footerBrand {
+  font-family: var(--font-archivo), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-size: 22px;
+}
+.footerLinks {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+.footerLinks a {
+  color: rgba(244, 244, 242, 0.72);
+  transition: color 0.2s ease;
+}
+.footerLinks a:hover {
+  color: var(--volt);
+}
+.disclaimer {
+  margin-top: 40px;
+  color: var(--dim);
+  letter-spacing: 0.16em;
+}
+
+/* ========================= RESPONSIVE ========================= */
+@media (max-width: 720px) {
+  .wrap {
+    padding: 0 22px;
+  }
+  .capHead {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+  .twoUp {
+    grid-template-columns: 1fr;
+  }
+  .band {
+    aspect-ratio: 4 / 5;
+  }
+  .scrollCue {
+    display: none;
+  }
+  .footerRow {
+    flex-direction: column;
+  }
+}
