@@ -292,7 +292,8 @@ export default function AndurilPitch() {
             </h2>
             <p className={s.whyBody}>
               Twenty years of product that moved on the floor: men&rsquo;s and
-              women&rsquo;s for national retail, private label for US and UK
+              women&rsquo;s for national retail &mdash; Ralph Lauren, American
+              Eagle Outfitters, PacSun &mdash; and private label for US and UK
               retailers. Plus the merch and Shopify/DTC operations for two of
               the largest enthusiast channels online, Daily Driven Exotics and
               Whistlin Diesel / MonsterMax. Same audience DNA as Anduril&rsquo;s.
