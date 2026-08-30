@@ -229,6 +229,29 @@
   object-fit: cover;
 }
 
+/* art-directed band: tall portrait crop on mobile, wide banner on desktop.
+   The desktop source is supplied via <picture> media; the aspect ratio flips
+   to match so the wider subject shows without heavy cropping. */
+.bandArt {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+}
+@media (min-width: 721px) {
+  .bandArt {
+    aspect-ratio: 11 / 5;
+  }
+}
+.bandImgEl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* two-up grid */
 .twoUp {
   display: grid;
@@ -250,6 +273,19 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* uniform product-flat card: fixed aspect, image contained (never cropped on
+   the sides), centered on the card's own ground. Keeps a two-up tidy even when
+   the source flats differ in proportion. */
+.flatBox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 19 / 20;
+  background: #fff;
+}
+.flatImg {
+  object-fit: contain;
 }
 .figImgCover {
   object-fit: cover;

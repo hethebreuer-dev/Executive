@@ -10,6 +10,37 @@ const BAND = "100vw";
 const HALF = "(max-width: 720px) 100vw, 50vw";
 const CONTAIN = "(max-width: 1264px) 100vw, 1200px";
 
+/**
+ * A full-bleed banner that is art-directed by breakpoint: a tall portrait crop
+ * on mobile, a wide banner on desktop (more of the subject in frame). The
+ * browser downloads only the source its media query matches, so this needs a
+ * native <picture>/<img> rather than next/image.
+ */
+function ArtBand({
+  mobile,
+  desktop,
+  alt,
+}: {
+  mobile: string;
+  desktop: string;
+  alt: string;
+}) {
+  return (
+    <div className={s.bandArt}>
+      <picture>
+        <source media="(min-width: 721px)" srcSet={desktop} />
+        <img
+          src={mobile}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className={s.bandImgEl}
+        />
+      </picture>
+    </div>
+  );
+}
+
 export default function AndurilPitch() {
   return (
     <main className={s.page}>
@@ -92,42 +123,40 @@ export default function AndurilPitch() {
         </div>
 
         <Reveal className={s.reveal}>
-          <div className={`${s.band} ${s.bandTall}`}>
-            <Image
-              src="/anduril/life-look.avif"
-              alt="Model in a chartreuse floral Anduril hoodie and black run shorts"
-              fill
-              sizes={BAND}
-              className={s.bandImg}
-            />
-          </div>
+          <ArtBand
+            mobile="/anduril/life-look.avif"
+            desktop="/anduril/life-look-desktop.avif"
+            alt="Model in a chartreuse floral Anduril hoodie and black run shorts"
+          />
         </Reveal>
 
         <div className={s.wrap}>
           <Reveal className={`${s.reveal} ${s.mt}`}>
             <div className={s.twoUp}>
-              <figure className={`${s.figure} ${s.figFlatLight}`}>
-                <Image
-                  src="/anduril/life-flat.avif"
-                  alt="Floral hoodie in Anduril chartreuse, product view"
-                  width={956}
-                  height={1500}
-                  sizes={HALF}
-                  className={s.figImg}
-                />
+              <figure className={`${s.figure}`}>
+                <div className={s.flatBox}>
+                  <Image
+                    src="/anduril/life-flat.avif"
+                    alt="Floral hoodie in Anduril chartreuse, product view"
+                    fill
+                    sizes={HALF}
+                    className={s.flatImg}
+                  />
+                </div>
                 <figcaption className={`${s.mono} ${s.figCap}`}>
                   Floral Hoodie
                 </figcaption>
               </figure>
-              <figure className={`${s.figure} ${s.figFlatLight}`}>
-                <Image
-                  src="/anduril/life-flat2.avif"
-                  alt="Run short in black with neon drawcord, product view"
-                  width={956}
-                  height={1500}
-                  sizes={HALF}
-                  className={s.figImg}
-                />
+              <figure className={`${s.figure}`}>
+                <div className={s.flatBox}>
+                  <Image
+                    src="/anduril/life-flat2.avif"
+                    alt="Run short in black with neon drawcord, product view"
+                    fill
+                    sizes={HALF}
+                    className={s.flatImg}
+                  />
+                </div>
                 <figcaption className={`${s.mono} ${s.figCap}`}>
                   Run Short
                 </figcaption>
@@ -137,15 +166,11 @@ export default function AndurilPitch() {
         </div>
 
         <Reveal className={`${s.reveal} ${s.mt}`}>
-          <div className={s.band}>
-            <Image
-              src="/anduril/life-look2.avif"
-              alt="Model in a white Anduril tee and black run shorts on a concrete flight line"
-              fill
-              sizes={BAND}
-              className={s.bandImg}
-            />
-          </div>
+          <ArtBand
+            mobile="/anduril/life-look2.avif"
+            desktop="/anduril/life-look2-desktop.avif"
+            alt="Model in a white Anduril tee and black run shorts on a concrete flight line"
+          />
         </Reveal>
 
         <div className={s.wrap}>
@@ -206,42 +231,40 @@ export default function AndurilPitch() {
         </div>
 
         <Reveal className={s.reveal}>
-          <div className={`${s.band} ${s.bandTall}`}>
-            <Image
-              src="/anduril/tac-look.avif"
-              alt="Model in a desert-print Anduril camp shirt on a flight line, aircraft behind"
-              fill
-              sizes={BAND}
-              className={s.bandImg}
-            />
-          </div>
+          <ArtBand
+            mobile="/anduril/tac-look.avif"
+            desktop="/anduril/tac-look-desktop.avif"
+            alt="Model in a desert-print Anduril camp shirt on a flight line, aircraft behind"
+          />
         </Reveal>
 
         <div className={s.wrap}>
           <Reveal className={`${s.reveal} ${s.mt}`}>
             <div className={s.twoUp}>
-              <figure className={`${s.figure} ${s.figFlatLight}`}>
-                <Image
-                  src="/anduril/tac-flat.avif"
-                  alt="Technical quarter-zip jacket in black, product view"
-                  width={956}
-                  height={1500}
-                  sizes={HALF}
-                  className={s.figImg}
-                />
+              <figure className={`${s.figure}`}>
+                <div className={s.flatBox}>
+                  <Image
+                    src="/anduril/tac-flat.avif"
+                    alt="Technical quarter-zip jacket in black, product view"
+                    fill
+                    sizes={HALF}
+                    className={s.flatImg}
+                  />
+                </div>
                 <figcaption className={`${s.mono} ${s.figCap}`}>
                   Technical Jacket
                 </figcaption>
               </figure>
-              <figure className={`${s.figure} ${s.figFlatLight}`}>
-                <Image
-                  src="/anduril/tac-flat2.avif"
-                  alt="Desert-print camp shirt in beige, product view"
-                  width={956}
-                  height={1500}
-                  sizes={HALF}
-                  className={s.figImg}
-                />
+              <figure className={`${s.figure}`}>
+                <div className={s.flatBox}>
+                  <Image
+                    src="/anduril/tac-flat2.avif"
+                    alt="Desert-print camp shirt in beige, product view"
+                    fill
+                    sizes={HALF}
+                    className={s.flatImg}
+                  />
+                </div>
                 <figcaption className={`${s.mono} ${s.figCap}`}>
                   Lucky Palmer Shirt
                 </figcaption>
