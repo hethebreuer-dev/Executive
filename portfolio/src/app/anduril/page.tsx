@@ -68,7 +68,7 @@ export default function AndurilPitch() {
               The mission is serious. The merch doesn&rsquo;t have to be.
             </h1>
             <p className={s.heroSub}>
-              Two capsule collections. One brand system. A concept for what
+              Three capsule collections. One brand system. A concept for what
               Anduril soft goods could be.
             </p>
             <p className={`${s.mono} ${s.fine}`}>
@@ -300,6 +300,88 @@ export default function AndurilPitch() {
               />
               <figcaption className={`${s.mono} ${s.figCap}`}>
                 Built for Advantage — the tactical line sheet.
+              </figcaption>
+            </figure>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ==================== CAPSULE 03 — ANIME ==================== */}
+      <section className={`${s.section} ${s.capDark}`}>
+        <div className={s.capHead}>
+          <Reveal className={s.reveal}>
+            <div className={s.capNum}>
+              <span className={`${s.dot} ${s.dotAmber}`} />
+              <span className={`${s.mono} ${s.capLabel}`}>
+                Capsule 03 — The anime line
+              </span>
+            </div>
+            <h2 className={`${s.display} ${s.capH}`}>
+              Anime inspired. Mission driven.
+            </h2>
+            <p className={s.capBody}>
+              A limited drop that runs Anduril&rsquo;s world through an anime
+              lens — Altius. Schematic aircraft, sunset skylines, and 常に前進
+              (&ldquo;always advancing&rdquo;) across graphic tees, hoodies and a
+              pilot cap. Built for those who never stand still.
+            </p>
+          </Reveal>
+        </div>
+
+        <Reveal className={s.reveal}>
+          <ArtBand
+            mobile="/anduril/anime-look.avif"
+            desktop="/anduril/anime-look-desktop.avif"
+            alt="Anime-style illustration of a figure in an Altius Anduril hoodie against a sunset skyline"
+          />
+        </Reveal>
+
+        <div className={s.wrap}>
+          <Reveal className={`${s.reveal} ${s.mt}`}>
+            <div className={s.twoUp}>
+              <figure className={s.figure}>
+                <div className={s.flatBox}>
+                  <Image
+                    src="/anduril/anime-flat.avif"
+                    alt="Altius Air Vector tee in black with a schematic aircraft graphic, product view"
+                    fill
+                    sizes={HALF}
+                    className={s.flatImg}
+                  />
+                </div>
+                <figcaption className={`${s.mono} ${s.figCap}`}>
+                  Altius Air Vector Tee
+                </figcaption>
+              </figure>
+              <figure className={s.figure}>
+                <div className={s.flatBox}>
+                  <Image
+                    src="/anduril/anime-flat2.avif"
+                    alt="Above All hoodie in olive with an anime sunset aircraft graphic, product view"
+                    fill
+                    sizes={HALF}
+                    className={s.flatImg}
+                  />
+                </div>
+                <figcaption className={`${s.mono} ${s.figCap}`}>
+                  Above All Hoodie
+                </figcaption>
+              </figure>
+            </div>
+          </Reveal>
+
+          <Reveal className={`${s.reveal} ${s.mt}`}>
+            <figure className={s.figure}>
+              <Image
+                src="/anduril/mock-anime.avif"
+                alt="The anime line, imagined as an Anduril storefront"
+                width={1448}
+                height={1086}
+                sizes={CONTAIN}
+                className={s.figImg}
+              />
+              <figcaption className={`${s.mono} ${s.figCap}`}>
+                The concept, as a storefront.
               </figcaption>
             </figure>
           </Reveal>

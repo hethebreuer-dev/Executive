@@ -192,6 +192,9 @@
 .dotBeige {
   background: var(--beige);
 }
+.dotAmber {
+  background: #ff7a3d;
+}
 .capLabel {
   color: inherit;
   opacity: 0.72;
