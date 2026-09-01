@@ -45,7 +45,7 @@ function ArtBand({
 export default function AndurilPitch() {
   return (
     <main className={s.page}>
-      <Header />
+      <Header minimal />
 
       {/* ============================ HERO ============================ */}
       <section className={s.hero}>

@@ -22,35 +22,37 @@ const wordmark: React.CSSProperties = {
 };
 
 // Full nav header — homepage, ventures, resume. `active` marks the current
-// section in white.
-export function Header({ active }: { active?: string }) {
+// section in white. Row on desktop; stacks left-aligned on mobile (see
+// .site-nav in globals.css). Pass `minimal` for just the wordmark (a home
+// link), used on the standalone Anduril microsite.
+export function Header({
+  active,
+  minimal,
+}: {
+  active?: string;
+  minimal?: boolean;
+}) {
   return (
-    <header style={shell}>
-      <Link href="/" style={wordmark}>
+    <header className="site-nav">
+      <Link href="/" className="site-nav__mark">
         {site.wordmark}
       </Link>
-      <nav
-        style={{
-          display: "flex",
-          gap: 34,
-          fontSize: 14,
-          color: "var(--text-dim)",
-          flexWrap: "wrap",
-          justifyContent: "flex-end",
-        }}
-      >
-        {nav.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            style={{
-              color: active === item.label ? "var(--text)" : "var(--text-dim)",
-            }}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      {!minimal && (
+        <nav className="site-nav__links">
+          {nav.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              style={{
+                color:
+                  active === item.label ? "var(--text)" : "var(--text-dim)",
+              }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

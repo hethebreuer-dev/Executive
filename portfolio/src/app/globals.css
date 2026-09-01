@@ -286,3 +286,47 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------ *\
+   Primary site header — wordmark + nav. A row on desktop; on mobile the
+   nav stacks under the wordmark, both aligned to the left gutter, instead
+   of wrapping into a ragged block on the right.
+\* ------------------------------------------------------------------ */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px var(--gutter);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.site-nav__mark {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  white-space: nowrap;
+}
+.site-nav__links {
+  display: flex;
+  gap: 34px;
+  font-size: 14px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+@media (max-width: 640px) {
+  .site-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px var(--gutter);
+  }
+  .site-nav__links {
+    justify-content: flex-start;
+    gap: 26px;
+  }
+}
