@@ -1,5 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { nav, site } from "@/data/site";
+
+// Hide-on-scroll: fade the sticky header out when scrolling down, back in when
+// scrolling up (or near the top). The fade itself is gated to mobile in CSS
+// (.site-nav[data-hidden]); desktop keeps the header always visible.
+function useHideOnScroll() {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    lastY.current = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 80) {
+        setHidden(false);
+      } else if (Math.abs(y - lastY.current) > 6) {
+        setHidden(y > lastY.current);
+      }
+      lastY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return hidden;
+}
 
 const shell: React.CSSProperties = {
   position: "sticky",
@@ -32,8 +58,9 @@ export function Header({
   active?: string;
   minimal?: boolean;
 }) {
+  const hidden = useHideOnScroll();
   return (
-    <header className="site-nav">
+    <header className="site-nav" data-hidden={hidden}>
       <Link href="/" className="site-nav__mark">
         {site.wordmark}
       </Link>

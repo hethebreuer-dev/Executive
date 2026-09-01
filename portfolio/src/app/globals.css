@@ -303,6 +303,7 @@ a {
   padding: 22px var(--gutter);
   background: var(--bg);
   border-bottom: 1px solid var(--border-subtle);
+  transition: opacity 0.35s ease;
 }
 .site-nav__mark {
   font-size: 15px;
@@ -328,5 +329,10 @@ a {
   .site-nav__links {
     justify-content: flex-start;
     gap: 26px;
+  }
+  /* Fade the header out on scroll down, back in on scroll up (mobile only). */
+  .site-nav[data-hidden="true"] {
+    opacity: 0;
+    pointer-events: none;
   }
 }
