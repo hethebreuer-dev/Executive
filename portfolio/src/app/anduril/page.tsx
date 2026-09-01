@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Header } from "@/components/Header";
 import s from "./anduril.module.css";
 import { Reveal } from "./Reveal";
 
@@ -44,8 +45,10 @@ function ArtBand({
 export default function AndurilPitch() {
   return (
     <main className={s.page}>
+      <Header />
+
       {/* ============================ HERO ============================ */}
-      <header className={s.hero}>
+      <section className={s.hero}>
         <Image
           src="/anduril/hero.avif"
           alt="A figure in a black Anduril jacket walking a desert flight line, an autonomous aircraft behind"
@@ -76,7 +79,7 @@ export default function AndurilPitch() {
             </p>
           </div>
         </div>
-      </header>
+      </section>
 
       {/* ========================= MANIFESTO ========================= */}
       <section className={`${s.section} ${s.manifesto}`}>
