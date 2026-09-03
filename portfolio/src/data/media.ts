@@ -208,6 +208,8 @@ export const GALLERY: Record<string, Img[]> = {
     { src: "/projects/prepschool-07.avif", w: 1411, h: 1800 },
     { src: "/projects/prepschool-08.avif", w: 1411, h: 1800 },
     { src: "/projects/prepschool-09.avif", w: 1411, h: 1800 },
+    { src: "/projects/prepschool-10.avif", w: 1119, h: 1406 },
+    { src: "/projects/prepschool-11.avif", w: 1122, h: 1402 },
   ],
   "seven-days-cocktail-co": [
     { src: "/projects/seven-days-cocktail-co-00.avif", w: 1066, h: 1238 },
