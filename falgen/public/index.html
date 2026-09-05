@@ -211,6 +211,8 @@
             "fal-ai/fast-sdxl",
             "fal-ai/fast-sdxl/image-to-image",
             "fal-ai/lora",
+            "fal-ai/flux-pro/kontext/max/multi",
+            "fal-ai/nano-banana/edit",
             "fal-ai/flux-pro/v1.1",
           ],
           advanced: { image_size: "landscape_4_3", num_images: 1, num_inference_steps: 28 },
@@ -248,7 +250,25 @@
           guidance_scale: 7.5,
           negative_prompt: "",
         },
+        "fal-ai/flux-pro/kontext/max/multi": { guidance_scale: 3.5, num_images: 1 },
+        "fal-ai/nano-banana/edit": { num_images: 1 },
       };
+
+      // Models that take several reference images at once, under image_urls.
+      const MULTI_IMAGE_MODELS = new Set([
+        "fal-ai/flux-pro/kontext/max/multi",
+        "fal-ai/flux-pro/kontext/multi",
+        "fal-ai/nano-banana/edit",
+      ]);
+
+      // Point the reference field at image_urls for multi-image models, else
+      // image_url — but only when it still holds a default we set (not a hand edit).
+      function syncRefField(model) {
+        const cur = $("refField").value.trim();
+        if (cur === "" || cur === "image_url" || cur === "image_urls") {
+          $("refField").value = MULTI_IMAGE_MODELS.has((model || "").trim()) ? "image_urls" : "image_url";
+        }
+      }
 
       let mode = "image";
       let lastAutoAdvanced = ""; // the JSON we last auto-filled, so we don't clobber hand edits
@@ -285,6 +305,7 @@
           $("model").value = p.models[0];
         }
         syncSelectToModel();
+        syncRefField($("model").value);
         autofillAdvanced(advancedFor($("model").value));
       }
 
@@ -296,12 +317,16 @@
           return;
         }
         $("model").value = v;
+        syncRefField(v);
         autofillAdvanced(advancedFor(v));
       });
 
       // Typing a custom id keeps the dropdown in sync and swaps configs (unless edited).
       $("model").addEventListener("input", syncSelectToModel);
-      $("model").addEventListener("change", () => autofillAdvanced(advancedFor($("model").value)));
+      $("model").addEventListener("change", () => {
+        syncRefField($("model").value);
+        autofillAdvanced(advancedFor($("model").value));
+      });
 
       document.querySelectorAll("#mode button").forEach((b) =>
         b.addEventListener("click", () => {
@@ -467,19 +492,32 @@
         if (prompt) input.prompt = prompt;
         input.enable_safety_checker = $("safety").checked;
 
-        // Reference images: inject under the field name the model expects.
-        // Shape by the field NAME, not the count: a plural field (image_urls)
-        // takes an array; a singular one (image_url) takes a single string.
-        if (refImages.length) {
-          const field = ($("refField").value || "image_url").trim();
-          const uris = refImages.map((r) => r.dataUri);
-          input[field] = /s$/i.test(field) ? uris : uris[0];
-        }
-
         $("go").disabled = true;
         $("rawWrap").hidden = true;
-        setStatus('<span class="spinner"></span>submitting…');
         try {
+          // Reference images: host each on Fal storage (models can't load inline
+          // data URIs), cache the URL, then inject under the field name the model
+          // expects. Plural field (image_urls) -> array; singular -> one string.
+          if (refImages.length) {
+            setStatus('<span class="spinner"></span>uploading reference image(s)…');
+            for (const r of refImages) {
+              if (!r.url) {
+                const up = await fetch("/api/upload", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ dataUri: r.dataUri }),
+                });
+                const ud = await up.json();
+                if (!up.ok) throw new Error(describeError(ud));
+                r.url = ud.url;
+              }
+            }
+            const field = ($("refField").value || "image_url").trim();
+            const urls = refImages.map((r) => r.url);
+            input[field] = /s$/i.test(field) ? urls : urls[0];
+          }
+
+          setStatus('<span class="spinner"></span>submitting…');
           const r = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

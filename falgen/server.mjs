@@ -151,6 +151,39 @@ async function falGet(url) {
   return { ok: resp.ok, status: resp.status, data };
 }
 
+// Upload a base64 data URI to Fal storage and return a real https URL. Most
+// models download the reference image from a URL and reject inline data URIs,
+// so we host it on Fal's CDN first (the same thing @fal-ai/client does).
+async function falUploadDataUri(dataUri) {
+  const m = /^data:([^;]+);base64,(.*)$/s.exec(dataUri || "");
+  if (!m) throw new Error("Not a base64 data URI");
+  const contentType = m[1];
+  const buf = Buffer.from(m[2], "base64");
+  const ext = (contentType.split("/")[1] || "bin").split("+")[0];
+  const fileName = `ref-${Date.now()}-${randomBytes(4).toString("hex")}.${ext}`;
+
+  const initResp = await fetch(
+    "https://rest.alpha.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3",
+    {
+      method: "POST",
+      headers: { ...falHeaders(), Accept: "application/json" },
+      body: JSON.stringify({ content_type: contentType, file_name: fileName }),
+    }
+  );
+  const initText = await initResp.text();
+  if (!initResp.ok) throw new Error(`initiate ${initResp.status}: ${initText}`);
+  const { upload_url, file_url } = JSON.parse(initText);
+  if (!upload_url || !file_url) throw new Error("initiate: missing upload_url/file_url");
+
+  const putResp = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": contentType }, // presigned URL — no auth header
+    body: buf,
+  });
+  if (!putResp.ok) throw new Error(`upload ${putResp.status}: ${await putResp.text()}`);
+  return file_url;
+}
+
 // --- routing ----------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
@@ -205,6 +238,19 @@ const server = http.createServer(async (req, res) => {
     // ---- everything below requires auth ----
     if (path.startsWith("/api/") && !isAuthed(req)) {
       return json(res, 401, { error: "Not signed in." });
+    }
+
+    // ---- upload: host a reference image on Fal storage, return its URL ----
+    if (path === "/api/upload" && req.method === "POST") {
+      if (!FAL_KEY) return json(res, 503, { error: "FAL_KEY is not configured on the server." });
+      const body = JSON.parse((await readBody(req, 64_000_000)) || "{}");
+      if (!body.dataUri) return json(res, 400, { error: "No image provided." });
+      try {
+        const url = await falUploadDataUri(body.dataUri);
+        return json(res, 200, { url });
+      } catch (e) {
+        return json(res, 502, { error: "Upload to Fal storage failed.", detail: String(e.message || e) });
+      }
     }
 
     // ---- generate: submit a prompt to a Fal model ----
