@@ -220,7 +220,52 @@
         },
       };
 
+      // Model-specific Advanced-input starting points. Selecting one of these
+      // models fills the Advanced box with a ready-to-run config. Fields match
+      // each model's schema on fal.ai/models. enable_safety_checker is left out
+      // on purpose — the checkbox controls it and would override any value here.
+      const MODEL_ADVANCED = {
+        "fal-ai/lora": {
+          model_name: "runwayml/stable-diffusion-v1-5",
+          image_size: "square",
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          negative_prompt: "",
+          loras: [],
+        },
+        "fal-ai/fast-sdxl": {
+          image_size: "square_hd",
+          num_inference_steps: 25,
+          guidance_scale: 7.5,
+          num_images: 1,
+          negative_prompt: "",
+        },
+        "fal-ai/fast-sdxl/image-to-image": {
+          image_size: "square_hd",
+          strength: 0.6,
+          num_inference_steps: 25,
+          guidance_scale: 7.5,
+          negative_prompt: "",
+        },
+      };
+
       let mode = "image";
+      let lastAutoAdvanced = ""; // the JSON we last auto-filled, so we don't clobber hand edits
+
+      // Fill the Advanced box only if it's empty or still holds a config we
+      // auto-filled (i.e. the user hasn't hand-edited it).
+      function autofillAdvanced(obj) {
+        const str = JSON.stringify(obj, null, 2);
+        const cur = $("advanced").value.trim();
+        if (!cur || cur === lastAutoAdvanced.trim()) {
+          $("advanced").value = str;
+          lastAutoAdvanced = str;
+        }
+      }
+
+      function advancedFor(model) {
+        return MODEL_ADVANCED[(model || "").trim()] || PRESETS[mode].advanced;
+      }
 
       function applyMode(m) {
         mode = m;
@@ -230,13 +275,17 @@
         if (!$("model").value || Object.values(PRESETS).some((x) => x.models.includes($("model").value))) {
           $("model").value = p.models[0];
         }
-        if (!$("advanced").value.trim()) $("advanced").value = JSON.stringify(p.advanced, null, 2);
+        autofillAdvanced(advancedFor($("model").value));
       }
+
+      // Picking (or typing) a model swaps in its config, unless you've edited it.
+      $("model").addEventListener("change", () => autofillAdvanced(advancedFor($("model").value)));
 
       document.querySelectorAll("#mode button").forEach((b) =>
         b.addEventListener("click", () => {
           // Reset advanced defaults when switching modes.
           $("advanced").value = "";
+          lastAutoAdvanced = "";
           applyMode(b.dataset.mode);
         })
       );
