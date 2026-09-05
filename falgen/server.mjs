@@ -160,7 +160,10 @@ const server = http.createServer(async (req, res) => {
     // ---- static: the single-page UI ----
     if (req.method === "GET" && (path === "/" || path === "/index.html")) {
       const html = await readFile(join(__dirname, "public", "index.html"));
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store", // always serve the current page after an update
+      });
       res.end(html);
       return;
     }
