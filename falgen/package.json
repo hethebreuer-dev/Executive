@@ -2,7 +2,7 @@
   "name": "falgen",
   "version": "1.0.0",
   "private": true,
-  "description": "Personal, local-only Fal.ai image + video generator. Standalone — no relation to the rest of this repo.",
+  "description": "Personal, local-only Stability AI image generator. Standalone — no relation to the rest of this repo.",
   "type": "module",
   "scripts": {
     "start": "node server.mjs"

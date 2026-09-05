@@ -68,19 +68,12 @@
       }
       textarea { resize: vertical; }
       textarea.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
-      .row { display: flex; gap: 10px; }
-      .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-      .seg button { border: none; border-radius: 0; background: var(--panel2); }
-      .seg button.on { background: var(--accent2); font-weight: 600; }
-      .check { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-      .check input { width: 18px; height: 18px; }
-      .check label { margin: 0; color: var(--text); }
       .hint { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
       .status { margin: 12px 0; color: var(--muted); min-height: 20px; }
       .status.err { color: var(--danger); }
       .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
       .card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel2); }
-      .card img, .card video { width: 100%; display: block; background: #000; }
+      .card img { width: 100%; display: block; background: #000; }
       .card .meta { padding: 8px 10px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
       .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
       .thumbs .t { position: relative; }
@@ -123,66 +116,38 @@
     <!-- APP -->
     <div id="appView" hidden>
       <header>
-        <div class="brand">falgen <span>personal image + video · Fal.ai</span></div>
+        <div class="brand">falgen <span>personal image generator · Stability AI</span></div>
         <button class="link" id="logout">Sign out</button>
       </header>
       <div class="wrap grid">
         <!-- controls -->
         <div class="panel">
-          <label for="provider">Provider</label>
-          <select id="provider">
-            <option value="fal">Fal.ai</option>
-            <option value="stability">Stability AI</option>
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="ultra">Stable Image Ultra — highest quality</option>
+            <option value="core" selected>Stable Image Core — fast &amp; cheap</option>
+            <option value="sd3">Stable Diffusion 3.5</option>
           </select>
-
-          <label>Mode</label>
-          <div class="seg" id="mode">
-            <button data-mode="image" class="on">Image</button>
-            <button data-mode="video">Video</button>
-          </div>
-
-          <label for="modelSelect">Model</label>
-          <select id="modelSelect"></select>
-          <input id="model" type="text" placeholder="…or type any fal.ai model id" style="margin-top:8px;" />
-          <div class="hint">
-            Pick a preset above, or type any id from
-            <a href="https://fal.ai/models" target="_blank" rel="noreferrer">fal.ai/models</a> in the box.
-            The box is what actually gets sent. Ids change over time — presets are just starting points.
-          </div>
 
           <label for="prompt">Prompt</label>
           <textarea id="prompt" rows="4" placeholder="Describe what to generate…"></textarea>
 
-          <label>Reference image(s) — optional</label>
-          <input id="refFiles" type="file" accept="image/*" multiple />
-          <div class="row" style="margin-top:8px; align-items:center;">
-            <input id="refField" type="text" value="image_url" style="max-width:160px;" />
-            <span class="hint" style="margin:0;">field name the model expects</span>
-          </div>
+          <label>Reference image — optional (image-to-image)</label>
+          <input id="refFile" type="file" accept="image/*" />
           <div id="refPreview" class="thumbs"></div>
           <div class="hint">
-            Read in your browser and sent to your local server as a data URI (never uploaded
-            anywhere else). Image-to-video and most image-to-image models use <code>image_url</code>;
-            some multi-image models use <code>image_urls</code>. One file is sent as a single value,
-            several as an array.
-          </div>
-
-          <div class="check">
-            <input id="safety" type="checkbox" />
-            <label for="safety">Enable Fal safety checker</label>
-          </div>
-          <div class="hint">
-            Off by default. Sends <code>enable_safety_checker</code> as you set it. Some models
-            ignore or reject this key — if a model errors, remove it from Advanced input below.
+            Read in your browser and sent to your local server (never uploaded anywhere else).
+            Stability uses one reference image; add <code>"strength": 0.6</code> in Advanced
+            input to control how far it departs from it (0 = identical, 1 = ignore).
           </div>
 
           <details>
             <summary style="cursor:pointer; color:var(--muted); margin-top:16px;">Advanced input (JSON)</summary>
             <div class="hint" style="margin-top:8px;">
-              Merged into the request. Put model-specific fields here: image_size, num_inference_steps,
-              seed, num_images, guidance_scale, image_url (image-to-video), duration, aspect_ratio, etc.
+              Merged into the request. Stability fields: aspect_ratio, output_format (png/jpeg/webp),
+              negative_prompt, seed, style_preset, cfg_scale, and strength (image-to-image).
             </div>
-            <textarea id="advanced" class="mono" rows="7"></textarea>
+            <textarea id="advanced" class="mono" rows="6"></textarea>
           </details>
 
           <button class="primary" id="go" style="width:100%; margin-top:18px;">Generate</button>
@@ -207,99 +172,12 @@
     <script>
       const $ = (id) => document.getElementById(id);
 
-      // Suggested model ids and default advanced params, per provider + mode.
-      // Fal ids are verifiable at fal.ai/models; Stability models are the fixed
-      // set ultra / core / sd3 (its /v2beta/stable-image/generate/{model} route).
-      const PROVIDERS = {
-        fal: {
-          label: "Fal.ai",
-          image: {
-            models: [
-              "fal-ai/flux/dev",
-              "fal-ai/flux/schnell",
-              "fal-ai/fast-sdxl",
-              "fal-ai/fast-sdxl/image-to-image",
-              "fal-ai/lora",
-              "fal-ai/qwen-image-edit-plus",
-              "fal-ai/flux-pro/kontext/max/multi",
-              "fal-ai/nano-banana/edit",
-              "fal-ai/flux-pro/v1.1",
-            ],
-            advanced: { image_size: "landscape_4_3", num_images: 1, num_inference_steps: 28 },
-          },
-          video: {
-            models: ["fal-ai/ltx-video", "fal-ai/kling-video/v1/standard/text-to-video", "fal-ai/minimax/video-01", "fal-ai/wan/v2.2-a14b/text-to-video"],
-            advanced: { aspect_ratio: "16:9" },
-          },
-        },
-        stability: {
-          label: "Stability AI",
-          image: {
-            models: ["ultra", "core", "sd3"],
-            advanced: { aspect_ratio: "1:1", output_format: "png", negative_prompt: "" },
-          },
-          // Stability video is image-to-video only and not wired up here yet.
-          video: { models: [], advanced: {} },
-        },
-      };
+      // Default Advanced-input config, filled in unless the user has edited it.
+      const DEFAULT_ADVANCED = { aspect_ratio: "1:1", output_format: "png", negative_prompt: "" };
+      let lastAutoAdvanced = "";
 
-      // Model-specific Advanced-input starting points. Selecting one of these
-      // models fills the Advanced box with a ready-to-run config. Fields match
-      // each model's schema on fal.ai/models. enable_safety_checker is left out
-      // on purpose — the checkbox controls it and would override any value here.
-      const MODEL_ADVANCED = {
-        "fal-ai/lora": {
-          model_name: "runwayml/stable-diffusion-v1-5",
-          image_size: "square",
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
-          negative_prompt: "",
-          loras: [],
-        },
-        "fal-ai/fast-sdxl": {
-          image_size: "square_hd",
-          num_inference_steps: 25,
-          guidance_scale: 7.5,
-          num_images: 1,
-          negative_prompt: "",
-        },
-        "fal-ai/fast-sdxl/image-to-image": {
-          image_size: "square_hd",
-          strength: 0.6,
-          num_inference_steps: 25,
-          guidance_scale: 7.5,
-          negative_prompt: "",
-        },
-        "fal-ai/flux-pro/kontext/max/multi": { guidance_scale: 3.5, num_images: 1 },
-        "fal-ai/nano-banana/edit": { num_images: 1 },
-        "fal-ai/qwen-image-edit-plus": { num_inference_steps: 30, guidance_scale: 4, num_images: 1 },
-      };
-
-      // Models that take several reference images at once, under image_urls.
-      const MULTI_IMAGE_MODELS = new Set([
-        "fal-ai/qwen-image-edit-plus",
-        "fal-ai/flux-pro/kontext/max/multi",
-        "fal-ai/flux-pro/kontext/multi",
-        "fal-ai/nano-banana/edit",
-      ]);
-
-      // Point the reference field at image_urls for multi-image models, else
-      // image_url — but only when it still holds a default we set (not a hand edit).
-      function syncRefField(model) {
-        const cur = $("refField").value.trim();
-        if (cur === "" || cur === "image_url" || cur === "image_urls") {
-          $("refField").value = MULTI_IMAGE_MODELS.has((model || "").trim()) ? "image_urls" : "image_url";
-        }
-      }
-
-      let provider = "fal";
-      let mode = "image";
-      let lastAutoAdvanced = ""; // the JSON we last auto-filled, so we don't clobber hand edits
-
-      // Fill the Advanced box only if it's empty or still holds a config we
-      // auto-filled (i.e. the user hasn't hand-edited it).
-      function autofillAdvanced(obj) {
-        const str = JSON.stringify(obj, null, 2);
+      function autofillAdvanced() {
+        const str = JSON.stringify(DEFAULT_ADVANCED, null, 2);
         const cur = $("advanced").value.trim();
         if (!cur || cur === lastAutoAdvanced.trim()) {
           $("advanced").value = str;
@@ -307,89 +185,14 @@
         }
       }
 
-      function modeCfg() {
-        return PROVIDERS[provider][mode];
+      function setStatus(msg, isErr) {
+        const el = $("status");
+        el.className = "status" + (isErr ? " err" : "");
+        el.innerHTML = msg;
       }
-
-      // True if a model id is a preset for the current provider (any mode).
-      function isKnownModel(id) {
-        return Object.values(PROVIDERS[provider]).some((c) => Array.isArray(c.models) && c.models.includes(id));
-      }
-
-      function advancedFor(model) {
-        if (provider === "fal" && MODEL_ADVANCED[(model || "").trim()]) return MODEL_ADVANCED[model.trim()];
-        return modeCfg().advanced;
-      }
-
-      // Point the dropdown at the current model id, or "Custom…" if it's a typed-in one.
-      function syncSelectToModel() {
-        const known = modeCfg().models.includes($("model").value.trim());
-        $("modelSelect").value = known ? $("model").value.trim() : "__custom__";
-      }
-
-      function applyMode(m) {
-        mode = m;
-        document.querySelectorAll("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
-        const p = modeCfg();
-        $("modelSelect").innerHTML =
-          p.models.map((x) => `<option value="${x}">${x}</option>`).join("") +
-          `<option value="__custom__">Custom…</option>`;
-        if (!$("model").value || isKnownModel($("model").value)) {
-          $("model").value = p.models[0] || "";
-        }
-        syncSelectToModel();
-        syncRefField($("model").value);
-        autofillAdvanced(advancedFor($("model").value));
-      }
-
-      // Switching provider re-populates models and resets the config box.
-      $("provider").addEventListener("change", () => {
-        provider = $("provider").value;
-        $("advanced").value = "";
-        lastAutoAdvanced = "";
-        $("model").value = "";
-        applyMode(mode);
-        providerWarning();
-      });
-
-      // Choosing from the dropdown sets the model box (and its config).
-      $("modelSelect").addEventListener("change", () => {
-        const v = $("modelSelect").value;
-        if (v === "__custom__") {
-          $("model").focus();
-          return;
-        }
-        $("model").value = v;
-        syncRefField(v);
-        autofillAdvanced(advancedFor(v));
-      });
-
-      // Typing a custom id keeps the dropdown in sync and swaps configs (unless edited).
-      $("model").addEventListener("input", syncSelectToModel);
-      $("model").addEventListener("change", () => {
-        syncRefField($("model").value);
-        autofillAdvanced(advancedFor($("model").value));
-      });
-
-      document.querySelectorAll("#mode button").forEach((b) =>
-        b.addEventListener("click", () => {
-          // Reset advanced defaults when switching modes.
-          $("advanced").value = "";
-          lastAutoAdvanced = "";
-          applyMode(b.dataset.mode);
-        })
-      );
 
       // ---- auth ----
-      let cfg = { falConfigured: false, stabilityConfigured: false };
-
-      // Warn if the selected provider has no key configured on the server.
-      function providerWarning() {
-        if (provider === "fal" && !cfg.falConfigured)
-          setStatus("Server has no FAL_KEY configured — set it in falgen/.env and restart.", true);
-        else if (provider === "stability" && !cfg.stabilityConfigured)
-          setStatus("Server has no STABILITY_KEY configured — add it to falgen/.env and restart.", true);
-      }
+      let cfg = { stabilityConfigured: false };
 
       async function checkSession() {
         const r = await fetch("/api/session").then((x) => x.json());
@@ -397,8 +200,10 @@
         $("appView").hidden = !r.authed;
         cfg = r;
         if (r.authed) {
-          applyMode("image");
-          providerWarning();
+          autofillAdvanced();
+          if (!r.stabilityConfigured) {
+            setStatus("Server has no STABILITY_KEY configured — add it to falgen/.env and restart.", true);
+          }
         }
       }
 
@@ -424,8 +229,8 @@
         checkSession();
       });
 
-      // ---- reference images ----
-      let refImages = []; // [{ name, dataUri }]
+      // ---- reference image (single) ----
+      let refImage = null; // { name, dataUri }
 
       function readAsDataUri(file) {
         return new Promise((resolve, reject) => {
@@ -436,80 +241,41 @@
         });
       }
 
-      function renderRefs() {
+      function renderRef() {
         const box = $("refPreview");
         box.innerHTML = "";
-        refImages.forEach((r, i) => {
-          const el = document.createElement("div");
-          el.className = "t";
-          el.innerHTML = `<img src="${r.dataUri}" alt="${r.name}" title="${r.name}" /><button class="x" data-i="${i}">×</button>`;
-          box.appendChild(el);
-        });
+        if (!refImage) return;
+        const el = document.createElement("div");
+        el.className = "t";
+        el.innerHTML = `<img src="${refImage.dataUri}" alt="${refImage.name}" title="${refImage.name}" /><button class="x" id="refX">×</button>`;
+        box.appendChild(el);
       }
 
-      $("refFiles").addEventListener("change", async (e) => {
-        const files = Array.from(e.target.files || []);
-        for (const f of files) {
-          try {
-            refImages.push({ name: f.name, dataUri: await readAsDataUri(f) });
-          } catch {
-            setStatus("Couldn't read " + f.name, true);
-          }
+      $("refFile").addEventListener("change", async (e) => {
+        const file = (e.target.files || [])[0];
+        e.target.value = "";
+        if (!file) return;
+        try {
+          refImage = { name: file.name, dataUri: await readAsDataUri(file) };
+          renderRef();
+        } catch {
+          setStatus("Couldn't read that image.", true);
         }
-        e.target.value = ""; // allow re-selecting the same file
-        renderRefs();
       });
 
       $("refPreview").addEventListener("click", (e) => {
-        const i = e.target.dataset && e.target.dataset.i;
-        if (i != null) {
-          refImages.splice(Number(i), 1);
-          renderRefs();
+        if (e.target.id === "refX") {
+          refImage = null;
+          renderRef();
         }
       });
 
       // ---- generate ----
-      function setStatus(msg, isErr) {
-        const el = $("status");
-        el.className = "status" + (isErr ? " err" : "");
-        el.innerHTML = msg;
-      }
-
-      // Walk the Fal result and pull out any media URLs, tagging each as image/video.
-      function collectMedia(obj, out = []) {
-        if (!obj || typeof obj !== "object") return out;
-        const arrays = [obj.images, obj.image, obj.video, obj.videos].filter(Boolean);
-        for (const item of arrays) {
-          const list = Array.isArray(item) ? item : [item];
-          for (const m of list) {
-            const url = typeof m === "string" ? m : m && m.url;
-            if (!url) continue;
-            const isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) || obj.video || obj.videos;
-            out.push({ url, kind: isVideo ? "video" : "image" });
-          }
-        }
-        for (const v of Object.values(obj)) if (v && typeof v === "object") collectMedia(v, out);
-        return out;
-      }
-
-      function render(media) {
-        const box = $("results");
-        for (const m of media) {
-          const card = document.createElement("div");
-          card.className = "card";
-          const el = m.kind === "video"
-            ? `<video src="${m.url}" controls playsinline></video>`
-            : `<img src="${m.url}" loading="lazy" />`;
-          card.innerHTML = `${el}<div class="meta"><span>${m.kind}</span><a href="${m.url}" target="_blank" rel="noreferrer">open ↗</a></div>`;
-          box.prepend(card);
-        }
-      }
-
       // Turn an error payload into a readable string, and stash the full detail
       // in the Raw panel so it can be inspected/copied.
       function describeError(d) {
         let msg = d.error || "failed";
-        if (d.falStatus) msg += ` (HTTP ${d.falStatus})`;
+        if (d.httpStatus) msg += ` (HTTP ${d.httpStatus})`;
         if (d.detail != null) {
           const dt = typeof d.detail === "string" ? d.detail : JSON.stringify(d.detail);
           msg += " — " + (dt.length > 300 ? dt.slice(0, 300) + "…" : dt);
@@ -519,20 +285,18 @@
         return msg;
       }
 
-      async function poll(id) {
-        for (let i = 0; ; i++) {
-          await new Promise((r) => setTimeout(r, i === 0 ? 800 : 2000));
-          const r = await fetch("/api/status?id=" + encodeURIComponent(id));
-          const d = await r.json();
-          if (!r.ok) throw new Error(describeError(d));
-          if (d.status === "COMPLETED") return d.result;
-          const q = d.queuePosition != null ? ` (queue #${d.queuePosition})` : "";
-          setStatus(`<span class="spinner"></span>${d.status || "working"}${q}…`);
+      function render(images) {
+        const box = $("results");
+        for (const url of images) {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `<img src="${url}" /><div class="meta"><span>image</span><a href="${url}" target="_blank" rel="noreferrer">open ↗</a></div>`;
+          box.prepend(card);
         }
       }
 
       $("go").addEventListener("click", async () => {
-        const model = $("model").value.trim();
+        const model = $("model").value;
         const prompt = $("prompt").value.trim();
         let advanced = {};
         if ($("advanced").value.trim()) {
@@ -544,40 +308,13 @@
         }
         const input = { ...advanced };
         if (prompt) input.prompt = prompt;
-        input.enable_safety_checker = $("safety").checked;
 
         $("go").disabled = true;
         $("rawWrap").hidden = true;
+        setStatus('<span class="spinner"></span>generating…');
         try {
-          const payload = { provider, mode, model, input };
-
-          if (provider === "stability") {
-            // Stability takes raw image bytes (image-to-image, one image). Send the
-            // data URIs; the server attaches them as a multipart file.
-            if (refImages.length) payload.refDataUris = refImages.map((r) => r.dataUri);
-          } else if (refImages.length) {
-            // Fal: host each image on Fal storage (models can't load inline data
-            // URIs), cache the URL, then inject under the field the model expects.
-            // Plural field (image_urls) -> array; singular -> one string.
-            setStatus('<span class="spinner"></span>uploading reference image(s)…');
-            for (const r of refImages) {
-              if (!r.url) {
-                const up = await fetch("/api/upload", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ dataUri: r.dataUri }),
-                });
-                const ud = await up.json();
-                if (!up.ok) throw new Error(describeError(ud));
-                r.url = ud.url;
-              }
-            }
-            const field = ($("refField").value || "image_url").trim();
-            const urls = refImages.map((r) => r.url);
-            input[field] = /s$/i.test(field) ? urls : urls[0];
-          }
-
-          setStatus('<span class="spinner"></span>submitting…');
+          const payload = { model, input };
+          if (refImage) payload.refDataUris = [refImage.dataUri];
           const r = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -585,28 +322,17 @@
           });
           const d = await r.json();
           if (!r.ok) throw new Error(describeError(d));
-          // Fal returns a job id to poll; Stability returns the result inline.
-          const result = d.done ? d.result : await poll(d.requestId);
-          const media = collectMedia(result);
+          const result = d.result || {};
           $("raw").textContent = JSON.stringify(result, null, 2);
           $("rawWrap").hidden = false;
-          // Some models return a blank/black image and flag it here instead of
-          // erroring. Surface that rather than showing a silent black square.
-          const blanked = Array.isArray(result.has_nsfw_concepts)
-            ? result.has_nsfw_concepts.filter(Boolean).length
-            : 0;
-          if (media.length) {
-            render(media);
-            if (blanked) {
-              setStatus(
-                `⚠︎ ${blanked} image(s) were blanked by this model's safety filter (has_nsfw_concepts). This model moderates server-side and can't be loosened from here — try an open model.`,
-                true
-              );
-            } else {
-              setStatus(`Done — ${media.length} item(s).`);
-            }
+          const urls = (result.images || []).map((m) => m.url).filter(Boolean);
+          if (result.filtered) {
+            setStatus("⚠︎ Stability filtered this generation for content (finish_reason CONTENT_FILTERED).", true);
+          } else if (urls.length) {
+            render(urls);
+            setStatus(`Done — ${urls.length} image(s).`);
           } else {
-            setStatus("Completed, but no media URL found. See raw response.", true);
+            setStatus("Completed, but no image was returned. See raw response.", true);
           }
         } catch (err) {
           setStatus(String(err.message || err), true);

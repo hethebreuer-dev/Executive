@@ -1,21 +1,20 @@
-// falgen — a personal, local-only image + video generator on top of Fal.ai.
+// falgen — a personal, local-only image generator on top of Stability AI.
 //
 // Design goals:
-//   * Standalone. Zero npm dependencies (Node built-ins only), no framework,
-//     no relation to anything else in this repo.
+//   * Standalone. Zero npm dependencies (Node built-ins only), no framework.
 //   * Private. Binds to 127.0.0.1 only, so it is not reachable from the network.
 //     A password gate adds defense-in-depth on top of that.
-//   * Safe with your key. FAL_KEY lives on the server and is never sent to the
-//     browser; the browser talks only to this proxy.
+//   * Safe with your key. STABILITY_KEY lives on the server and is never sent to
+//     the browser; the browser talks only to this proxy.
 //
-// Run:  cp .env.example .env  (fill in FAL_KEY + APP_PASSWORD)  then  npm start
+// Run:  cp .env.example .env  (fill in STABILITY_KEY + APP_PASSWORD)  then  npm start
 
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { dirname, join, normalize } from "node:path";
+import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -43,8 +42,6 @@ loadEnv();
 
 const PORT = Number(process.env.PORT || 5178);
 const HOST = "127.0.0.1"; // localhost only — never bind to 0.0.0.0 for this tool
-const FAL_KEY = process.env.FAL_KEY || "";
-const FAL_QUEUE = "https://queue.fal.run";
 const STABILITY_KEY = process.env.STABILITY_KEY || "";
 const STABILITY_HOST = "https://api.stability.ai";
 
@@ -58,15 +55,8 @@ if (!APP_PASSWORD) {
   );
 }
 
-// --- sessions & jobs (in-memory; personal single-user tool) -----------------
-const sessions = new Set(); // valid session tokens
-const jobs = new Map(); // requestId -> { statusUrl, responseUrl, model, createdAt }
-
-// Drop jobs older than 6h so the map can't grow forever.
-setInterval(() => {
-  const cutoff = Date.now() - 6 * 60 * 60 * 1000;
-  for (const [id, job] of jobs) if (job.createdAt < cutoff) jobs.delete(id);
-}, 30 * 60 * 1000).unref();
+// --- sessions (in-memory; personal single-user tool) ------------------------
+const sessions = new Set();
 
 function safeEqual(a, b) {
   const ab = Buffer.from(String(a));
@@ -89,7 +79,7 @@ function parseCookies(req) {
 
 function isAuthed(req) {
   const token = parseCookies(req).fg;
-  return token && sessions.has(token);
+  return Boolean(token && sessions.has(token));
 }
 
 function readBody(req, limit = 1_000_000) {
@@ -108,85 +98,14 @@ function readBody(req, limit = 1_000_000) {
 }
 
 function json(res, status, obj) {
-  const body = JSON.stringify(obj);
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
   });
-  res.end(body);
+  res.end(JSON.stringify(obj));
 }
 
-// --- Fal helpers ------------------------------------------------------------
-const falHeaders = () => ({
-  Authorization: `Key ${FAL_KEY}`,
-  "Content-Type": "application/json",
-});
-
-// Submit a job to the Fal queue. Works for both images and video; video simply
-// takes longer, which is why everything goes through the async queue + polling.
-async function falSubmit(model, input) {
-  const url = `${FAL_QUEUE}/${model}`;
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: falHeaders(),
-    body: JSON.stringify(input),
-  });
-  const text = await resp.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = { raw: text };
-  }
-  return { ok: resp.ok, status: resp.status, data };
-}
-
-async function falGet(url) {
-  const resp = await fetch(url, { headers: falHeaders() });
-  const text = await resp.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = { raw: text };
-  }
-  return { ok: resp.ok, status: resp.status, data };
-}
-
-// Upload a base64 data URI to Fal storage and return a real https URL. Most
-// models download the reference image from a URL and reject inline data URIs,
-// so we host it on Fal's CDN first (the same thing @fal-ai/client does).
-async function falUploadDataUri(dataUri) {
-  const m = /^data:([^;]+);base64,(.*)$/s.exec(dataUri || "");
-  if (!m) throw new Error("Not a base64 data URI");
-  const contentType = m[1];
-  const buf = Buffer.from(m[2], "base64");
-  const ext = (contentType.split("/")[1] || "bin").split("+")[0];
-  const fileName = `ref-${Date.now()}-${randomBytes(4).toString("hex")}.${ext}`;
-
-  const initResp = await fetch(
-    "https://rest.alpha.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3",
-    {
-      method: "POST",
-      headers: { ...falHeaders(), Accept: "application/json" },
-      body: JSON.stringify({ content_type: contentType, file_name: fileName }),
-    }
-  );
-  const initText = await initResp.text();
-  if (!initResp.ok) throw new Error(`initiate ${initResp.status}: ${initText}`);
-  const { upload_url, file_url } = JSON.parse(initText);
-  if (!upload_url || !file_url) throw new Error("initiate: missing upload_url/file_url");
-
-  const putResp = await fetch(upload_url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType }, // presigned URL — no auth header
-    body: buf,
-  });
-  if (!putResp.ok) throw new Error(`upload ${putResp.status}: ${await putResp.text()}`);
-  return file_url;
-}
-
-// --- Stability AI helpers ---------------------------------------------------
+// --- Stability AI -----------------------------------------------------------
 // Stability's REST API is synchronous multipart/form-data for images (no queue).
 function dataUriToBlob(dataUri) {
   const m = /^data:([^;]+);base64,(.*)$/s.exec(dataUri || "");
@@ -197,7 +116,6 @@ function dataUriToBlob(dataUri) {
 const STABILITY_MIME = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" };
 
 // Text-to-image or image-to-image via /v2beta/stable-image/generate/{ultra|core|sd3}.
-// Returns a Fal-shaped result ({ images: [{url}] }) so the client renders it uniformly.
 async function stabilityGenerateImage(model, input, refDataUris) {
   const form = new FormData();
   form.set("prompt", input.prompt || "");
@@ -230,7 +148,7 @@ async function stabilityGenerateImage(model, input, refDataUris) {
 
   const result = { seed: data.seed, finish_reason: data.finish_reason };
   if (data.image) result.images = [{ url: `data:${STABILITY_MIME[fmt] || "image/png"};base64,${data.image}` }];
-  if (data.finish_reason === "CONTENT_FILTERED") result.has_nsfw_concepts = [true];
+  if (data.finish_reason === "CONTENT_FILTERED") result.filtered = true;
   return { ok: true, status: resp.status, data: result };
 }
 
@@ -280,8 +198,7 @@ const server = http.createServer(async (req, res) => {
 
     if (path === "/api/session" && req.method === "GET") {
       return json(res, 200, {
-        authed: Boolean(isAuthed(req)),
-        falConfigured: Boolean(FAL_KEY),
+        authed: isAuthed(req),
         stabilityConfigured: Boolean(STABILITY_KEY),
       });
     }
@@ -291,102 +208,27 @@ const server = http.createServer(async (req, res) => {
       return json(res, 401, { error: "Not signed in." });
     }
 
-    // ---- upload: host a reference image on Fal storage, return its URL ----
-    if (path === "/api/upload" && req.method === "POST") {
-      if (!FAL_KEY) return json(res, 503, { error: "FAL_KEY is not configured on the server." });
-      const body = JSON.parse((await readBody(req, 64_000_000)) || "{}");
-      if (!body.dataUri) return json(res, 400, { error: "No image provided." });
-      try {
-        const url = await falUploadDataUri(body.dataUri);
-        return json(res, 200, { url });
-      } catch (e) {
-        return json(res, 502, { error: "Upload to Fal storage failed.", detail: String(e.message || e) });
-      }
-    }
-
-    // ---- generate: submit a prompt to a model ----
+    // ---- generate: text-to-image or image-to-image via Stability ----
     if (path === "/api/generate" && req.method === "POST") {
+      if (!STABILITY_KEY) return json(res, 503, { error: "STABILITY_KEY is not configured on the server." });
+
       // Data-URI reference images make the body large, so allow up to ~64MB.
       const body = JSON.parse((await readBody(req, 64_000_000)) || "{}");
-      const provider = String(body.provider || "fal").trim();
       const model = String(body.model || "").trim();
       const input = body.input && typeof body.input === "object" ? body.input : {};
-      if (!model) return json(res, 400, { error: "Pick a model id." });
-
-      // ---- Stability AI (synchronous; returns the image inline) ----
-      if (provider === "stability") {
-        if (!STABILITY_KEY) return json(res, 503, { error: "STABILITY_KEY is not configured on the server." });
-        if (body.mode === "video") {
-          return json(res, 400, {
-            error: "Stability video isn't wired up in falgen yet — use Fal for video, or ask to add it.",
-          });
-        }
-        const refs = Array.isArray(body.refDataUris) ? body.refDataUris : [];
-        if (!input.prompt && !refs.length) {
-          return json(res, 400, { error: "Provide a prompt or a reference image." });
-        }
-        try {
-          const { ok, status, data } = await stabilityGenerateImage(model, input, refs);
-          if (!ok) return json(res, 502, { error: "Stability rejected the request.", falStatus: status, detail: data });
-          return json(res, 200, { done: true, result: data });
-        } catch (e) {
-          return json(res, 502, { error: "Stability request failed.", detail: String(e.message || e) });
-        }
-      }
-
-      // ---- Fal (async queue) ----
-      if (!FAL_KEY) return json(res, 503, { error: "FAL_KEY is not configured on the server." });
-      // Accept a prompt, or any image field (image_url, image_urls, or a
-      // model-specific *image* field) carrying a value.
-      const hasImage = Object.entries(input).some(
-        ([k, v]) => /image/i.test(k) && v && (typeof v === "string" || (Array.isArray(v) && v.length))
-      );
-      if (!input.prompt && !hasImage) {
+      const refs = Array.isArray(body.refDataUris) ? body.refDataUris : [];
+      if (!model) return json(res, 400, { error: "Pick a model." });
+      if (!input.prompt && !refs.length) {
         return json(res, 400, { error: "Provide a prompt or a reference image." });
       }
 
-      const { ok, status, data } = await falSubmit(model, input);
-      if (!ok) {
-        return json(res, 502, { error: "Fal rejected the request.", falStatus: status, detail: data });
+      try {
+        const { ok, status, data } = await stabilityGenerateImage(model, input, refs);
+        if (!ok) return json(res, 502, { error: "Stability rejected the request.", httpStatus: status, detail: data });
+        return json(res, 200, { result: data });
+      } catch (e) {
+        return json(res, 502, { error: "Stability request failed.", detail: String(e.message || e) });
       }
-
-      const requestId = data.request_id || data.requestId;
-      const statusUrl = data.status_url;
-      const responseUrl = data.response_url;
-      if (!requestId || !statusUrl || !responseUrl) {
-        return json(res, 502, { error: "Unexpected Fal response.", detail: data });
-      }
-      jobs.set(requestId, { statusUrl, responseUrl, model, createdAt: Date.now() });
-      return json(res, 200, { requestId });
-    }
-
-    // ---- status: poll a submitted job; returns the result once COMPLETED ----
-    if (path === "/api/status" && req.method === "GET") {
-      const id = url.searchParams.get("id");
-      const job = id && jobs.get(id);
-      if (!job) return json(res, 404, { error: "Unknown job id." });
-
-      const statusResp = await falGet(`${job.statusUrl}?logs=1`);
-      if (!statusResp.ok) {
-        return json(res, 502, { error: "Status check failed.", detail: statusResp.data });
-      }
-      const state = statusResp.data.status;
-      if (state !== "COMPLETED") {
-        return json(res, 200, {
-          status: state,
-          queuePosition: statusResp.data.queue_position,
-          logs: statusResp.data.logs || [],
-        });
-      }
-      const resultResp = await falGet(job.responseUrl);
-      if (!resultResp.ok) {
-        return json(res, 502, {
-          error: "Result fetch failed.",
-          falStatus: resultResp.status,
-          detail: resultResp.data,
-        });
-      }
-      return json(res, 200, { status: "COMPLETED", result: resultResp.data });
     }
 
     res.writeHead(404, { "Content-Type": "text/plain" });
@@ -399,5 +241,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  falgen running at  http://${HOST}:${PORT}`);
-  console.log(`  FAL_KEY: ${FAL_KEY ? "configured" : "MISSING — set it in falgen/.env"}\n`);
+  console.log(`  STABILITY_KEY: ${STABILITY_KEY ? "configured" : "MISSING — set it in falgen/.env"}\n`);
 });
