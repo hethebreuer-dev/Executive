@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>falgen</title>
+    <style>
+      :root {
+        --bg: #0c0d10;
+        --panel: #16181d;
+        --panel2: #1e2128;
+        --line: #2a2e37;
+        --text: #e7e9ee;
+        --muted: #9aa1ad;
+        --accent: #6ea8fe;
+        --accent2: #3b82f6;
+        --danger: #ef6461;
+        --radius: 12px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      a { color: var(--accent); }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      header .brand { font-weight: 700; letter-spacing: 0.5px; }
+      header .brand span { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 13px; }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 8px 14px;
+      }
+      button.primary { background: var(--accent2); border-color: var(--accent2); font-weight: 600; }
+      button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.link { background: none; border: none; color: var(--muted); padding: 6px; }
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+      .grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+      @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px;
+      }
+      label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+      input[type="text"], input[type="password"], textarea, select {
+        width: 100%;
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      textarea { resize: vertical; }
+      textarea.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; }
+      .row { display: flex; gap: 10px; }
+      .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+      .seg button { border: none; border-radius: 0; background: var(--panel2); }
+      .seg button.on { background: var(--accent2); font-weight: 600; }
+      .check { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+      .check input { width: 18px; height: 18px; }
+      .check label { margin: 0; color: var(--text); }
+      .hint { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+      .status { margin: 12px 0; color: var(--muted); min-height: 20px; }
+      .status.err { color: var(--danger); }
+      .results { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+      .card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel2); }
+      .card img, .card video { width: 100%; display: block; background: #000; }
+      .card .meta { padding: 8px 10px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+      details { margin-top: 16px; }
+      details pre {
+        background: #0a0b0e; border: 1px solid var(--line); border-radius: 8px;
+        padding: 12px; overflow: auto; font-size: 12px; color: var(--muted);
+      }
+      .center { min-height: 70vh; display: grid; place-items: center; }
+      .login { width: 320px; }
+      .spinner {
+        display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line);
+        border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;
+        vertical-align: -2px; margin-right: 8px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <!-- LOGIN -->
+    <div id="loginView" class="center" hidden>
+      <div class="panel login">
+        <div class="brand" style="font-weight:700; font-size:18px;">falgen</div>
+        <p class="hint">Private, local-only generator. Enter your password.</p>
+        <form id="loginForm">
+          <label for="pw">Password</label>
+          <input id="pw" type="password" autocomplete="current-password" autofocus />
+          <div class="status err" id="loginErr"></div>
+          <button class="primary" style="width:100%; margin-top:12px;" type="submit">Unlock</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="appView" hidden>
+      <header>
+        <div class="brand">falgen <span>personal image + video · Fal.ai</span></div>
+        <button class="link" id="logout">Sign out</button>
+      </header>
+      <div class="wrap grid">
+        <!-- controls -->
+        <div class="panel">
+          <label>Mode</label>
+          <div class="seg" id="mode">
+            <button data-mode="image" class="on">Image</button>
+            <button data-mode="video">Video</button>
+          </div>
+
+          <label for="model">Model id</label>
+          <input id="model" type="text" list="modelList" />
+          <datalist id="modelList"></datalist>
+          <div class="hint">
+            Grab exact ids from <a href="https://fal.ai/models" target="_blank" rel="noreferrer">fal.ai/models</a>.
+            Model ids change over time — the suggestions are just starting points.
+          </div>
+
+          <label for="prompt">Prompt</label>
+          <textarea id="prompt" rows="4" placeholder="Describe what to generate…"></textarea>
+
+          <div class="check">
+            <input id="safety" type="checkbox" />
+            <label for="safety">Enable Fal safety checker</label>
+          </div>
+          <div class="hint">
+            Off by default. Sends <code>enable_safety_checker</code> as you set it. Some models
+            ignore or reject this key — if a model errors, remove it from Advanced input below.
+          </div>
+
+          <details>
+            <summary style="cursor:pointer; color:var(--muted); margin-top:16px;">Advanced input (JSON)</summary>
+            <div class="hint" style="margin-top:8px;">
+              Merged into the request. Put model-specific fields here: image_size, num_inference_steps,
+              seed, num_images, guidance_scale, image_url (image-to-video), duration, aspect_ratio, etc.
+            </div>
+            <textarea id="advanced" class="mono" rows="7"></textarea>
+          </details>
+
+          <button class="primary" id="go" style="width:100%; margin-top:18px;">Generate</button>
+          <div class="status" id="status"></div>
+        </div>
+
+        <!-- output -->
+        <div class="panel">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>Results</strong>
+            <button class="link" id="clear">Clear</button>
+          </div>
+          <div class="results" id="results" style="margin-top:14px;"></div>
+          <details id="rawWrap" hidden>
+            <summary style="cursor:pointer; color:var(--muted);">Raw response</summary>
+            <pre id="raw"></pre>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      // Suggested model ids and default advanced params per mode. These are
+      // starting points only — verify current ids at fal.ai/models.
+      const PRESETS = {
+        image: {
+          models: ["fal-ai/flux/dev", "fal-ai/flux/schnell", "fal-ai/flux-pro/v1.1", "fal-ai/flux-pro/v1.1-ultra"],
+          advanced: { image_size: "landscape_4_3", num_images: 1, num_inference_steps: 28 },
+        },
+        video: {
+          models: ["fal-ai/ltx-video", "fal-ai/kling-video/v1/standard/text-to-video", "fal-ai/minimax/video-01", "fal-ai/wan/v2.2-a14b/text-to-video"],
+          advanced: { aspect_ratio: "16:9" },
+        },
+      };
+
+      let mode = "image";
+
+      function applyMode(m) {
+        mode = m;
+        document.querySelectorAll("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+        const p = PRESETS[m];
+        $("modelList").innerHTML = p.models.map((x) => `<option value="${x}">`).join("");
+        if (!$("model").value || Object.values(PRESETS).some((x) => x.models.includes($("model").value))) {
+          $("model").value = p.models[0];
+        }
+        if (!$("advanced").value.trim()) $("advanced").value = JSON.stringify(p.advanced, null, 2);
+      }
+
+      document.querySelectorAll("#mode button").forEach((b) =>
+        b.addEventListener("click", () => {
+          // Reset advanced defaults when switching modes.
+          $("advanced").value = "";
+          applyMode(b.dataset.mode);
+        })
+      );
+
+      // ---- auth ----
+      async function checkSession() {
+        const r = await fetch("/api/session").then((x) => x.json());
+        $("loginView").hidden = r.authed;
+        $("appView").hidden = !r.authed;
+        if (r.authed && !r.falConfigured) {
+          setStatus("Server has no FAL_KEY configured — set it in falgen/.env and restart.", true);
+        }
+        if (r.authed) applyMode("image");
+      }
+
+      $("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        $("loginErr").textContent = "";
+        const r = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: $("pw").value }),
+        });
+        if (r.ok) {
+          $("pw").value = "";
+          checkSession();
+        } else {
+          const d = await r.json().catch(() => ({}));
+          $("loginErr").textContent = d.error || "Login failed.";
+        }
+      });
+
+      $("logout").addEventListener("click", async () => {
+        await fetch("/api/logout", { method: "POST" });
+        checkSession();
+      });
+
+      // ---- generate ----
+      function setStatus(msg, isErr) {
+        const el = $("status");
+        el.className = "status" + (isErr ? " err" : "");
+        el.innerHTML = msg;
+      }
+
+      // Walk the Fal result and pull out any media URLs, tagging each as image/video.
+      function collectMedia(obj, out = []) {
+        if (!obj || typeof obj !== "object") return out;
+        const arrays = [obj.images, obj.image, obj.video, obj.videos].filter(Boolean);
+        for (const item of arrays) {
+          const list = Array.isArray(item) ? item : [item];
+          for (const m of list) {
+            const url = typeof m === "string" ? m : m && m.url;
+            if (!url) continue;
+            const isVideo = /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url) || obj.video || obj.videos;
+            out.push({ url, kind: isVideo ? "video" : "image" });
+          }
+        }
+        for (const v of Object.values(obj)) if (v && typeof v === "object") collectMedia(v, out);
+        return out;
+      }
+
+      function render(media) {
+        const box = $("results");
+        for (const m of media) {
+          const card = document.createElement("div");
+          card.className = "card";
+          const el = m.kind === "video"
+            ? `<video src="${m.url}" controls playsinline></video>`
+            : `<img src="${m.url}" loading="lazy" />`;
+          card.innerHTML = `${el}<div class="meta"><span>${m.kind}</span><a href="${m.url}" target="_blank" rel="noreferrer">open ↗</a></div>`;
+          box.prepend(card);
+        }
+      }
+
+      async function poll(id) {
+        for (let i = 0; ; i++) {
+          await new Promise((r) => setTimeout(r, i === 0 ? 800 : 2000));
+          const r = await fetch("/api/status?id=" + encodeURIComponent(id));
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || "status failed");
+          if (d.status === "COMPLETED") return d.result;
+          const q = d.queuePosition != null ? ` (queue #${d.queuePosition})` : "";
+          setStatus(`<span class="spinner"></span>${d.status || "working"}${q}…`);
+        }
+      }
+
+      $("go").addEventListener("click", async () => {
+        const model = $("model").value.trim();
+        const prompt = $("prompt").value.trim();
+        let advanced = {};
+        if ($("advanced").value.trim()) {
+          try {
+            advanced = JSON.parse($("advanced").value);
+          } catch {
+            return setStatus("Advanced input is not valid JSON.", true);
+          }
+        }
+        const input = { ...advanced };
+        if (prompt) input.prompt = prompt;
+        input.enable_safety_checker = $("safety").checked;
+
+        $("go").disabled = true;
+        $("rawWrap").hidden = true;
+        setStatus('<span class="spinner"></span>submitting…');
+        try {
+          const r = await fetch("/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model, input }),
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error((d.error || "failed") + (d.detail ? " — " + JSON.stringify(d.detail) : ""));
+          const result = await poll(d.requestId);
+          const media = collectMedia(result);
+          $("raw").textContent = JSON.stringify(result, null, 2);
+          $("rawWrap").hidden = false;
+          if (media.length) {
+            render(media);
+            setStatus(`Done — ${media.length} item(s).`);
+          } else {
+            setStatus("Completed, but no media URL found. See raw response.", true);
+          }
+        } catch (err) {
+          setStatus(String(err.message || err), true);
+        } finally {
+          $("go").disabled = false;
+        }
+      });
+
+      $("clear").addEventListener("click", () => {
+        $("results").innerHTML = "";
+        $("rawWrap").hidden = true;
+      });
+
+      checkSession();
+    </script>
+  </body>
+</html>
