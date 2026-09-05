@@ -204,7 +204,14 @@
       // starting points only — verify current ids at fal.ai/models.
       const PRESETS = {
         image: {
-          models: ["fal-ai/flux/dev", "fal-ai/flux/schnell", "fal-ai/flux-pro/v1.1", "fal-ai/flux-pro/v1.1-ultra"],
+          models: [
+            "fal-ai/flux/dev",
+            "fal-ai/flux/schnell",
+            "fal-ai/fast-sdxl",
+            "fal-ai/fast-sdxl/image-to-image",
+            "fal-ai/lora",
+            "fal-ai/flux-pro/v1.1",
+          ],
           advanced: { image_size: "landscape_4_3", num_images: 1, num_inference_steps: 28 },
         },
         video: {
