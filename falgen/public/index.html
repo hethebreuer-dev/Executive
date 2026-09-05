@@ -135,12 +135,13 @@
             <button data-mode="video">Video</button>
           </div>
 
-          <label for="model">Model id</label>
-          <input id="model" type="text" list="modelList" />
-          <datalist id="modelList"></datalist>
+          <label for="modelSelect">Model</label>
+          <select id="modelSelect"></select>
+          <input id="model" type="text" placeholder="…or type any fal.ai model id" style="margin-top:8px;" />
           <div class="hint">
-            Grab exact ids from <a href="https://fal.ai/models" target="_blank" rel="noreferrer">fal.ai/models</a>.
-            Model ids change over time — the suggestions are just starting points.
+            Pick a preset above, or type any id from
+            <a href="https://fal.ai/models" target="_blank" rel="noreferrer">fal.ai/models</a> in the box.
+            The box is what actually gets sent. Ids change over time — presets are just starting points.
           </div>
 
           <label for="prompt">Prompt</label>
@@ -267,18 +268,39 @@
         return MODEL_ADVANCED[(model || "").trim()] || PRESETS[mode].advanced;
       }
 
+      // Point the dropdown at the current model id, or "Custom…" if it's a typed-in one.
+      function syncSelectToModel() {
+        const known = PRESETS[mode].models.includes($("model").value.trim());
+        $("modelSelect").value = known ? $("model").value.trim() : "__custom__";
+      }
+
       function applyMode(m) {
         mode = m;
         document.querySelectorAll("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
         const p = PRESETS[m];
-        $("modelList").innerHTML = p.models.map((x) => `<option value="${x}">`).join("");
+        $("modelSelect").innerHTML =
+          p.models.map((x) => `<option value="${x}">${x}</option>`).join("") +
+          `<option value="__custom__">Custom…</option>`;
         if (!$("model").value || Object.values(PRESETS).some((x) => x.models.includes($("model").value))) {
           $("model").value = p.models[0];
         }
+        syncSelectToModel();
         autofillAdvanced(advancedFor($("model").value));
       }
 
-      // Picking (or typing) a model swaps in its config, unless you've edited it.
+      // Choosing from the dropdown sets the model box (and its config).
+      $("modelSelect").addEventListener("change", () => {
+        const v = $("modelSelect").value;
+        if (v === "__custom__") {
+          $("model").focus();
+          return;
+        }
+        $("model").value = v;
+        autofillAdvanced(advancedFor(v));
+      });
+
+      // Typing a custom id keeps the dropdown in sync and swaps configs (unless edited).
+      $("model").addEventListener("input", syncSelectToModel);
       $("model").addEventListener("change", () => autofillAdvanced(advancedFor($("model").value)));
 
       document.querySelectorAll("#mode button").forEach((b) =>
