@@ -426,12 +426,26 @@
         }
       }
 
+      // Turn an error payload into a readable string, and stash the full detail
+      // in the Raw panel so it can be inspected/copied.
+      function describeError(d) {
+        let msg = d.error || "failed";
+        if (d.falStatus) msg += ` (Fal HTTP ${d.falStatus})`;
+        if (d.detail != null) {
+          const dt = typeof d.detail === "string" ? d.detail : JSON.stringify(d.detail);
+          msg += " — " + (dt.length > 300 ? dt.slice(0, 300) + "…" : dt);
+          $("raw").textContent = JSON.stringify(d, null, 2);
+          $("rawWrap").hidden = false;
+        }
+        return msg;
+      }
+
       async function poll(id) {
         for (let i = 0; ; i++) {
           await new Promise((r) => setTimeout(r, i === 0 ? 800 : 2000));
           const r = await fetch("/api/status?id=" + encodeURIComponent(id));
           const d = await r.json();
-          if (!r.ok) throw new Error(d.error || "status failed");
+          if (!r.ok) throw new Error(describeError(d));
           if (d.status === "COMPLETED") return d.result;
           const q = d.queuePosition != null ? ` (queue #${d.queuePosition})` : "";
           setStatus(`<span class="spinner"></span>${d.status || "working"}${q}…`);
@@ -470,7 +484,7 @@
             body: JSON.stringify({ model, input }),
           });
           const d = await r.json();
-          if (!r.ok) throw new Error((d.error || "failed") + (d.detail ? " — " + JSON.stringify(d.detail) : ""));
+          if (!r.ok) throw new Error(describeError(d));
           const result = await poll(d.requestId);
           const media = collectMedia(result);
           $("raw").textContent = JSON.stringify(result, null, 2);

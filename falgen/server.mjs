@@ -260,7 +260,11 @@ const server = http.createServer(async (req, res) => {
       }
       const resultResp = await falGet(job.responseUrl);
       if (!resultResp.ok) {
-        return json(res, 502, { error: "Result fetch failed.", detail: resultResp.data });
+        return json(res, 502, {
+          error: "Result fetch failed.",
+          falStatus: resultResp.status,
+          detail: resultResp.data,
+        });
       }
       return json(res, 200, { status: "COMPLETED", result: resultResp.data });
     }
