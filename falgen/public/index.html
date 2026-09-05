@@ -82,6 +82,14 @@
       .card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel2); }
       .card img, .card video { width: 100%; display: block; background: #000; }
       .card .meta { padding: 8px 10px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+      .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .thumbs .t { position: relative; }
+      .thumbs img { height: 72px; width: auto; border-radius: 8px; border: 1px solid var(--line); display: block; }
+      .thumbs .x {
+        position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; line-height: 18px;
+        text-align: center; border-radius: 50%; background: var(--danger); color: #fff; cursor: pointer;
+        border: none; font-size: 13px; padding: 0;
+      }
       details { margin-top: 16px; }
       details pre {
         background: #0a0b0e; border: 1px solid var(--line); border-radius: 8px;
@@ -137,6 +145,20 @@
 
           <label for="prompt">Prompt</label>
           <textarea id="prompt" rows="4" placeholder="Describe what to generate…"></textarea>
+
+          <label>Reference image(s) — optional</label>
+          <input id="refFiles" type="file" accept="image/*" multiple />
+          <div class="row" style="margin-top:8px; align-items:center;">
+            <input id="refField" type="text" value="image_url" style="max-width:160px;" />
+            <span class="hint" style="margin:0;">field name the model expects</span>
+          </div>
+          <div id="refPreview" class="thumbs"></div>
+          <div class="hint">
+            Read in your browser and sent to your local server as a data URI (never uploaded
+            anywhere else). Image-to-video and most image-to-image models use <code>image_url</code>;
+            some multi-image models use <code>image_urls</code>. One file is sent as a single value,
+            several as an array.
+          </div>
 
           <div class="check">
             <input id="safety" type="checkbox" />
@@ -245,6 +267,50 @@
         checkSession();
       });
 
+      // ---- reference images ----
+      let refImages = []; // [{ name, dataUri }]
+
+      function readAsDataUri(file) {
+        return new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(file);
+        });
+      }
+
+      function renderRefs() {
+        const box = $("refPreview");
+        box.innerHTML = "";
+        refImages.forEach((r, i) => {
+          const el = document.createElement("div");
+          el.className = "t";
+          el.innerHTML = `<img src="${r.dataUri}" alt="${r.name}" title="${r.name}" /><button class="x" data-i="${i}">×</button>`;
+          box.appendChild(el);
+        });
+      }
+
+      $("refFiles").addEventListener("change", async (e) => {
+        const files = Array.from(e.target.files || []);
+        for (const f of files) {
+          try {
+            refImages.push({ name: f.name, dataUri: await readAsDataUri(f) });
+          } catch {
+            setStatus("Couldn't read " + f.name, true);
+          }
+        }
+        e.target.value = ""; // allow re-selecting the same file
+        renderRefs();
+      });
+
+      $("refPreview").addEventListener("click", (e) => {
+        const i = e.target.dataset && e.target.dataset.i;
+        if (i != null) {
+          refImages.splice(Number(i), 1);
+          renderRefs();
+        }
+      });
+
       // ---- generate ----
       function setStatus(msg, isErr) {
         const el = $("status");
@@ -308,6 +374,13 @@
         const input = { ...advanced };
         if (prompt) input.prompt = prompt;
         input.enable_safety_checker = $("safety").checked;
+
+        // Reference images: inject under the field name the model expects.
+        // One image -> a single string; several -> an array.
+        if (refImages.length) {
+          const field = ($("refField").value || "image_url").trim();
+          input[field] = refImages.length === 1 ? refImages[0].dataUri : refImages.map((r) => r.dataUri);
+        }
 
         $("go").disabled = true;
         $("rawWrap").hidden = true;

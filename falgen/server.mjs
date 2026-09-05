@@ -208,12 +208,18 @@ const server = http.createServer(async (req, res) => {
     if (path === "/api/generate" && req.method === "POST") {
       if (!FAL_KEY) return json(res, 503, { error: "FAL_KEY is not configured on the server." });
 
-      const body = JSON.parse((await readBody(req)) || "{}");
+      // Data-URI reference images make the body large, so allow up to ~64MB.
+      const body = JSON.parse((await readBody(req, 64_000_000)) || "{}");
       const model = String(body.model || "").trim();
       const input = body.input && typeof body.input === "object" ? body.input : {};
       if (!model) return json(res, 400, { error: "Pick a model id." });
-      if (!input.prompt && !input.image_url) {
-        return json(res, 400, { error: "Provide a prompt (or an image_url for image-to-video)." });
+      // Accept a prompt, or any image field (image_url, image_urls, or a
+      // model-specific *image* field) carrying a value.
+      const hasImage = Object.entries(input).some(
+        ([k, v]) => /image/i.test(k) && v && (typeof v === "string" || (Array.isArray(v) && v.length))
+      );
+      if (!input.prompt && !hasImage) {
+        return json(res, 400, { error: "Provide a prompt or a reference image." });
       }
 
       const { ok, status, data } = await falSubmit(model, input);
