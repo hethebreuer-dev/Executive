@@ -211,6 +211,7 @@
             "fal-ai/fast-sdxl",
             "fal-ai/fast-sdxl/image-to-image",
             "fal-ai/lora",
+            "fal-ai/qwen-image-edit-plus",
             "fal-ai/flux-pro/kontext/max/multi",
             "fal-ai/nano-banana/edit",
             "fal-ai/flux-pro/v1.1",
@@ -252,10 +253,12 @@
         },
         "fal-ai/flux-pro/kontext/max/multi": { guidance_scale: 3.5, num_images: 1 },
         "fal-ai/nano-banana/edit": { num_images: 1 },
+        "fal-ai/qwen-image-edit-plus": { num_inference_steps: 30, guidance_scale: 4, num_images: 1 },
       };
 
       // Models that take several reference images at once, under image_urls.
       const MULTI_IMAGE_MODELS = new Set([
+        "fal-ai/qwen-image-edit-plus",
         "fal-ai/flux-pro/kontext/max/multi",
         "fal-ai/flux-pro/kontext/multi",
         "fal-ai/nano-banana/edit",
@@ -529,9 +532,21 @@
           const media = collectMedia(result);
           $("raw").textContent = JSON.stringify(result, null, 2);
           $("rawWrap").hidden = false;
+          // Some models return a blank/black image and flag it here instead of
+          // erroring. Surface that rather than showing a silent black square.
+          const blanked = Array.isArray(result.has_nsfw_concepts)
+            ? result.has_nsfw_concepts.filter(Boolean).length
+            : 0;
           if (media.length) {
             render(media);
-            setStatus(`Done — ${media.length} item(s).`);
+            if (blanked) {
+              setStatus(
+                `⚠︎ ${blanked} image(s) were blanked by this model's safety filter (has_nsfw_concepts). This model moderates server-side and can't be loosened from here — try an open model.`,
+                true
+              );
+            } else {
+              setStatus(`Done — ${media.length} item(s).`);
+            }
           } else {
             setStatus("Completed, but no media URL found. See raw response.", true);
           }
