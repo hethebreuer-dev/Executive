@@ -45,6 +45,8 @@ const PORT = Number(process.env.PORT || 5178);
 const HOST = "127.0.0.1"; // localhost only — never bind to 0.0.0.0 for this tool
 const FAL_KEY = process.env.FAL_KEY || "";
 const FAL_QUEUE = "https://queue.fal.run";
+const STABILITY_KEY = process.env.STABILITY_KEY || "";
+const STABILITY_HOST = "https://api.stability.ai";
 
 // Password gate. If APP_PASSWORD is unset we generate a one-off and print it,
 // so the app is never accidentally left wide open.
@@ -184,6 +186,54 @@ async function falUploadDataUri(dataUri) {
   return file_url;
 }
 
+// --- Stability AI helpers ---------------------------------------------------
+// Stability's REST API is synchronous multipart/form-data for images (no queue).
+function dataUriToBlob(dataUri) {
+  const m = /^data:([^;]+);base64,(.*)$/s.exec(dataUri || "");
+  if (!m) throw new Error("Not a base64 data URI");
+  return new Blob([Buffer.from(m[2], "base64")], { type: m[1] });
+}
+
+const STABILITY_MIME = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" };
+
+// Text-to-image or image-to-image via /v2beta/stable-image/generate/{ultra|core|sd3}.
+// Returns a Fal-shaped result ({ images: [{url}] }) so the client renders it uniformly.
+async function stabilityGenerateImage(model, input, refDataUris) {
+  const form = new FormData();
+  form.set("prompt", input.prompt || "");
+  for (const k of ["negative_prompt", "aspect_ratio", "seed", "output_format", "style_preset", "cfg_scale"]) {
+    if (input[k] != null && input[k] !== "") form.set(k, String(input[k]));
+  }
+  const fmt = (input.output_format || "png").toLowerCase();
+
+  if (refDataUris && refDataUris.length) {
+    // image-to-image: needs the raw image and a strength; aspect_ratio isn't allowed.
+    form.set("image", dataUriToBlob(refDataUris[0]), "ref.png");
+    form.set("mode", "image-to-image");
+    form.set("strength", String(input.strength != null ? input.strength : 0.6));
+    form.delete("aspect_ratio");
+  }
+
+  const resp = await fetch(`${STABILITY_HOST}/v2beta/stable-image/generate/${model}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${STABILITY_KEY}`, Accept: "application/json" },
+    body: form,
+  });
+  const text = await resp.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = { raw: text };
+  }
+  if (!resp.ok) return { ok: false, status: resp.status, data };
+
+  const result = { seed: data.seed, finish_reason: data.finish_reason };
+  if (data.image) result.images = [{ url: `data:${STABILITY_MIME[fmt] || "image/png"};base64,${data.image}` }];
+  if (data.finish_reason === "CONTENT_FILTERED") result.has_nsfw_concepts = [true];
+  return { ok: true, status: resp.status, data: result };
+}
+
 // --- routing ----------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
@@ -232,6 +282,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         authed: Boolean(isAuthed(req)),
         falConfigured: Boolean(FAL_KEY),
+        stabilityConfigured: Boolean(STABILITY_KEY),
       });
     }
 
@@ -253,15 +304,38 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // ---- generate: submit a prompt to a Fal model ----
+    // ---- generate: submit a prompt to a model ----
     if (path === "/api/generate" && req.method === "POST") {
-      if (!FAL_KEY) return json(res, 503, { error: "FAL_KEY is not configured on the server." });
-
       // Data-URI reference images make the body large, so allow up to ~64MB.
       const body = JSON.parse((await readBody(req, 64_000_000)) || "{}");
+      const provider = String(body.provider || "fal").trim();
       const model = String(body.model || "").trim();
       const input = body.input && typeof body.input === "object" ? body.input : {};
       if (!model) return json(res, 400, { error: "Pick a model id." });
+
+      // ---- Stability AI (synchronous; returns the image inline) ----
+      if (provider === "stability") {
+        if (!STABILITY_KEY) return json(res, 503, { error: "STABILITY_KEY is not configured on the server." });
+        if (body.mode === "video") {
+          return json(res, 400, {
+            error: "Stability video isn't wired up in falgen yet — use Fal for video, or ask to add it.",
+          });
+        }
+        const refs = Array.isArray(body.refDataUris) ? body.refDataUris : [];
+        if (!input.prompt && !refs.length) {
+          return json(res, 400, { error: "Provide a prompt or a reference image." });
+        }
+        try {
+          const { ok, status, data } = await stabilityGenerateImage(model, input, refs);
+          if (!ok) return json(res, 502, { error: "Stability rejected the request.", falStatus: status, detail: data });
+          return json(res, 200, { done: true, result: data });
+        } catch (e) {
+          return json(res, 502, { error: "Stability request failed.", detail: String(e.message || e) });
+        }
+      }
+
+      // ---- Fal (async queue) ----
+      if (!FAL_KEY) return json(res, 503, { error: "FAL_KEY is not configured on the server." });
       // Accept a prompt, or any image field (image_url, image_urls, or a
       // model-specific *image* field) carrying a value.
       const hasImage = Object.entries(input).some(

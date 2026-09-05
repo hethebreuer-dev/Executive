@@ -9,6 +9,9 @@ build, and is never deployed. It runs on your machine, for you.
 ## What it does
 
 - Single-page web UI to run any Fal.ai **image** or **video** model.
+- Optional **Stability AI** provider (models `ultra` / `core` / `sd3`) for images,
+  selectable from the Provider dropdown when `STABILITY_KEY` is set. Stability
+  video (image-to-video) is not wired up yet.
 - Your `FAL_KEY` stays on the server and is never exposed to the browser — the
   page talks only to a local proxy.
 - `enable_safety_checker` is exposed as a toggle (off by default). This is a

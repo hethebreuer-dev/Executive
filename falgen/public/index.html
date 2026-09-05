@@ -129,6 +129,12 @@
       <div class="wrap grid">
         <!-- controls -->
         <div class="panel">
+          <label for="provider">Provider</label>
+          <select id="provider">
+            <option value="fal">Fal.ai</option>
+            <option value="stability">Stability AI</option>
+          </select>
+
           <label>Mode</label>
           <div class="seg" id="mode">
             <button data-mode="image" class="on">Image</button>
@@ -201,26 +207,39 @@
     <script>
       const $ = (id) => document.getElementById(id);
 
-      // Suggested model ids and default advanced params per mode. These are
-      // starting points only — verify current ids at fal.ai/models.
-      const PRESETS = {
-        image: {
-          models: [
-            "fal-ai/flux/dev",
-            "fal-ai/flux/schnell",
-            "fal-ai/fast-sdxl",
-            "fal-ai/fast-sdxl/image-to-image",
-            "fal-ai/lora",
-            "fal-ai/qwen-image-edit-plus",
-            "fal-ai/flux-pro/kontext/max/multi",
-            "fal-ai/nano-banana/edit",
-            "fal-ai/flux-pro/v1.1",
-          ],
-          advanced: { image_size: "landscape_4_3", num_images: 1, num_inference_steps: 28 },
+      // Suggested model ids and default advanced params, per provider + mode.
+      // Fal ids are verifiable at fal.ai/models; Stability models are the fixed
+      // set ultra / core / sd3 (its /v2beta/stable-image/generate/{model} route).
+      const PROVIDERS = {
+        fal: {
+          label: "Fal.ai",
+          image: {
+            models: [
+              "fal-ai/flux/dev",
+              "fal-ai/flux/schnell",
+              "fal-ai/fast-sdxl",
+              "fal-ai/fast-sdxl/image-to-image",
+              "fal-ai/lora",
+              "fal-ai/qwen-image-edit-plus",
+              "fal-ai/flux-pro/kontext/max/multi",
+              "fal-ai/nano-banana/edit",
+              "fal-ai/flux-pro/v1.1",
+            ],
+            advanced: { image_size: "landscape_4_3", num_images: 1, num_inference_steps: 28 },
+          },
+          video: {
+            models: ["fal-ai/ltx-video", "fal-ai/kling-video/v1/standard/text-to-video", "fal-ai/minimax/video-01", "fal-ai/wan/v2.2-a14b/text-to-video"],
+            advanced: { aspect_ratio: "16:9" },
+          },
         },
-        video: {
-          models: ["fal-ai/ltx-video", "fal-ai/kling-video/v1/standard/text-to-video", "fal-ai/minimax/video-01", "fal-ai/wan/v2.2-a14b/text-to-video"],
-          advanced: { aspect_ratio: "16:9" },
+        stability: {
+          label: "Stability AI",
+          image: {
+            models: ["ultra", "core", "sd3"],
+            advanced: { aspect_ratio: "1:1", output_format: "png", negative_prompt: "" },
+          },
+          // Stability video is image-to-video only and not wired up here yet.
+          video: { models: [], advanced: {} },
         },
       };
 
@@ -273,6 +292,7 @@
         }
       }
 
+      let provider = "fal";
       let mode = "image";
       let lastAutoAdvanced = ""; // the JSON we last auto-filled, so we don't clobber hand edits
 
@@ -287,30 +307,50 @@
         }
       }
 
+      function modeCfg() {
+        return PROVIDERS[provider][mode];
+      }
+
+      // True if a model id is a preset for the current provider (any mode).
+      function isKnownModel(id) {
+        return Object.values(PROVIDERS[provider]).some((c) => Array.isArray(c.models) && c.models.includes(id));
+      }
+
       function advancedFor(model) {
-        return MODEL_ADVANCED[(model || "").trim()] || PRESETS[mode].advanced;
+        if (provider === "fal" && MODEL_ADVANCED[(model || "").trim()]) return MODEL_ADVANCED[model.trim()];
+        return modeCfg().advanced;
       }
 
       // Point the dropdown at the current model id, or "Custom…" if it's a typed-in one.
       function syncSelectToModel() {
-        const known = PRESETS[mode].models.includes($("model").value.trim());
+        const known = modeCfg().models.includes($("model").value.trim());
         $("modelSelect").value = known ? $("model").value.trim() : "__custom__";
       }
 
       function applyMode(m) {
         mode = m;
         document.querySelectorAll("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
-        const p = PRESETS[m];
+        const p = modeCfg();
         $("modelSelect").innerHTML =
           p.models.map((x) => `<option value="${x}">${x}</option>`).join("") +
           `<option value="__custom__">Custom…</option>`;
-        if (!$("model").value || Object.values(PRESETS).some((x) => x.models.includes($("model").value))) {
-          $("model").value = p.models[0];
+        if (!$("model").value || isKnownModel($("model").value)) {
+          $("model").value = p.models[0] || "";
         }
         syncSelectToModel();
         syncRefField($("model").value);
         autofillAdvanced(advancedFor($("model").value));
       }
+
+      // Switching provider re-populates models and resets the config box.
+      $("provider").addEventListener("change", () => {
+        provider = $("provider").value;
+        $("advanced").value = "";
+        lastAutoAdvanced = "";
+        $("model").value = "";
+        applyMode(mode);
+        providerWarning();
+      });
 
       // Choosing from the dropdown sets the model box (and its config).
       $("modelSelect").addEventListener("change", () => {
@@ -341,14 +381,25 @@
       );
 
       // ---- auth ----
+      let cfg = { falConfigured: false, stabilityConfigured: false };
+
+      // Warn if the selected provider has no key configured on the server.
+      function providerWarning() {
+        if (provider === "fal" && !cfg.falConfigured)
+          setStatus("Server has no FAL_KEY configured — set it in falgen/.env and restart.", true);
+        else if (provider === "stability" && !cfg.stabilityConfigured)
+          setStatus("Server has no STABILITY_KEY configured — add it to falgen/.env and restart.", true);
+      }
+
       async function checkSession() {
         const r = await fetch("/api/session").then((x) => x.json());
         $("loginView").hidden = r.authed;
         $("appView").hidden = !r.authed;
-        if (r.authed && !r.falConfigured) {
-          setStatus("Server has no FAL_KEY configured — set it in falgen/.env and restart.", true);
+        cfg = r;
+        if (r.authed) {
+          applyMode("image");
+          providerWarning();
         }
-        if (r.authed) applyMode("image");
       }
 
       $("loginForm").addEventListener("submit", async (e) => {
@@ -458,7 +509,7 @@
       // in the Raw panel so it can be inspected/copied.
       function describeError(d) {
         let msg = d.error || "failed";
-        if (d.falStatus) msg += ` (Fal HTTP ${d.falStatus})`;
+        if (d.falStatus) msg += ` (HTTP ${d.falStatus})`;
         if (d.detail != null) {
           const dt = typeof d.detail === "string" ? d.detail : JSON.stringify(d.detail);
           msg += " — " + (dt.length > 300 ? dt.slice(0, 300) + "…" : dt);
@@ -498,10 +549,16 @@
         $("go").disabled = true;
         $("rawWrap").hidden = true;
         try {
-          // Reference images: host each on Fal storage (models can't load inline
-          // data URIs), cache the URL, then inject under the field name the model
-          // expects. Plural field (image_urls) -> array; singular -> one string.
-          if (refImages.length) {
+          const payload = { provider, mode, model, input };
+
+          if (provider === "stability") {
+            // Stability takes raw image bytes (image-to-image, one image). Send the
+            // data URIs; the server attaches them as a multipart file.
+            if (refImages.length) payload.refDataUris = refImages.map((r) => r.dataUri);
+          } else if (refImages.length) {
+            // Fal: host each image on Fal storage (models can't load inline data
+            // URIs), cache the URL, then inject under the field the model expects.
+            // Plural field (image_urls) -> array; singular -> one string.
             setStatus('<span class="spinner"></span>uploading reference image(s)…');
             for (const r of refImages) {
               if (!r.url) {
@@ -524,11 +581,12 @@
           const r = await fetch("/api/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model, input }),
+            body: JSON.stringify(payload),
           });
           const d = await r.json();
           if (!r.ok) throw new Error(describeError(d));
-          const result = await poll(d.requestId);
+          // Fal returns a job id to poll; Stability returns the result inline.
+          const result = d.done ? d.result : await poll(d.requestId);
           const media = collectMedia(result);
           $("raw").textContent = JSON.stringify(result, null, 2);
           $("rawWrap").hidden = false;
