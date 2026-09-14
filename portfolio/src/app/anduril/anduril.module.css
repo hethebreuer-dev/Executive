@@ -334,6 +334,12 @@
   line-height: 1.65;
   color: rgba(244, 244, 242, 0.8);
 }
+.closerLine {
+  margin-top: 26px;
+}
+.closerBtn {
+  margin-top: 40px;
+}
 
 /* ========================= CTA ========================= */
 .cta {

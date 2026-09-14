@@ -391,7 +391,7 @@ export default function AndurilPitch() {
         </div>
       </section>
 
-      {/* ========================= WHY ME ========================= */}
+      {/* ========================= CLOSER ========================= */}
       <section className={`${s.section} ${s.why}`}>
         <div className={s.wrap}>
           <Reveal className={s.reveal}>
@@ -407,24 +407,15 @@ export default function AndurilPitch() {
               Whistlin Diesel / MonsterMax. Same audience DNA as Anduril&rsquo;s.
               Concept to drop to doorstep, built end to end.
             </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ========================= CTA ========================= */}
-      <section className={`${s.section} ${s.cta}`}>
-        <div className={s.wrap}>
-          <Reveal className={s.reveal}>
-            <h2 className={`${s.display} ${s.ctaH}`}>Let&rsquo;s build it for real.</h2>
-            <p className={s.ctaBody}>
-              A conversation, then a pilot drop built to Anduril&rsquo;s
-              standard.
+            <p className={`${s.whyBody} ${s.closerLine}`}>
+              Made as a concept, but built to ship. If the right people at
+              Anduril ever want to make it real, I&rsquo;m easy to find.
             </p>
             <a
-              className={s.ctaBtn}
-              href="mailto:hethebreuer@gmail.com?subject=Anduril%20soft%20goods%20%E2%80%94%20let%27s%20talk"
+              className={`${s.ctaBtn} ${s.closerBtn}`}
+              href="mailto:hethebreuer@gmail.com?subject=Anduril%20soft%20goods%2C%20let%27s%20talk"
             >
-              Start the conversation
+              Get in touch
               <span aria-hidden>&rarr;</span>
             </a>
           </Reveal>
