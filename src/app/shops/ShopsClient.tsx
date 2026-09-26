@@ -111,7 +111,7 @@ export function ShopsClient() {
     );
   }, []);
 
-  // Init the map once (colored CARTO Voyager basemap for a Google-Maps look).
+  // Init the map once (OpenStreetMap standard tiles — colored and keyless).
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -120,10 +120,9 @@ export function ShopsClient() {
       LRef.current = leaflet;
       const map = leaflet.map(mapDiv.current, { scrollWheelZoom: false }).setView(US_CENTER, 4);
       leaflet
-        .tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png", {
+        .tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19,
         })
         .addTo(map);
