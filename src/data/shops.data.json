@@ -3954,5 +3954,37 @@
 ],
 "focus": "South-Jersey shop working on classic air-cooled and modern Porsche.",
 "verified": true
+},
+{
+"id": "eurasian-auto-service-al",
+"name": "Eurasian Auto Service",
+"city": "Birmingham",
+"state": "AL",
+"lat": 33.5207,
+"lng": -86.8025,
+"website": "https://www.eurasianautoservice.com",
+"phone": null,
+"services": [
+"Restoration",
+"Service & Repair"
+],
+"focus": "Porsche & BMW specialist since 1970; classic Porsche preservation.",
+"verified": true
+},
+{
+"id": "edge-motorworks-ca",
+"name": "EDGE Motorworks",
+"city": "San Ramon",
+"state": "CA",
+"lat": 37.7799,
+"lng": -121.978,
+"website": "https://www.edgemotorworks.com/San-Ramon-auto-repairs.html",
+"phone": "(925) 803-8080",
+"services": [
+"Performance & Race",
+"Service & Repair"
+],
+"focus": "European specialist servicing Porsche; maintenance, repair and race prep.",
+"verified": true
 }
 ]
